@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, RefreshCw, Home } from 'lucide-react';
+import { Download, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const CANVAS_W = 1000;
@@ -13,7 +13,6 @@ const CardGenerator: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const navigate = useNavigate();
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
-  const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   
   const characterName = localStorage.getItem('vid_character_name') || 'UNKNOWN SUBJECT';
   const hash = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -29,10 +28,6 @@ const CardGenerator: React.FC = () => {
     img.crossOrigin = "anonymous";
     img.src = avatarSrc;
     img.onload = () => setAvatarImg(img);
-
-    const lImg = new Image();
-    lImg.src = "/logo.png"; // Make sure you have a logo.png in public folder
-    lImg.onload = () => setLogoImg(lImg);
   }, [navigate]);
 
   useEffect(() => {
@@ -41,17 +36,19 @@ const CardGenerator: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 1. Background
+    // 1. 背景绘制
     ctx.fillStyle = '#171717';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // 2. Blueprint Grid
+    // 2. 专业蓝图网格绘制
+    // 次级网格
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(59, 130, 246, 0.05)';
     for (let x = 0; x <= CANVAS_W; x += 20) { ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); }
     for (let y = 0; y <= CANVAS_H; y += 20) { ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); }
     ctx.stroke();
 
+    // 主网格
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(59, 130, 246, 0.15)';
     ctx.lineWidth = 1.5;
@@ -59,10 +56,11 @@ const CardGenerator: React.FC = () => {
     for (let y = 0; y <= CANVAS_H; y += 100) { ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); }
     ctx.stroke();
 
-    // 3. Avatar Reconstruction Logic
+    // 3. 头像精准还原逻辑
     const savedScale = parseFloat(localStorage.getItem('vid_avatar_scale') || '1');
     const savedX = parseFloat(localStorage.getItem('vid_avatar_x') || '0');
     const savedY = parseFloat(localStorage.getItem('vid_avatar_y') || '0');
+    // UI预览区(320px)到Canvas区(290px)的缩放系数
     const uiToCanvasRatio = (AVATAR_RADIUS * 2) / 320; 
 
     ctx.save();
@@ -82,23 +80,23 @@ const CardGenerator: React.FC = () => {
     );
     ctx.restore();
 
-    // Blue Glow Ring
+    // 蓝色外发光圆环
     ctx.beginPath();
     ctx.arc(AVATAR_CENTER_X, AVATAR_CENTER_Y, AVATAR_RADIUS + 5, 0, Math.PI * 2);
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // 4. Content Section
+    // 4. 文字内容区域
     const textX = DIVIDER_X + 50;
     
-    // Vertical Divider
+    // 垂直分割线
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
     ctx.moveTo(DIVIDER_X, 100); ctx.lineTo(DIVIDER_X, 550);
     ctx.stroke();
 
-    // Labels & Identity
+    // 标题与身份信息
     ctx.fillStyle = '#3b82f6';
     ctx.font = 'bold 14px "JetBrains Mono"';
     ctx.fillText("V-ID CARD // VERSION 2.1", textX, 180);
@@ -114,12 +112,7 @@ const CardGenerator: React.FC = () => {
     ctx.font = '14px "JetBrains Mono"';
     ctx.fillText(hash, textX, 325);
 
-    // Static Logo (Bottom Right)
-    if (logoImg) {
-      ctx.drawImage(logoImg, textX, 500, 100, 40);
-    }
-
-  }, [avatarImg, logoImg, characterName]);
+  }, [avatarImg, characterName]);
 
   const downloadImage = () => {
     const link = document.createElement('a');
@@ -135,10 +128,10 @@ const CardGenerator: React.FC = () => {
         
         <div className="mt-8 flex gap-4 justify-center">
           <button onClick={() => navigate('/')} className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-2 transition-all font-mono text-sm">
-            <Home className="w-4 h-4" /> RE-INITIALIZE
+            <Home className="w-4 h-4" /> 返回首页
           </button>
           <button onClick={downloadImage} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center gap-2 transition-all font-bold text-sm">
-            <Download className="w-4 h-4" /> EXPORT IDENTITY CARD
+            <Download className="w-4 h-4" /> 导出身份卡
           </button>
         </div>
       </div>
