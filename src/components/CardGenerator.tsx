@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 
 const CANVAS_W = 1024;
@@ -10,9 +11,6 @@ const REAL_H = CANVAS_H * DPR;
 const AVATAR_COLOR_START = '#b8dce8';
 const AVATAR_COLOR_END = '#e040a0';
 const QR_COLOR = '#de6aa8';
-
-const EDITOR_SIZE = 300;
-const CROP_RADIUS = 120;
 
 interface FormData {
   name: string;
@@ -26,9 +24,8 @@ interface FormData {
 }
 
 export function CardGenerator() {
+  const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const editorCanvasRef = useRef<HTMLCanvasElement>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormData>({
     name: 'ELIZA REED',
@@ -45,19 +42,6 @@ export function CardGenerator() {
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
-  const [showInfoEditor, setShowInfoEditor] = useState(false);
-  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
-  const [rawAvatarImg, setRawAvatarImg] = useState<HTMLImageElement | null>(null);
-  const [avatarCrop, setAvatarCrop] = useState({
-    x: 0,
-    y: 0,
-    scale: 1,
-    dragging: false,
-    startX: 0,
-    startY: 0,
-    origX: 0,
-    origY: 0,
-  });
 
   const formatIssuedDate = useCallback((date = new Date()) => {
     const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
@@ -484,156 +468,6 @@ export function CardGenerator() {
     drawCanvas();
   }, [drawCanvas]);
 
-  const onAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const img = await loadImage(ev.target?.result as string);
-      setRawAvatarImg(img);
-
-      const fitScale = (CROP_RADIUS * 2) / Math.min(img.width, img.height);
-      setAvatarCrop({
-        scale: fitScale,
-        x: (EDITOR_SIZE - img.width * fitScale) / 2,
-        y: (EDITOR_SIZE - img.height * fitScale) / 2,
-        dragging: false,
-        startX: 0,
-        startY: 0,
-        origX: 0,
-        origY: 0,
-      });
-      setShowAvatarEditor(true);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const drawEditorCanvas = useCallback(() => {
-    const canvas = editorCanvasRef.current;
-    if (!canvas || !rawAvatarImg) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const s = EDITOR_SIZE;
-    canvas.width = s * DPR;
-    canvas.height = s * DPR;
-    canvas.style.width = s + 'px';
-    canvas.style.height = s + 'px';
-    ctx.scale(DPR, DPR);
-
-    ctx.clearRect(0, 0, s, s);
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(0, 0, s, s);
-
-    const w = rawAvatarImg.width * avatarCrop.scale;
-    const h = rawAvatarImg.height * avatarCrop.scale;
-    ctx.drawImage(rawAvatarImg, avatarCrop.x, avatarCrop.y, w, h);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, s, s);
-    ctx.arc(s / 2, s / 2, CROP_RADIUS, 0, Math.PI * 2, true);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fill('evenodd');
-    ctx.restore();
-
-    ctx.beginPath();
-    ctx.arc(s / 2, s / 2, CROP_RADIUS, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(160, 32, 240, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }, [rawAvatarImg, avatarCrop]);
-
-  useEffect(() => {
-    if (showAvatarEditor) {
-      drawEditorCanvas();
-    }
-  }, [showAvatarEditor, drawEditorCanvas]);
-
-  const onEditorMouseDown = (e: React.MouseEvent) => {
-    setAvatarCrop(prev => ({
-      ...prev,
-      dragging: true,
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: prev.x,
-      origY: prev.y,
-    }));
-  };
-
-  const onEditorMouseMove = (e: React.MouseEvent) => {
-    if (!avatarCrop.dragging) return;
-    setAvatarCrop(prev => ({
-      ...prev,
-      x: prev.origX + (e.clientX - prev.startX),
-      y: prev.origY + (e.clientY - prev.startY),
-    }));
-  };
-
-  const onEditorMouseUp = () => {
-    setAvatarCrop(prev => ({ ...prev, dragging: false }));
-  };
-
-  const onEditorWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    const oldScale = avatarCrop.scale;
-    const newScale = Math.max(0.1, Math.min(5, oldScale + delta));
-
-    const cx = EDITOR_SIZE / 2;
-    const cy = EDITOR_SIZE / 2;
-    setAvatarCrop(prev => ({
-      ...prev,
-      x: cx - (cx - prev.x) * (newScale / oldScale),
-      y: cy - (cy - prev.y) * (newScale / oldScale),
-      scale: newScale,
-    }));
-  };
-
-  const applyAvatar = () => {
-    const cropCanvas = document.createElement('canvas');
-    const size = CROP_RADIUS * 2 * DPR;
-    cropCanvas.width = size;
-    cropCanvas.height = size;
-    const ctx = cropCanvas.getContext('2d')!;
-    ctx.scale(DPR, DPR);
-
-    if (!rawAvatarImg) return;
-    const w = rawAvatarImg.width * avatarCrop.scale;
-    const h = rawAvatarImg.height * avatarCrop.scale;
-    const offsetX = avatarCrop.x - (EDITOR_SIZE / 2 - CROP_RADIUS);
-    const offsetY = avatarCrop.y - (EDITOR_SIZE / 2 - CROP_RADIUS);
-
-    ctx.beginPath();
-    ctx.arc(CROP_RADIUS, CROP_RADIUS, CROP_RADIUS, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(rawAvatarImg, offsetX, offsetY, w, h);
-
-    const croppedImg = new Image();
-    croppedImg.onload = () => {
-      setAvatarImg(croppedImg);
-      setShowAvatarEditor(false);
-    };
-    croppedImg.src = cropCanvas.toDataURL('image/png');
-  };
-
-  const onCanvasClick = (e: React.MouseEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_W / rect.width;
-    const scaleY = CANVAS_H / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    const cx = 210, cy = 310, r = 100;
-    if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) {
-      avatarInputRef.current?.click();
-    }
-  };
-
   const exportPNG = () => {
     const canvas = document.createElement('canvas');
     canvas.width = REAL_W;
@@ -665,20 +499,20 @@ export function CardGenerator() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-100 mb-1">Card Generator</h1>
-            <p className="text-sm text-slate-400">Preview first, edit via modal</p>
+            <p className="text-sm text-slate-400">Preview your certificate</p>
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => setShowInfoEditor(true)}
+              onClick={() => navigate('/')}
               className="px-5 py-2.5 bg-slate-700/60 hover:bg-slate-600/70 border border-slate-600/20 text-slate-200 rounded-lg font-semibold transition-all"
             >
-              Edit Info
+              Back to Home
             </button>
             <button
               onClick={exportPNG}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-purple-500/30"
+              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-blue-500/30"
             >
-              Export HD PNG
+              Download Certificate
             </button>
           </div>
         </div>
@@ -686,117 +520,11 @@ export function CardGenerator() {
         <div className="flex flex-col items-center">
           <canvas
             ref={canvasRef}
-            onClick={onCanvasClick}
-            className="max-w-full rounded-xl shadow-2xl cursor-default"
+            className="max-w-full rounded-xl shadow-2xl"
             style={{ maxHeight: 'calc(100vh - 160px)' }}
           />
-          <p className="mt-3 text-xs text-slate-500">Click avatar area to upload image</p>
         </div>
       </div>
-
-      <input
-        ref={avatarInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={onAvatarUpload}
-      />
-
-      {showInfoEditor && (
-        <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-          onClick={(e) => e.target === e.currentTarget && setShowInfoEditor(false)}
-        >
-          <div className="bg-[#1a1d2e] border border-slate-700/30 rounded-2xl p-6 w-[min(760px,calc(100vw-48px))] max-h-[calc(100vh-48px)] overflow-y-auto">
-            <div className="flex items-start justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-100">Edit Info</h2>
-              <button
-                onClick={() => setShowInfoEditor(false)}
-                className="text-3xl text-slate-400 hover:text-slate-200 leading-none w-8 h-8"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">NAME</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-black/70 border border-slate-700/25 rounded-lg text-slate-100 text-sm outline-none focus:border-purple-500/50 transition-all"
-                  placeholder="Enter name"
-                />
-              </div>
-
-              <div className="h-px bg-slate-700/15 my-1" />
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">AVATAR</label>
-                <button
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="w-full px-5 py-2.5 bg-slate-700/60 hover:bg-slate-600/70 border border-slate-600/20 text-slate-200 rounded-lg font-semibold transition-all"
-                >
-                  Upload / Change Avatar
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 mt-6">
-              <button
-                onClick={() => setShowInfoEditor(false)}
-                className="px-5 py-2.5 bg-slate-700/60 hover:bg-slate-600/70 border border-slate-600/20 text-slate-200 rounded-lg font-semibold transition-all"
-              >
-                Close
-              </button>
-              <button
-                onClick={exportPNG}
-                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-purple-500/30"
-              >
-                Export HD PNG
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAvatarEditor && (
-        <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-          onClick={(e) => e.target === e.currentTarget && setShowAvatarEditor(false)}
-        >
-          <div className="bg-[#1a1d2e] border border-slate-700/30 rounded-2xl p-7 flex flex-col items-center gap-4 min-w-[360px]">
-            <h2 className="text-xl font-bold text-slate-100 self-start">Adjust Avatar</h2>
-            <p className="text-xs text-slate-400 self-start">Drag to move · Scroll to zoom</p>
-            <div className="relative">
-              <canvas
-                ref={editorCanvasRef}
-                onMouseDown={onEditorMouseDown}
-                onMouseMove={onEditorMouseMove}
-                onMouseUp={onEditorMouseUp}
-                onMouseLeave={onEditorMouseUp}
-                onWheel={onEditorWheel}
-                className="cursor-move"
-              />
-            </div>
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={() => setShowAvatarEditor(false)}
-                className="flex-1 px-5 py-2.5 bg-slate-700/60 hover:bg-slate-600/70 border border-slate-600/20 text-slate-200 rounded-lg font-semibold transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={applyAvatar}
-                className="flex-1 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-purple-500/30"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
