@@ -32,7 +32,7 @@ export function CardGenerator() {
     status: 'VERIFIED',
     issuedDate: '',
     serialId: '',
-    description: 'THIS SIMPLE NOTE SHOWS A LOVELY STORY OF A HAPPY CHILD PLAYING IN THE SUNNY PARK.',
+    description: 'THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY ANCHORED ON THE IMMUTABLE V-ID LEDGER.',
     qrContent: '',
     qrToken: 'ABGD',
     qrRecord: 'SECURE DATA PROOF',
@@ -237,7 +237,7 @@ export function CardGenerator() {
     ctx.font = '600 11px "Segoe UI", system-ui, sans-serif';
     ctx.fillStyle = 'rgba(200, 210, 230, 0.7)';
     ctx.textAlign = 'center';
-    ctx.fillText('GLOBAL ASSET REGISTRY', CANVAS_W / 2, ly + logoH + 18);
+    ctx.fillText('V-ID Protocol', CANVAS_W / 2, ly + logoH + 18);
     ctx.restore();
   };
 
@@ -361,8 +361,8 @@ export function CardGenerator() {
     y = 398;
     ctx.font = '500 16px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
-    ctx.fillText('ID:', startX, y);
-    const idOffset = ctx.measureText('ID: ').width;
+    ctx.fillText('CITIZEN ID:', startX, y);
+    const idOffset = ctx.measureText('CITIZEN ID: ').width;
     ctx.font = '700 26px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.serialId, startX + idOffset + 4, y);
