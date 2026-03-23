@@ -34,7 +34,7 @@ export function VIDCard({
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#040c12] p-8">
         <div
-          className="relative shadow-2xl"
+          className="relative"
           style={{
             width: '1440px',
             height: '810px',
@@ -44,8 +44,65 @@ export function VIDCard({
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundColor: templateLoaded ? 'transparent' : '#0a1824',
+            borderRadius: '16px',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            boxShadow: `
+              0 0 60px rgba(0, 0, 0, 0.8),
+              0 0 40px rgba(6, 182, 212, 0.2),
+              inset 0 0 100px rgba(6, 182, 212, 0.05)
+            `,
+            backdropFilter: 'blur(10px)',
           }}
         >
+          <div
+            className="absolute rounded-full"
+            style={{
+              top: '-50px',
+              left: '-50px',
+              width: '150px',
+              height: '150px',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              top: '-50px',
+              right: '-50px',
+              width: '150px',
+              height: '150px',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              bottom: '-50px',
+              left: '-50px',
+              width: '150px',
+              height: '150px',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              bottom: '-50px',
+              right: '-50px',
+              width: '150px',
+              height: '150px',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              pointerEvents: 'none',
+            }}
+          />
+
           {avatarUrl && (
             <div
               className="absolute"
@@ -60,6 +117,12 @@ export function VIDCard({
                 className="w-full h-full rounded-full overflow-hidden"
                 style={{
                   clipPath: 'circle(50% at 50% 50%)',
+                  boxShadow: `
+                    0 0 40px rgba(6, 182, 212, 0.6),
+                    0 0 80px rgba(168, 85, 247, 0.4),
+                    0 0 120px rgba(236, 72, 153, 0.3),
+                    inset 0 0 30px rgba(6, 182, 212, 0.2)
+                  `,
                 }}
               >
                 <img
@@ -73,6 +136,22 @@ export function VIDCard({
               </div>
             </div>
           )}
+
+          <div
+            className="absolute"
+            style={{
+              left: '36%',
+              top: '20%',
+              width: '4px',
+              height: '60%',
+              background: 'linear-gradient(180deg, transparent 0%, rgba(6, 182, 212, 0.8) 20%, rgba(6, 182, 212, 1) 50%, rgba(6, 182, 212, 0.8) 80%, transparent 100%)',
+              boxShadow: `
+                0 0 20px rgba(6, 182, 212, 0.8),
+                0 0 40px rgba(6, 182, 212, 0.5),
+                0 0 60px rgba(6, 182, 212, 0.3)
+              `,
+            }}
+          />
 
           <div
             className="absolute bg-[#1a3540]"
@@ -164,12 +243,16 @@ export function VIDCard({
           </div>
 
           <div
-            className="absolute bg-[#1a3540]"
+            className="absolute"
             style={{
               right: '4.5%',
               bottom: '8.5%',
               width: '14%',
               height: '4%',
+              backgroundColor: 'rgba(26, 53, 64, 0.8)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              borderRadius: '4px',
+              boxShadow: '0 0 10px rgba(6, 182, 212, 0.2)',
             }}
           />
           <div
