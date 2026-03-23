@@ -180,7 +180,7 @@ export function CardGenerator() {
     ctx.save();
     ctx.beginPath();
     roundRect(ctx, px, py, pw, ph, r);
-    ctx.fillStyle = 'rgba(18, 22, 34, 0.14)';
+    ctx.fillStyle = 'rgba(12, 13, 15, 0.9)';
     ctx.fill();
     ctx.restore();
 
@@ -188,6 +188,23 @@ export function CardGenerator() {
     ctx.beginPath();
     roundRect(ctx, px, py, pw, ph, r);
     ctx.clip();
+
+    const gridSize = 40;
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.05)';
+    ctx.lineWidth = 1;
+    for (let x = px; x < px + pw; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, py);
+      ctx.lineTo(x, py + ph);
+      ctx.stroke();
+    }
+    for (let y = py; y < py + ph; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(px, y);
+      ctx.lineTo(px + pw, y);
+      ctx.stroke();
+    }
+
     const cornerGlows = [
       { x: px + 8, y: py + 8 },
       { x: px + pw - 8, y: py + 8 },
@@ -195,31 +212,41 @@ export function CardGenerator() {
       { x: px + pw - 8, y: py + ph - 8 },
     ];
     cornerGlows.forEach(({ x, y }) => {
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, 128);
-      glow.addColorStop(0, 'rgba(210, 230, 255, 0.24)');
-      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.14)');
-      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.08)');
-      glow.addColorStop(1, 'rgba(170, 205, 255, 0)');
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, 160);
+      glow.addColorStop(0, 'rgba(6, 182, 212, 0.15)');
+      glow.addColorStop(0.3, 'rgba(6, 182, 212, 0.08)');
+      glow.addColorStop(0.6, 'rgba(6, 182, 212, 0.03)');
+      glow.addColorStop(1, 'rgba(6, 182, 212, 0)');
       ctx.fillStyle = glow;
-      ctx.fillRect(x - 128, y - 128, 256, 256);
+      ctx.fillRect(x - 160, y - 160, 320, 320);
     });
     ctx.restore();
 
     ctx.save();
     ctx.beginPath();
     roundRect(ctx, px, py, pw, ph, r);
-    ctx.strokeStyle = 'rgba(200, 215, 240, 0.35)';
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
 
     ctx.save();
-    ctx.shadowColor = 'rgba(140, 180, 255, 0.12)';
-    ctx.shadowBlur = 25;
+    ctx.shadowColor = 'rgba(6, 182, 212, 0.4)';
+    ctx.shadowBlur = 20;
     ctx.beginPath();
     roundRect(ctx, px, py, pw, ph, r);
-    ctx.strokeStyle = 'rgba(140, 180, 255, 0.08)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.2)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(6, 182, 212, 0.6)';
+    ctx.shadowBlur = 40;
+    ctx.beginPath();
+    roundRect(ctx, px, py, pw, ph, r);
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
+    ctx.lineWidth = 4;
     ctx.stroke();
     ctx.shadowColor = 'transparent';
     ctx.restore();
@@ -245,30 +272,35 @@ export function CardGenerator() {
     const cx = 210, cy = 310, outerR = 100, innerR = 88;
 
     ctx.save();
-    const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 20);
-    glow.addColorStop(0, hexToRgba(AVATAR_COLOR_END, 0));
-    glow.addColorStop(0.5, hexToRgba(AVATAR_COLOR_END, 0.12));
-    glow.addColorStop(0.8, hexToRgba(AVATAR_COLOR_START, 0.08));
-    glow.addColorStop(1, hexToRgba(AVATAR_COLOR_START, 0));
-    ctx.fillStyle = glow;
+    const outerGlow = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR + 50);
+    outerGlow.addColorStop(0, 'rgba(6, 182, 212, 0)');
+    outerGlow.addColorStop(0.4, 'rgba(6, 182, 212, 0.25)');
+    outerGlow.addColorStop(0.7, 'rgba(6, 182, 212, 0.15)');
+    outerGlow.addColorStop(1, 'rgba(6, 182, 212, 0)');
+    ctx.fillStyle = outerGlow;
     ctx.beginPath();
-    ctx.arc(cx, cy, outerR + 20, 0, Math.PI * 2);
+    ctx.arc(cx, cy, outerR + 50, 0, Math.PI * 2);
     ctx.fill();
 
-    const ringGrad = ctx.createLinearGradient(cx, cy - outerR, cx, cy + outerR);
-    ringGrad.addColorStop(0, AVATAR_COLOR_START);
-    ringGrad.addColorStop(0.45, AVATAR_COLOR_START);
-    ringGrad.addColorStop(0.65, AVATAR_COLOR_END);
-    ringGrad.addColorStop(1, AVATAR_COLOR_END);
+    ctx.shadowColor = 'rgba(6, 182, 212, 0.8)';
+    ctx.shadowBlur = 30;
     ctx.beginPath();
     ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
-    ctx.strokeStyle = ringGrad;
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+    ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.beginPath();
     ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(15, 18, 30, 0.8)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
     ctx.fill();
 
     if (avatarImg) {
@@ -296,21 +328,38 @@ export function CardGenerator() {
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
     const lx = 340, ly1 = 170, ly2 = 455;
     ctx.save();
+
+    const outerGlow = ctx.createLinearGradient(lx - 20, ly1, lx + 20, ly1);
+    outerGlow.addColorStop(0, 'rgba(6, 182, 212, 0)');
+    outerGlow.addColorStop(0.2, 'rgba(6, 182, 212, 0.1)');
+    outerGlow.addColorStop(0.5, 'rgba(6, 182, 212, 0.25)');
+    outerGlow.addColorStop(0.8, 'rgba(6, 182, 212, 0.1)');
+    outerGlow.addColorStop(1, 'rgba(6, 182, 212, 0)');
+    ctx.fillStyle = outerGlow;
+    ctx.fillRect(lx - 20, ly1, 40, ly2 - ly1);
+
     const glow = ctx.createLinearGradient(lx - 8, ly1, lx + 8, ly1);
-    glow.addColorStop(0, 'rgba(160, 190, 240, 0)');
-    glow.addColorStop(0.28, 'rgba(160, 190, 240, 0.10)');
-    glow.addColorStop(0.5, 'rgba(160, 190, 240, 0.16)');
-    glow.addColorStop(0.72, 'rgba(160, 190, 240, 0.10)');
-    glow.addColorStop(1, 'rgba(160, 190, 240, 0)');
+    glow.addColorStop(0, 'rgba(6, 182, 212, 0)');
+    glow.addColorStop(0.3, 'rgba(6, 182, 212, 0.3)');
+    glow.addColorStop(0.5, 'rgba(6, 182, 212, 0.5)');
+    glow.addColorStop(0.7, 'rgba(6, 182, 212, 0.3)');
+    glow.addColorStop(1, 'rgba(6, 182, 212, 0)');
     ctx.fillStyle = glow;
     ctx.fillRect(lx - 8, ly1, 16, ly2 - ly1);
 
-    const core = ctx.createLinearGradient(lx - 1.5, ly1, lx + 1.5, ly1);
-    core.addColorStop(0, 'rgba(210, 225, 255, 0.18)');
-    core.addColorStop(0.5, 'rgba(210, 225, 255, 0.55)');
-    core.addColorStop(1, 'rgba(210, 225, 255, 0.18)');
-    ctx.fillStyle = core;
+    const vertGrad = ctx.createLinearGradient(lx, ly1, lx, ly2);
+    vertGrad.addColorStop(0, 'rgba(6, 182, 212, 0.3)');
+    vertGrad.addColorStop(0.5, 'rgba(6, 182, 212, 0.9)');
+    vertGrad.addColorStop(1, 'rgba(6, 182, 212, 0.3)');
+    ctx.fillStyle = vertGrad;
     ctx.fillRect(lx - 1.5, ly1, 3, ly2 - ly1);
+
+    ctx.shadowColor = 'rgba(6, 182, 212, 0.8)';
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = 'rgba(6, 182, 212, 0.8)';
+    ctx.fillRect(lx - 1, ly1, 2, ly2 - ly1);
+    ctx.shadowColor = 'transparent';
+
     ctx.restore();
   };
 
