@@ -75,12 +75,10 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-blue-400 rounded-full animate-pulse"
+            className="absolute w-1 h-1 bg-blue-400 rounded-full opacity-30"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
-              opacity: 0.3
             }}
           />
         ))}
@@ -108,7 +106,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
                 <div className="absolute inset-0 bg-blue-300 blur-sm" />
               </div>
 
-              <div className="absolute inset-0 border-4 border-blue-400 rounded-full animate-ping opacity-20" />
+              <div className="absolute inset-0 border-4 border-blue-400 rounded-full opacity-20" />
             </div>
           )}
 
@@ -121,7 +119,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
               >
                 {hashChars}
                 {hashChars.length < 64 && (
-                  <span className="inline-block w-2 h-5 bg-blue-400 ml-1 animate-pulse" />
+                  <span className="inline-block w-2 h-5 bg-blue-400 ml-1" />
                 )}
               </div>
             </div>
@@ -137,8 +135,6 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
                     cy={64}
                     r={4}
                     fill="#60a5fa"
-                    className="animate-pulse"
-                    style={{ animationDelay: `${i * 0.1}s` }}
                   />
                 ))}
                 {[...Array(7)].map((_, i) => (
@@ -150,22 +146,19 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
                     y2={64}
                     stroke="#3b82f6"
                     strokeWidth="2"
-                    className="animate-pulse"
-                    style={{ animationDelay: `${i * 0.15}s` }}
                   />
                 ))}
               </svg>
 
               <div
-                className="absolute top-0 left-0 w-8 h-8 bg-green-500 rounded-full animate-bounce"
-                style={{ animationDuration: '1s' }}
+                className="absolute top-0 left-0 w-8 h-8 bg-green-500 rounded-full"
               />
             </div>
           )}
 
           {stage === 'secured' && (
             <div className="flex items-center justify-center mt-8">
-              <div className="w-24 h-24 bg-green-500/20 border-4 border-green-500 rounded-full flex items-center justify-center animate-pulse">
+              <div className="w-24 h-24 bg-green-500/20 border-4 border-green-500 rounded-full flex items-center justify-center">
                 <svg
                   className="w-12 h-12 text-green-400"
                   fill="none"
@@ -206,8 +199,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
-                style={{ animationDelay: `${i * 0.2}s` }}
+                className="w-2 h-2 bg-blue-400 rounded-full"
               />
             ))}
           </div>
