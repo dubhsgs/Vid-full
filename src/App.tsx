@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, Shield, FileCheck, ChevronDown, Download, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -170,10 +170,12 @@ function App() {
     img.src = imagePreview;
   };
 
-  const handleAnimationComplete = () => {
+  const handleAnimationComplete = useCallback(() => {
+    console.log('handleAnimationComplete called');
     setShowForgingAnimation(false);
+    console.log('Navigating to /card-generator');
     navigate('/card-generator');
-  };
+  }, [navigate]);
 
   const handleActivateLicense = async (key: string): Promise<boolean> => {
     const result = await validateAndActivateLicense(key);

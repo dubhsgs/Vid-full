@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface ForgingAnimationProps {
   avatarUrl: string | null;
@@ -13,20 +13,37 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
   const [charStates, setCharStates] = useState<Array<'pending' | 'active' | 'locked'>>([]);
   const [rippleActive, setRippleActive] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const onCompleteRef = useRef(onComplete);
 
   useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    console.log('ForgingAnimation mounted, starting timeline');
+
     const timeline = [
-      { delay: 0, action: () => setStage('scanning') },
-      { delay: 1500, action: () => setStage('hashing') },
+      { delay: 0, action: () => {
+        console.log('Stage: scanning');
+        setStage('scanning');
+      }},
+      { delay: 1500, action: () => {
+        console.log('Stage: hashing');
+        setStage('hashing');
+      }},
       { delay: 3000, action: () => {
+        console.log('Stage: anchoring');
         setStage('anchoring');
         setRippleActive(true);
         setTimeout(() => setRippleActive(false), 800);
       }},
-      { delay: 4500, action: () => setStage('secured') },
+      { delay: 4500, action: () => {
+        console.log('Stage: secured');
+        setStage('secured');
+      }},
       { delay: 5500, action: () => {
         console.log('Animation complete, calling onComplete');
-        onComplete();
+        onCompleteRef.current();
       }}
     ];
 
@@ -34,8 +51,11 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
       setTimeout(action, delay)
     );
 
-    return () => timers.forEach(clearTimeout);
-  }, [onComplete]);
+    return () => {
+      console.log('ForgingAnimation unmounting, clearing timers');
+      timers.forEach(clearTimeout);
+    };
+  }, []);
 
   useEffect(() => {
     if (stage === 'scanning') {
