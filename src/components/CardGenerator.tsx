@@ -293,7 +293,11 @@ export function CardGenerator() {
       ctx.arc(cx, cy, innerR - 2, 0, Math.PI * 2);
       ctx.clip();
       const size = innerR * 2 - 4;
-      ctx.drawImage(avatarImg, cx - size / 2, cy - size / 2, size, size);
+      ctx.drawImage(
+        avatarImg,
+        0, 0, avatarImg.width, avatarImg.height,
+        cx - size / 2, cy - size / 2, size, size
+      );
       ctx.restore();
     } else {
       ctx.fillStyle = 'rgba(100, 120, 160, 0.3)';
