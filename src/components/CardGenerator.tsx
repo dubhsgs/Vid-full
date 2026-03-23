@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
+import { supabase } from '../utils/supabase';
+import { calculateSHA256 } from '../utils/sha256';
 
 const CANVAS_W = 1024;
 const CANVAS_H = 576;
@@ -38,6 +40,10 @@ export function CardGenerator() {
     qrRecord: 'SECURE DATA PROOF',
   });
 
+  const [sha256Hash, setSha256Hash] = useState<string>('');
+  const [citizenId, setCitizenId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
@@ -58,14 +64,63 @@ export function CardGenerator() {
   }, []);
 
   useEffect(() => {
-    const issuedDate = formatIssuedDate();
-    const serialId = generateSerialId();
-    setForm(prev => ({
-      ...prev,
-      issuedDate,
-      serialId,
-      qrContent: `https://example.com/verify/${serialId}`,
-    }));
+    const initializeCard = async () => {
+      const issuedDate = formatIssuedDate();
+      const serialId = generateSerialId();
+
+      const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
+      const savedName = localStorage.getItem('vid_character_name') || 'ELIZA REED';
+      const creatorName = 'Anonymous Creator';
+
+      let hashValue = '';
+      if (savedAvatar) {
+        const dataToHash = `${savedName}:${creatorName}:${issuedDate}:${savedAvatar}`;
+        hashValue = await calculateSHA256(dataToHash);
+        setSha256Hash(hashValue);
+      }
+
+      try {
+        setIsSaving(true);
+        const { data, error } = await supabase
+          .from('v_ids')
+          .insert({
+            character_name: savedName,
+            creator_name: creatorName,
+            sha256_hash: hashValue,
+            image_url: savedAvatar || ''
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          console.error('Error saving to database:', error);
+          const tempId = serialId;
+          setCitizenId(tempId);
+          setForm(prev => ({
+            ...prev,
+            name: savedName,
+            issuedDate,
+            serialId: tempId,
+            qrContent: `${window.location.origin}/verify/${tempId}`,
+          }));
+        } else if (data) {
+          setCitizenId(data.id);
+          setForm(prev => ({
+            ...prev,
+            name: savedName,
+            issuedDate,
+            serialId: data.id,
+            qrContent: `${window.location.origin}/verify/${data.id}`,
+          }));
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    initializeCard();
   }, [formatIssuedDate, generateSerialId]);
 
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
@@ -434,6 +489,17 @@ export function CardGenerator() {
     ctx.restore();
   };
 
+  const drawLegalNotice = (ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    ctx.font = '400 8px "Segoe UI", system-ui';
+    ctx.fillStyle = 'rgba(160, 170, 190, 0.35)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const notice = 'This certificate contains a SHA-256 hash that serves as technical evidence of existence, independently verifiable via Blockchain.';
+    ctx.fillText(notice, CANVAS_W / 2, 540);
+    ctx.restore();
+  };
+
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -462,13 +528,14 @@ export function CardGenerator() {
     drawTextFields(ctx);
     drawQRCode(ctx);
     drawDescription(ctx);
+    drawLegalNotice(ctx);
   }, [bgImg, logoImg, avatarImg, qrImg, form]);
 
   useEffect(() => {
     drawCanvas();
   }, [drawCanvas]);
 
-  const exportPNG = () => {
+  const exportPNG = async () => {
     const canvas = document.createElement('canvas');
     canvas.width = REAL_W;
     canvas.height = REAL_H;
@@ -486,11 +553,77 @@ export function CardGenerator() {
     drawTextFields(ctx);
     drawDescription(ctx);
     drawQRCode(ctx);
+    drawLegalNotice(ctx);
+
+    const imageDataUrl = canvas.toDataURL('image/png');
+
+    const verificationGuide = `V-ID VERIFICATION GUIDE
+========================
+
+Thank you for generating your V-ID Certificate!
+
+WHAT IS THE SHA-256 HASH?
+-------------------------
+The SHA-256 hash is a unique cryptographic fingerprint of your V-ID certificate.
+It serves as tamper-proof evidence that this identity existed at a specific point in time.
+
+YOUR V-ID DETAILS:
+------------------
+Character Name: ${form.name}
+Citizen ID: ${form.serialId}
+Issue Date: ${form.issuedDate}
+SHA-256 Hash: ${sha256Hash}
+
+HOW TO VERIFY YOUR V-ID:
+------------------------
+1. Visit the OpenTimestamps official website:
+   https://opentimestamps.org
+
+2. Copy your SHA-256 hash (shown above)
+
+3. Paste it into the verification field on OpenTimestamps.org
+
+4. The website will show you the Bitcoin blockchain timestamp proof
+
+WHY THIS MATTERS:
+-----------------
+- Your V-ID is anchored to the Bitcoin blockchain
+- This provides independent, decentralized proof of existence
+- No one can alter or backdate your V-ID record
+- The verification is completely independent of our service
+
+ONLINE VERIFICATION:
+--------------------
+You can also verify your V-ID online at:
+${window.location.origin}/verify/${citizenId}
+
+This will show your full V-ID record and provide a direct link
+to verify the hash on OpenTimestamps.org
+
+QUESTIONS?
+----------
+For more information about V-ID and blockchain verification,
+visit our website or contact support.
+
+© V-ID Protocol - Decentralized Identity Verification
+`;
+
+    const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+    const zip = new JSZip();
+
+    const imageBlob = await (await fetch(imageDataUrl)).blob();
+    zip.file('V-ID_Certificate.png', imageBlob);
+
+    zip.file('Proof_Verification_Guide.txt', verificationGuide);
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
 
     const link = document.createElement('a');
-    link.download = `card-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.download = `V-ID_${form.serialId}_Complete.zip`;
+    link.href = URL.createObjectURL(zipBlob);
     link.click();
+
+    setTimeout(() => URL.revokeObjectURL(link.href), 100);
   };
 
   return (

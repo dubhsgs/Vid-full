@@ -10,6 +10,7 @@ import { AnimatedGrid } from './components/AnimatedGrid';
 import { PaywallModal } from './components/PaywallModal';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { TemplateCertificate } from './components/TemplateCertificate';
+import { ForgingAnimation } from './components/ForgingAnimation';
 import {
   canGenerateCertificate,
   useFreeCertificate,
@@ -35,6 +36,7 @@ function App() {
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [showForgingAnimation, setShowForgingAnimation] = useState(false);
 
   useEffect(() => {
     setRemainingFree(getRemainingFreeCertificates());
@@ -162,9 +164,15 @@ function App() {
       const croppedAvatar = canvas.toDataURL('image/png');
       localStorage.setItem('vid_uploaded_avatar', croppedAvatar);
       localStorage.setItem('vid_character_name', characterName);
-      navigate('/card-generator');
+
+      setShowForgingAnimation(true);
     };
     img.src = imagePreview;
+  };
+
+  const handleAnimationComplete = () => {
+    setShowForgingAnimation(false);
+    navigate('/card-generator');
   };
 
   const handleActivateLicense = async (key: string): Promise<boolean> => {
@@ -489,6 +497,14 @@ function App() {
         onClose={() => setShowPaywall(false)}
         onActivate={handleActivateLicense}
       />
+
+      {showForgingAnimation && (
+        <ForgingAnimation
+          avatarUrl={imagePreview}
+          characterName={characterName}
+          onComplete={handleAnimationComplete}
+        />
+      )}
     </div>
   );
 }
