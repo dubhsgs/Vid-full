@@ -90,31 +90,49 @@ export function CardGenerator() {
             image_url: savedAvatar || ''
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error saving to database:', error);
-          const tempId = serialId;
-          setCitizenId(tempId);
+          setCitizenId(serialId);
           setForm(prev => ({
             ...prev,
             name: savedName,
             issuedDate,
-            serialId: tempId,
-            qrContent: `${window.location.origin}/verify/${tempId}`,
+            serialId: serialId,
+            qrContent: `${window.location.origin}/verify/${serialId}`,
           }));
         } else if (data) {
+          console.log('Successfully saved to database, ID:', data.id);
           setCitizenId(data.id);
           setForm(prev => ({
             ...prev,
             name: savedName,
             issuedDate,
-            serialId: data.id,
+            serialId: serialId,
             qrContent: `${window.location.origin}/verify/${data.id}`,
+          }));
+        } else {
+          console.log('No data returned, using generated serialId');
+          setCitizenId(serialId);
+          setForm(prev => ({
+            ...prev,
+            name: savedName,
+            issuedDate,
+            serialId: serialId,
+            qrContent: `${window.location.origin}/verify/${serialId}`,
           }));
         }
       } catch (err) {
         console.error('Unexpected error:', err);
+        setCitizenId(serialId);
+        setForm(prev => ({
+          ...prev,
+          name: savedName,
+          issuedDate,
+          serialId: serialId,
+          qrContent: `${window.location.origin}/verify/${serialId}`,
+        }));
       } finally {
         setIsSaving(false);
       }
