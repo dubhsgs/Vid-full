@@ -12,9 +12,13 @@ export const supabase = createClient(
 
 // 检测是否为开发环境
 export function isDevelopmentMode(): boolean {
-  // 只有手动启用开发者模式时才返回 true
+  // 自动检测开发环境（Vite 开发服务器）
+  const isDevServer = import.meta.env.DEV;
+
+  // 手动启用的开发者模式
   const devModeEnabled = localStorage.getItem(DEV_MODE_KEY) === 'true';
-  return devModeEnabled;
+
+  return isDevServer || devModeEnabled;
 }
 
 // 启用/禁用开发者模式
