@@ -135,24 +135,28 @@ function App() {
       ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
       ctx.clip();
 
-      const containerSize = 320;
-      const centerX = containerSize / 2;
-      const centerY = containerSize / 2;
+      const displayContainerSize = 320;
 
-      const scaledWidth = containerSize * imageScale;
-      const scaledHeight = containerSize * imageScale;
+      const displayImageWidth = displayContainerSize;
+      const displayImageHeight = (img.height / img.width) * displayContainerSize;
 
-      const sourceX = centerX + imagePosition.x - scaledWidth / 2;
-      const sourceY = centerY + imagePosition.y - scaledHeight / 2;
+      const displayCenterX = displayContainerSize / 2;
+      const displayCenterY = displayContainerSize / 2;
 
-      const canvasCenterX = size / 2;
-      const canvasCenterY = size / 2;
-      const drawX = canvasCenterX - (centerX - sourceX) * (size / containerSize);
-      const drawY = canvasCenterY - (centerY - sourceY) * (size / containerSize);
-      const drawWidth = scaledWidth * (size / containerSize);
-      const drawHeight = scaledHeight * (size / containerSize);
+      const scaledDisplayWidth = displayImageWidth * imageScale;
+      const scaledDisplayHeight = displayImageHeight * imageScale;
 
-      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      const displayX = displayCenterX - scaledDisplayWidth / 2 + imagePosition.x;
+      const displayY = displayCenterY - scaledDisplayHeight / 2 + imagePosition.y;
+
+      const canvasRatio = size / displayContainerSize;
+
+      const canvasX = displayX * canvasRatio;
+      const canvasY = displayY * canvasRatio;
+      const canvasWidth = scaledDisplayWidth * canvasRatio;
+      const canvasHeight = scaledDisplayHeight * canvasRatio;
+
+      ctx.drawImage(img, canvasX, canvasY, canvasWidth, canvasHeight);
       ctx.restore();
 
       const croppedAvatar = canvas.toDataURL('image/png');
@@ -380,21 +384,22 @@ function App() {
                       onMouseLeave={handleImageMouseUp}
                     >
                       <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-blue-500 shadow-2xl">
-                        <img
-                          src={imagePreview}
-                          alt="Character preview"
-                          className="absolute cursor-move select-none"
-                          style={{
-                            transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
-                            transformOrigin: 'center',
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            transition: isDraggingImage ? 'none' : 'transform 0.1s ease-out'
-                          }}
-                          onMouseDown={handleImageMouseDown}
-                          draggable={false}
-                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <img
+                            src={imagePreview}
+                            alt="Character preview"
+                            className="cursor-move select-none"
+                            style={{
+                              transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
+                              maxWidth: 'none',
+                              width: '100%',
+                              height: 'auto',
+                              transition: isDraggingImage ? 'none' : 'transform 0.1s ease-out'
+                            }}
+                            onMouseDown={handleImageMouseDown}
+                            draggable={false}
+                          />
+                        </div>
                       </div>
                       <div className="absolute inset-0 rounded-full border-4 border-dashed border-blue-400/50 pointer-events-none" />
                     </div>
