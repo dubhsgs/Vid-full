@@ -38,8 +38,8 @@ export function VerifyPage() {
       try {
         const { data, error } = await supabase
           .from('v_ids')
-          .select('id, character_name, creator_name, sha256_hash, image_url, created_at')
-          .eq('id', id)
+          .select('id, friendly_id, character_name, creator_name, sha256_hash, image_url, created_at')
+          .eq('friendly_id', id)
           .maybeSingle();
 
         if (error) throw error;
@@ -47,7 +47,7 @@ export function VerifyPage() {
         if (!data) {
           setError('No record found for this Citizen ID');
         } else {
-          setRecord(data);
+          setRecord({ ...data, id: data.friendly_id || data.id });
         }
       } catch (err) {
         console.error('Error fetching record:', err);

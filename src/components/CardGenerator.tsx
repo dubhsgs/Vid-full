@@ -95,9 +95,10 @@ export function CardGenerator() {
               character_name: savedName,
               creator_name: creatorName,
               sha256_hash: hashValue,
-              image_url: savedAvatar || ''
+              image_url: savedAvatar || '',
+              friendly_id: serialId
             })
-            .select('id')
+            .select('friendly_id')
             .maybeSingle();
 
           if (error) {
@@ -109,12 +110,12 @@ export function CardGenerator() {
               qrContent: `${window.location.origin}/verify/${serialId}`,
             }));
           } else if (data) {
-            console.log('Successfully saved to database, ID:', data.id);
-            setCitizenId(data.id);
+            console.log('Successfully saved to database, friendly_id:', data.friendly_id);
+            setCitizenId(data.friendly_id);
             setForm(prev => ({
               ...prev,
-              serialId: data.id,
-              qrContent: `${window.location.origin}/verify/${data.id}`,
+              serialId: data.friendly_id,
+              qrContent: `${window.location.origin}/verify/${data.friendly_id}`,
             }));
           } else {
             console.log('No data returned, using generated serialId');
