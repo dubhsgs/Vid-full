@@ -176,7 +176,11 @@ export function CardGenerator() {
 
   const generateQR = useCallback(async () => {
     try {
-      const qrDataUrl = await QRCode.toDataURL('https://www.baidu.com', {
+      const verifyUrl = citizenId
+        ? `${window.location.origin}/verify/${citizenId}`
+        : 'https://www.baidu.com';
+
+      const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
         width: 240,
         margin: 1,
         color: { dark: '#000000', light: '#00000000' },
@@ -187,7 +191,7 @@ export function CardGenerator() {
     } catch (e) {
       console.error('QR generation failed:', e);
     }
-  }, [loadImage]);
+  }, [citizenId, loadImage]);
 
   useEffect(() => {
     generateQR();
