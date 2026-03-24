@@ -66,11 +66,16 @@ export function CardGenerator() {
   useEffect(() => {
     const initializeCard = async () => {
       const issuedDate = formatIssuedDate();
-      const serialId = generateSerialId();
-
       const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
       const savedName = localStorage.getItem('vid_character_name') || 'ELIZA REED';
       const creatorName = 'Anonymous Creator';
+
+      setForm(prev => ({
+        ...prev,
+        name: savedName,
+        issuedDate,
+        serialId: 'Generating...',
+      }));
 
       let hashValue = '';
       if (savedAvatar) {
@@ -79,63 +84,59 @@ export function CardGenerator() {
         setSha256Hash(hashValue);
       }
 
-      try {
-        setIsSaving(true);
-        const { data, error } = await supabase
-          .from('v_ids')
-          .insert({
-            character_name: savedName,
-            creator_name: creatorName,
-            sha256_hash: hashValue,
-            image_url: savedAvatar || ''
-          })
-          .select('id')
-          .maybeSingle();
+      const serialId = generateSerialId();
 
-        if (error) {
-          console.error('Error saving to database:', error);
+      (async () => {
+        try {
+          setIsSaving(true);
+          const { data, error } = await supabase
+            .from('v_ids')
+            .insert({
+              character_name: savedName,
+              creator_name: creatorName,
+              sha256_hash: hashValue,
+              image_url: savedAvatar || ''
+            })
+            .select('id')
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error saving to database:', error);
+            setCitizenId(serialId);
+            setForm(prev => ({
+              ...prev,
+              serialId: serialId,
+              qrContent: `${window.location.origin}/verify/${serialId}`,
+            }));
+          } else if (data) {
+            console.log('Successfully saved to database, ID:', data.id);
+            setCitizenId(data.id);
+            setForm(prev => ({
+              ...prev,
+              serialId: data.id,
+              qrContent: `${window.location.origin}/verify/${data.id}`,
+            }));
+          } else {
+            console.log('No data returned, using generated serialId');
+            setCitizenId(serialId);
+            setForm(prev => ({
+              ...prev,
+              serialId: serialId,
+              qrContent: `${window.location.origin}/verify/${serialId}`,
+            }));
+          }
+        } catch (err) {
+          console.error('Unexpected error:', err);
           setCitizenId(serialId);
           setForm(prev => ({
             ...prev,
-            name: savedName,
-            issuedDate,
             serialId: serialId,
             qrContent: `${window.location.origin}/verify/${serialId}`,
           }));
-        } else if (data) {
-          console.log('Successfully saved to database, ID:', data.id);
-          setCitizenId(data.id);
-          setForm(prev => ({
-            ...prev,
-            name: savedName,
-            issuedDate,
-            serialId: serialId,
-            qrContent: `${window.location.origin}/verify/${data.id}`,
-          }));
-        } else {
-          console.log('No data returned, using generated serialId');
-          setCitizenId(serialId);
-          setForm(prev => ({
-            ...prev,
-            name: savedName,
-            issuedDate,
-            serialId: serialId,
-            qrContent: `${window.location.origin}/verify/${serialId}`,
-          }));
+        } finally {
+          setIsSaving(false);
         }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        setCitizenId(serialId);
-        setForm(prev => ({
-          ...prev,
-          name: savedName,
-          issuedDate,
-          serialId: serialId,
-          qrContent: `${window.location.origin}/verify/${serialId}`,
-        }));
-      } finally {
-        setIsSaving(false);
-      }
+      })();
     };
 
     initializeCard();
@@ -444,7 +445,6 @@ export function CardGenerator() {
   };
 
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    if (!qrImg) return;
     const qx = 838, qy = 290, qs = 95;
 
     ctx.save();
@@ -457,6 +457,15 @@ export function CardGenerator() {
     ctx.beginPath();
     roundRect(ctx, qx - 12, qy - 12, qs + 24, qs + 60, 8);
     ctx.stroke();
+
+    if (!qrImg) {
+      ctx.fillStyle = 'rgba(180, 190, 210, 0.5)';
+      ctx.font = '14px "Segoe UI", system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('Generating...', qx + qs / 2, qy + qs / 2);
+      ctx.restore();
+      return;
+    }
 
     const qrCanvas = document.createElement('canvas');
     qrCanvas.width = qs;
