@@ -176,7 +176,7 @@ export function CardGenerator() {
 
   const generateQR = useCallback(async () => {
     try {
-      const qrDataUrl = await QRCode.toDataURL(form.qrContent, {
+      const qrDataUrl = await QRCode.toDataURL('https://www.baidu.com', {
         width: 240,
         margin: 1,
         color: { dark: '#000000', light: '#00000000' },
@@ -187,13 +187,11 @@ export function CardGenerator() {
     } catch (e) {
       console.error('QR generation failed:', e);
     }
-  }, [form.qrContent, loadImage]);
+  }, [loadImage]);
 
   useEffect(() => {
-    if (form.qrContent) {
-      generateQR();
-    }
-  }, [form.qrContent, generateQR]);
+    generateQR();
+  }, [generateQR]);
 
   const hexToRgba = (hex: string, alpha = 1) => {
     const normalized = hex.replace('#', '');
@@ -491,12 +489,12 @@ export function CardGenerator() {
     ctx.fillStyle = qrGlow;
     ctx.fillRect(qx - 6, qy - 6, qs + 12, qs + 12);
 
-    ctx.font = '500 8px "Courier New", monospace';
+    ctx.font = '500 7px "JetBrains Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(100, 180, 255, 0.55)';
+    ctx.fillStyle = 'rgba(70, 140, 180, 0.52)';
     const hashPrefix = sha256Hash ? sha256Hash.slice(0, 8) : '00000000';
-    ctx.fillText(`HASH: 0x${hashPrefix}...`, qx + qs / 2, qy + qs + 18);
-    ctx.fillText('STATUS: ON-CHAIN SYNCED', qx + qs / 2, qy + qs + 32);
+    ctx.fillText(`HASH: 0x${hashPrefix}...`, qx + qs / 2, qy + qs + 20);
+    ctx.fillText('STATUS: ON-CHAIN SYNCED', qx + qs / 2, qy + qs + 30);
     ctx.restore();
   };
 
