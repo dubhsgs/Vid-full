@@ -217,7 +217,7 @@ export function VerifyPage() {
 
       ctx.font = '5px "Courier New", monospace';
       ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.55)';
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.50)';
       const hashPrefix = record.sha256_hash ? record.sha256_hash.slice(0, 8) : '00000000';
       ctx.fillText(`HASH: 0x${hashPrefix}...`, qrX + qrSize / 2, qrY + qrSize + 12);
       ctx.fillText('STATUS: ON-CHAIN SYNCED', qrX + qrSize / 2, qrY + qrSize + 20);

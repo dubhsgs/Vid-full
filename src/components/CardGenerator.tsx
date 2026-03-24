@@ -107,7 +107,7 @@ export function CardGenerator() {
             setForm(prev => ({
               ...prev,
               serialId: serialId,
-              qrContent: `${window.location.origin}/verify/${serialId}`,
+              qrContent: `https://digital-ip-proof-sys-78ai.bolt.host/verify/${serialId}`,
             }));
           } else if (data) {
             console.log('Successfully saved to database, friendly_id:', data.friendly_id);
@@ -115,7 +115,7 @@ export function CardGenerator() {
             setForm(prev => ({
               ...prev,
               serialId: data.friendly_id,
-              qrContent: `${window.location.origin}/verify/${data.friendly_id}`,
+              qrContent: `https://digital-ip-proof-sys-78ai.bolt.host/verify/${data.friendly_id}`,
             }));
           } else {
             console.log('No data returned, using generated serialId');
@@ -132,7 +132,7 @@ export function CardGenerator() {
           setForm(prev => ({
             ...prev,
             serialId: serialId,
-            qrContent: `${window.location.origin}/verify/${serialId}`,
+            qrContent: `https://digital-ip-proof-sys-78ai.bolt.host/verify/${serialId}`,
           }));
         } finally {
           setIsSaving(false);
@@ -178,7 +178,7 @@ export function CardGenerator() {
   const generateQR = useCallback(async () => {
     try {
       const verifyUrl = citizenId
-        ? `${window.location.origin}/verify/${citizenId}`
+        ? `https://digital-ip-proof-sys-78ai.bolt.host/verify/${citizenId}`
         : 'https://www.baidu.com';
 
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
@@ -496,7 +496,7 @@ export function CardGenerator() {
 
     ctx.font = '500 7px "JetBrains Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(70, 140, 180, 0.52)';
+    ctx.fillStyle = 'rgba(70, 140, 180, 0.50)';
     const hashPrefix = sha256Hash ? sha256Hash.slice(0, 8) : '00000000';
     ctx.fillText(`HASH: 0x${hashPrefix}...`, qx + qs / 2, qy + qs + 20);
     ctx.fillText('STATUS: ON-CHAIN SYNCED', qx + qs / 2, qy + qs + 30);
@@ -619,7 +619,7 @@ WHY THIS MATTERS:
 ONLINE VERIFICATION:
 --------------------
 You can also verify your V-ID online at:
-${window.location.origin}/verify/${citizenId}
+https://digital-ip-proof-sys-78ai.bolt.host/verify/${citizenId}
 
 This will show your full V-ID record and provide a direct link
 to verify the hash on OpenTimestamps.org
