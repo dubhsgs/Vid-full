@@ -30,27 +30,37 @@ export function VerifyPage() {
   useEffect(() => {
     const fetchRecord = async () => {
       if (!id) {
+        console.error('[VerifyPage] No ID provided');
         setError('Invalid verification ID');
         setLoading(false);
         return;
       }
 
+      console.log('[VerifyPage] Fetching record for ID:', id);
+
       try {
+        const normalizedId = id.toUpperCase();
+        console.log('[VerifyPage] Normalized ID:', normalizedId);
+
         const { data, error } = await supabase
           .from('v_ids')
           .select('id, friendly_id, character_name, creator_name, sha256_hash, image_url, created_at')
-          .eq('friendly_id', id)
+          .ilike('friendly_id', normalizedId)
           .maybeSingle();
+
+        console.log('[VerifyPage] Query result:', { data, error });
 
         if (error) throw error;
 
         if (!data) {
+          console.error('[VerifyPage] No record found for ID:', normalizedId);
           setError('No record found for this Citizen ID');
         } else {
+          console.log('[VerifyPage] Record found:', data);
           setRecord({ ...data, id: data.friendly_id || data.id });
         }
       } catch (err) {
-        console.error('Error fetching record:', err);
+        console.error('[VerifyPage] Error fetching record:', err);
         setError('Failed to verify record');
       } finally {
         setLoading(false);
