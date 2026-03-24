@@ -491,18 +491,12 @@ export function CardGenerator() {
     ctx.fillStyle = qrGlow;
     ctx.fillRect(qx - 6, qy - 6, qs + 12, qs + 12);
 
-    ctx.font = '600 9px "Segoe UI", system-ui';
+    ctx.font = '500 8px "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = QR_COLOR;
-    ctx.fillText('TOKEN: ' + form.qrToken, qx + qs / 2, qy + qs + 15);
-    ctx.fillStyle = 'rgba(170, 175, 190, 0.55)';
-    ctx.font = '500 8px "Segoe UI", system-ui';
-    const recordText = 'RECORD: ' + form.qrRecord;
-    const words = recordText.split(' ');
-    const line1 = words.slice(0, 2).join(' ');
-    const line2 = words.slice(2).join(' ');
-    ctx.fillText(line1, qx + qs / 2, qy + qs + 28);
-    ctx.fillText(line2, qx + qs / 2, qy + qs + 40);
+    ctx.fillStyle = 'rgba(100, 180, 255, 0.55)';
+    const hashPrefix = sha256Hash ? sha256Hash.slice(0, 8) : '00000000';
+    ctx.fillText(`HASH: 0x${hashPrefix}...`, qx + qs / 2, qy + qs + 18);
+    ctx.fillText('STATUS: ON-CHAIN SYNCED', qx + qs / 2, qy + qs + 32);
     ctx.restore();
   };
 

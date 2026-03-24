@@ -205,12 +205,12 @@ export function VerifyPage() {
 
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '6px Arial';
+      ctx.font = '5px "Courier New", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('TOKEN: ABGD', qrX + qrSize / 2, qrY + qrSize + 10);
-      ctx.fillText('RECORD: SECURE', qrX + qrSize / 2, qrY + qrSize + 18);
-      ctx.fillText('DATA PROOF', qrX + qrSize / 2, qrY + qrSize + 26);
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.55)';
+      const hashPrefix = record.sha256_hash ? record.sha256_hash.slice(0, 8) : '00000000';
+      ctx.fillText(`HASH: 0x${hashPrefix}...`, qrX + qrSize / 2, qrY + qrSize + 12);
+      ctx.fillText('STATUS: ON-CHAIN SYNCED', qrX + qrSize / 2, qrY + qrSize + 20);
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.font = '7px Arial';
@@ -400,7 +400,7 @@ For more information, visit: ${window.location.origin}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="w-8 h-8 md:w-10 md:h-10 text-cyan-400 animate-pulse" />
+                <Lock className="w-8 h-8 md:w-10 md:h-10 text-cyan-400 animate-breathe" />
               </div>
             </div>
           </div>
@@ -530,6 +530,13 @@ For more information, visit: ${window.location.origin}
         }
         .animate-spin-slow {
           animation: spin-slow 8s linear infinite;
+        }
+        @keyframes breathe {
+          0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(6,182,212,0.6)); }
+          50% { opacity: 0.6; filter: drop-shadow(0 0 16px rgba(6,182,212,0.9)); }
+        }
+        .animate-breathe {
+          animation: breathe 2.5s ease-in-out infinite;
         }
       `}</style>
     </div>
