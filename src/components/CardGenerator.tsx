@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
+import { uploadImageToStorage } from '../utils/imageUpload';
 
 const CANVAS_W = 1024;
 const CANVAS_H = 576;
@@ -77,25 +78,39 @@ export function CardGenerator() {
         serialId: 'Generating...',
       }));
 
-      let hashValue = '';
-      if (savedAvatar) {
-        const dataToHash = `${savedName}:${creatorName}:${issuedDate}:${savedAvatar}`;
-        hashValue = await calculateSHA256(dataToHash);
-        setSha256Hash(hashValue);
-      }
-
       const serialId = generateSerialId();
 
       (async () => {
         try {
           setIsSaving(true);
+
+          let imageUrl = '';
+          let hashValue = '';
+
+          if (savedAvatar) {
+            console.log('[CardGenerator] Uploading avatar to Storage...');
+            const uploadedUrl = await uploadImageToStorage(savedAvatar, `${serialId}.png`);
+
+            if (uploadedUrl) {
+              imageUrl = uploadedUrl;
+              console.log('[CardGenerator] Avatar uploaded successfully:', imageUrl);
+            } else {
+              console.warn('[CardGenerator] Failed to upload avatar, using base64 fallback');
+              imageUrl = savedAvatar;
+            }
+
+            const dataToHash = `${savedName}:${creatorName}:${issuedDate}:${imageUrl}`;
+            hashValue = await calculateSHA256(dataToHash);
+            setSha256Hash(hashValue);
+          }
+
           const { data, error } = await supabase
             .from('v_ids')
             .insert({
               character_name: savedName,
               creator_name: creatorName,
               sha256_hash: hashValue,
-              image_url: savedAvatar || '',
+              image_url: imageUrl,
               friendly_id: serialId
             })
             .select('friendly_id')

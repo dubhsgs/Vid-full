@@ -70,12 +70,26 @@ export function VerifyPage() {
     fetchRecord();
   }, [id]);
 
-  const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
+  const loadImage = useCallback((src: string, timeout = 10000): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = reject;
+
+      const timeoutId = setTimeout(() => {
+        img.src = '';
+        reject(new Error(`Image load timeout: ${src.substring(0, 50)}...`));
+      }, timeout);
+
+      img.onload = () => {
+        clearTimeout(timeoutId);
+        resolve(img);
+      };
+
+      img.onerror = (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      };
+
       img.src = src;
     });
   }, []);
@@ -94,11 +108,32 @@ export function VerifyPage() {
     ctx.scale(DPR, DPR);
 
     try {
-      const [bgImg, logoImg, avatarImg] = await Promise.all([
-        loadImage('/bg.jpg'),
-        loadImage('/logo.png'),
-        record.image_url ? loadImage(record.image_url) : Promise.resolve(null),
-      ]);
+      const loadPromises: Promise<HTMLImageElement | null>[] = [
+        loadImage('/bg.jpg').catch(err => {
+          console.warn('[VerifyPage] Failed to load background:', err);
+          return null;
+        }),
+        loadImage('/logo.png').catch(err => {
+          console.warn('[VerifyPage] Failed to load logo:', err);
+          return null;
+        }),
+      ];
+
+      if (record.image_url) {
+        const isDataUrl = record.image_url.startsWith('data:');
+        const avatarTimeout = isDataUrl ? 15000 : 10000;
+
+        loadPromises.push(
+          loadImage(record.image_url, avatarTimeout).catch(err => {
+            console.warn('[VerifyPage] Failed to load avatar:', err);
+            return null;
+          })
+        );
+      } else {
+        loadPromises.push(Promise.resolve(null));
+      }
+
+      const [bgImg, logoImg, avatarImg] = await Promise.all(loadPromises);
 
       const qrDataUrl = await QRCode.toDataURL(`${window.location.origin}/verify/${record.id}`, {
         width: 120,
@@ -228,9 +263,11 @@ export function VerifyPage() {
       ctx.fillText('THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY', CANVAS_W / 2, py + ph - 25);
       ctx.fillText('ANCHORED ON THE IMMUTABLE V-ID LEDGER.', CANVAS_W / 2, py + ph - 15);
 
+      console.log('[VerifyPage] Certificate rendered successfully');
       setCertificateReady(true);
     } catch (err) {
-      console.error('Failed to render certificate:', err);
+      console.error('[VerifyPage] Failed to render certificate:', err);
+      setCertificateReady(true);
     }
   }, [record, loadImage]);
 
