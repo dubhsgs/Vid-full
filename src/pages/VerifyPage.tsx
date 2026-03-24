@@ -45,7 +45,7 @@ export function VerifyPage() {
         const { data, error } = await supabase
           .from('v_ids')
           .select('id, friendly_id, character_name, creator_name, sha256_hash, image_url, created_at')
-          .ilike('friendly_id', normalizedId)
+          .eq('friendly_id', normalizedId)
           .maybeSingle();
 
         console.log('[VerifyPage] Query result:', { data, error });
