@@ -95,11 +95,19 @@ export function VerifyPage() {
   }, []);
 
   const renderCertificate = useCallback(async () => {
-    if (!record || !canvasRef.current) return;
+    if (!record || !canvasRef.current) {
+      console.log('[VerifyPage] renderCertificate skipped:', { record: !!record, canvas: !!canvasRef.current });
+      return;
+    }
+
+    console.log('[VerifyPage] Starting certificate render for:', record.id);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('[VerifyPage] Failed to get canvas context');
+      return;
+    }
 
     canvas.width = CANVAS_W * DPR;
     canvas.height = CANVAS_H * DPR;
@@ -108,6 +116,7 @@ export function VerifyPage() {
     ctx.scale(DPR, DPR);
 
     try {
+      console.log('[VerifyPage] Loading images...');
       const loadPromises: Promise<HTMLImageElement | null>[] = [
         loadImage('/bg.jpg').catch(err => {
           console.warn('[VerifyPage] Failed to load background:', err);
@@ -134,13 +143,23 @@ export function VerifyPage() {
       }
 
       const [bgImg, logoImg, avatarImg] = await Promise.all(loadPromises);
+      console.log('[VerifyPage] Images loaded:', { bg: !!bgImg, logo: !!logoImg, avatar: !!avatarImg });
 
-      const qrDataUrl = await QRCode.toDataURL(`${window.location.origin}/verify/${record.id}`, {
-        width: 120,
-        margin: 1,
-        color: { dark: '#000000', light: '#00000000' },
-      });
-      const qrImg = await loadImage(qrDataUrl);
+      console.log('[VerifyPage] Generating QR code for:', record.id);
+      let qrImg: HTMLImageElement | null = null;
+      try {
+        const qrUrl = `${window.location.origin}/verify/${record.id}`;
+        console.log('[VerifyPage] QR URL:', qrUrl);
+        const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+          width: 120,
+          margin: 1,
+          color: { dark: '#000000', light: '#00000000' },
+        });
+        qrImg = await loadImage(qrDataUrl);
+        console.log('[VerifyPage] QR code loaded successfully');
+      } catch (err) {
+        console.error('[VerifyPage] Failed to generate/load QR code:', err);
+      }
 
       const px = 22, py = 14, pw = 467, ph = 260, r = 9;
 
@@ -248,7 +267,16 @@ export function VerifyPage() {
       ctx.fillStyle = 'rgba(222, 106, 168, 0.15)';
       ctx.fillRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10);
 
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+      if (qrImg) {
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+      } else {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(qrX, qrY, qrSize, qrSize);
+        ctx.fillStyle = '#666';
+        ctx.font = '8px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('QR UNAVAILABLE', qrX + qrSize / 2, qrY + qrSize / 2);
+      }
 
       ctx.font = '5px "Courier New", monospace';
       ctx.textAlign = 'center';
