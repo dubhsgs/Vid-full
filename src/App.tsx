@@ -31,6 +31,7 @@ function App() {
   const [remainingFree, setRemainingFree] = useState(getRemainingFreeCertificates());
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [characterName, setCharacterName] = useState('');
+  const [creatorName, setCreatorName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [imageScale, setImageScale] = useState(1);
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
@@ -117,7 +118,7 @@ function App() {
   };
 
   const handleNextToGenerator = () => {
-    if (!imagePreview || !imageFile || !characterName.trim()) return;
+    if (!imagePreview || !imageFile || !characterName.trim() || !creatorName.trim()) return;
 
     if (!canGenerateCertificate()) {
       setShowPaywall(true);
@@ -164,6 +165,7 @@ function App() {
       const croppedAvatar = canvas.toDataURL('image/png');
       localStorage.setItem('vid_uploaded_avatar', croppedAvatar);
       localStorage.setItem('vid_character_name', characterName);
+      localStorage.setItem('vid_creator_name', creatorName);
 
       setShowForgingAnimation(true);
     };
@@ -363,18 +365,34 @@ function App() {
                       )}
                     </div>
 
-                    <div className="mt-8">
-                      <label htmlFor="characterName" className="block text-left text-base font-medium text-white mb-2">
-                        Character Name
-                      </label>
-                      <input
-                        id="characterName"
-                        type="text"
-                        value={characterName}
-                        onChange={(e) => setCharacterName(e.target.value)}
-                        placeholder="e.g., Nova StarSeeker"
-                        className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      />
+                    <div className="mt-8 space-y-6">
+                      <div>
+                        <label htmlFor="characterName" className="block text-left text-base font-medium text-white mb-2">
+                          Character Name
+                        </label>
+                        <input
+                          id="characterName"
+                          type="text"
+                          value={characterName}
+                          onChange={(e) => setCharacterName(e.target.value)}
+                          placeholder="e.g., Nova StarSeeker"
+                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="creatorName" className="block text-left text-base font-medium text-white mb-2">
+                          Creator Name
+                        </label>
+                        <input
+                          id="creatorName"
+                          type="text"
+                          value={creatorName}
+                          onChange={(e) => setCreatorName(e.target.value)}
+                          placeholder="e.g., Alex Chen"
+                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                      </div>
                     </div>
 
                     <button
@@ -456,7 +474,7 @@ function App() {
                       </button>
                       <button
                         onClick={handleNextToGenerator}
-                        disabled={!characterName.trim()}
+                        disabled={!characterName.trim() || !creatorName.trim()}
                         className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                       >
                         Next

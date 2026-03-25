@@ -69,7 +69,7 @@ export function CardGenerator() {
       const issuedDate = formatIssuedDate();
       const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
       const savedName = localStorage.getItem('vid_character_name') || 'ELIZA REED';
-      const creatorName = 'Anonymous Creator';
+      const creatorName = localStorage.getItem('vid_creator_name') || 'Anonymous Creator';
 
       setForm(prev => ({
         ...prev,
@@ -529,14 +529,7 @@ export function CardGenerator() {
   };
 
   const drawLegalNotice = (ctx: CanvasRenderingContext2D) => {
-    ctx.save();
-    ctx.font = '400 8px "Segoe UI", system-ui';
-    ctx.fillStyle = 'rgba(160, 170, 190, 0.35)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const notice = 'This certificate contains a SHA-256 hash that serves as technical evidence of existence, independently verifiable via Blockchain.';
-    ctx.fillText(notice, CANVAS_W / 2, 540);
-    ctx.restore();
+
   };
 
   const drawCanvas = useCallback(() => {
