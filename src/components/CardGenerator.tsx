@@ -122,7 +122,7 @@ export function CardGenerator() {
             setForm(prev => ({
               ...prev,
               serialId: serialId,
-              qrContent: `https://digital-ip-proof-sys-78ai.bolt.host/verify/${serialId}`,
+              qrContent: `https://vaid.top/verify/${serialId}`,
             }));
           } else if (data) {
             console.log('Successfully saved to database, friendly_id:', data.friendly_id);
@@ -130,7 +130,7 @@ export function CardGenerator() {
             setForm(prev => ({
               ...prev,
               serialId: data.friendly_id,
-              qrContent: `https://digital-ip-proof-sys-78ai.bolt.host/verify/${data.friendly_id}`,
+              qrContent: `https://vaid.top/verify/${data.friendly_id}`,
             }));
           } else {
             console.log('No data returned, using generated serialId');
@@ -147,7 +147,7 @@ export function CardGenerator() {
           setForm(prev => ({
             ...prev,
             serialId: serialId,
-            qrContent: `https://digital-ip-proof-sys-78ai.bolt.host/verify/${serialId}`,
+            qrContent: `https://vaid.top/verify/${serialId}`,
           }));
         } finally {
           setIsSaving(false);
@@ -193,7 +193,7 @@ export function CardGenerator() {
   const generateQR = useCallback(async () => {
     try {
       const verifyUrl = citizenId
-        ? `https://digital-ip-proof-sys-78ai.bolt.host/verify/${citizenId}`
+        ? `https://vaid.top/verify/${citizenId}`
         : 'https://www.baidu.com';
 
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
@@ -615,11 +615,11 @@ HOW TO VERIFY YOUR V-ID:
 
 3. Paste it into the verification field on OpenTimestamps.org
 
-4. The website will show you the Bitcoin blockchain timestamp proof
+4. The website will show you the timestamp proof
 
 WHY THIS MATTERS:
 -----------------
-- Your V-ID is anchored to the Bitcoin blockchain
+- Your V-ID is anchored to digital identity technology
 - This provides independent, decentralized proof of existence
 - No one can alter or backdate your V-ID record
 - The verification is completely independent of our service
@@ -627,14 +627,14 @@ WHY THIS MATTERS:
 ONLINE VERIFICATION:
 --------------------
 You can also verify your V-ID online at:
-https://digital-ip-proof-sys-78ai.bolt.host/verify/${citizenId}
+https://vaid.top/verify/${citizenId}
 
 This will show your full V-ID record and provide a direct link
 to verify the hash on OpenTimestamps.org
 
 QUESTIONS?
 ----------
-For more information about V-ID and blockchain verification,
+For more information about V-ID and digital identity verification,
 visit our website or contact support.
 
 © V-ID Protocol - Decentralized Identity Verification

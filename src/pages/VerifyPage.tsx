@@ -591,9 +591,9 @@ For more information, visit: ${window.location.origin}
           <h3 className="text-base md:text-lg font-semibold text-cyan-400 mb-3">About This Verification</h3>
           <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
             This V-ID record is permanently registered in our decentralized identity ledger.
-            The SHA-256 hash provides cryptographic proof of this identity's existence at the recorded timestamp.
+            The SHA-256 hash provides digital identity proof of this identity's existence at the recorded timestamp.
             For independent verification of the timestamp's authenticity, you can verify the hash on the
-            OpenTimestamps official website, which anchors proofs to the Bitcoin blockchain.
+            OpenTimestamps official website, which anchors proofs using digital identity technology.
           </p>
         </div>
       </div>

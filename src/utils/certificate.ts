@@ -424,7 +424,7 @@ export function generateCertificatePNG(
       ctx.font = '9px monospace';
       ctx.textAlign = 'right';
       ctx.fillText(`HASH: ${data.sha256Hash.substring(0, 16)}...`, qrX + qrSize, qrY + qrSize + 22);
-      ctx.fillText('PROOF: Verified by Blockchain', qrX + qrSize, qrY + qrSize + 35);
+      ctx.fillText('PROOF: Verified by Digital Identity Technology', qrX + qrSize, qrY + qrSize + 35);
 
       ctx.fillStyle = '#4a6978';
       ctx.font = '13px Arial, sans-serif';

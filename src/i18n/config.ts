@@ -7,7 +7,7 @@ const resources = {
       hero: {
         title: 'Your Virtual Identity,',
         titleHighlight: 'Permanently Documented',
-        subtitle: 'V-ID provides cryptographic proof of existence for virtual IPs and characters, creating an immutable record of your digital creations from the moment they are born.',
+        subtitle: 'V-ID provides digital identity proof of existence for virtual IPs and characters, creating an immutable record of your digital creations from the moment they are born.',
         cta: 'Get Started',
         carouselText: 'The Final Proof of Virtual Existence: Anchoring Digital Souls in the Physical World.'
       },
@@ -19,7 +19,7 @@ const resources = {
         },
         step2: {
           title: '02. Generate',
-          desc: 'Our system generates a unique Digital Fingerprint using SHA-256 cryptographic hashing.'
+          desc: 'Our system generates a unique Digital Fingerprint using SHA-256 digital identity hashing.'
         },
         step3: {
           title: '03. Receive',
@@ -27,7 +27,7 @@ const resources = {
         },
         step4: {
           title: '04. Verify',
-          desc: 'Universal Verification: Anyone can verify the authenticity of your ID through the public blockchain ledger.'
+          desc: 'Universal Verification: Anyone can verify the authenticity of your ID through the public digital identity ledger.'
         }
       },
       form: {
@@ -58,7 +58,7 @@ const resources = {
         title: 'Digital Fingerprint (SHA-256)',
         copy: 'Copy Hash',
         copied: 'Copied',
-        verify: 'Verify on Blockchain',
+        verify: 'Verify Identity',
         characterName: 'Character Name',
         creator: 'Creator'
       },
@@ -76,7 +76,7 @@ const resources = {
       },
       footer: {
         disclaimer: 'Legal Disclaimer',
-        disclaimerText: 'V-ID is a digital notary service, not a legal title. We provide technical evidence for future IP disputes. This service creates cryptographic proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
+        disclaimerText: 'V-ID is a digital notary service, not a legal title. We provide technical evidence for future IP disputes. This service creates digital identity proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
         manifesto: 'Privacy Manifesto',
         manifestoText: 'Digital sovereignty belongs to creators. No tracking. No emails. Only mathematical proof.',
         copyright: '© 2026 V-ID. All rights reserved.'
@@ -250,7 +250,7 @@ const resources = {
       hero: {
         title: 'Votre Identité Virtuelle,',
         titleHighlight: 'Documentée en Permanence',
-        subtitle: 'V-ID fournit une preuve cryptographique d\'existence pour les PI virtuelles et les personnages, créant un enregistrement immuable de vos créations numériques dès leur naissance.',
+        subtitle: 'V-ID fournit une preuve d\'identité numérique pour les PI virtuelles et les personnages, créant un enregistrement immuable de vos créations numériques dès leur naissance.',
         cta: 'Commencer',
         carouselText: 'La Preuve Ultime de l\'Existence Virtuelle : Ancrer les Âmes Numériques dans le Monde Physique.'
       },
@@ -262,7 +262,7 @@ const resources = {
         },
         step2: {
           title: '02. Générer',
-          desc: 'Notre système génère une empreinte digitale unique en utilisant le hachage cryptographique SHA-256.'
+          desc: 'Notre système génère une empreinte digitale unique en utilisant le hachage d\'identité numérique SHA-256.'
         },
         step3: {
           title: '03. Recevoir',
@@ -270,7 +270,7 @@ const resources = {
         },
         step4: {
           title: '04. Vérifier',
-          desc: 'Vérification universelle : Tout le monde peut vérifier l\'authenticité de votre ID via le registre blockchain public.'
+          desc: 'Vérification universelle : Tout le monde peut vérifier l\'authenticité de votre ID via le registre d\'identité numérique public.'
         }
       },
       form: {
@@ -301,7 +301,7 @@ const resources = {
         title: 'Empreinte Digitale (SHA-256)',
         copy: 'Copier le Hash',
         copied: 'Copié',
-        verify: 'Vérifier sur la Blockchain',
+        verify: 'Vérifier l\'Identité',
         characterName: 'Nom du Personnage',
         creator: 'Créateur'
       },
@@ -319,7 +319,7 @@ const resources = {
       },
       footer: {
         disclaimer: 'Avis de Non-Responsabilité',
-        disclaimerText: 'V-ID est un service de notarisation numérique, pas un titre légal. Nous fournissons des preuves techniques pour les futurs litiges de PI. Ce service crée une preuve cryptographique d\'existence à un moment précis, mais n\'établit pas la propriété légale ou le droit d\'auteur. Consultez des professionnels du droit pour les questions de propriété intellectuelle.',
+        disclaimerText: 'V-ID est un service de notarisation numérique, pas un titre légal. Nous fournissons des preuves techniques pour les futurs litiges de PI. Ce service crée une preuve d\'identité numérique à un moment précis, mais n\'établit pas la propriété légale ou le droit d\'auteur. Consultez des professionnels du droit pour les questions de propriété intellectuelle.',
         manifesto: 'Manifeste de Confidentialité',
         manifestoText: 'La souveraineté numérique appartient aux créateurs. Pas de suivi. Pas d\'emails. Seulement des preuves mathématiques.',
         copyright: '© 2026 V-ID. Tous droits réservés.'
@@ -351,7 +351,7 @@ const resources = {
         },
         step4: {
           title: '04. Verificar',
-          desc: 'Verificación Universal: Cualquiera puede verificar la autenticidad de tu ID a través del registro público blockchain.'
+          desc: 'Verificación Universal: Cualquiera puede verificar la autenticidad de tu ID a través del registro público de identidad digital.'
         }
       },
       form: {
@@ -382,7 +382,7 @@ const resources = {
         title: 'Huella Digital (SHA-256)',
         copy: 'Copiar Hash',
         copied: 'Copiado',
-        verify: 'Verificar en Blockchain',
+        verify: 'Verificar Identidad',
         characterName: 'Nombre del Personaje',
         creator: 'Creador'
       },

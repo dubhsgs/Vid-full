@@ -272,7 +272,7 @@ export function VIDCard({
               className="text-[#6b8a9a]"
               style={{ fontSize: 'clamp(5px, 0.55vw, 8px)' }}
             >
-              PROOF: Verified by Blockchain
+              PROOF: Verified by Digital Identity Technology
             </div>
           </div>
 
