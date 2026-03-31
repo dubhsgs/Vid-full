@@ -1,67 +1,84 @@
-import { X, Check, ExternalLink, Copy } from 'lucide-react';
-import { useState } from 'react';
+import { X, Check, ShoppingCart } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../utils/licenseManager';
+import { getClientId } from '../utils/fingerprint';
 
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onActivate: (key: string) => Promise<boolean>;
+  onPurchaseComplete?: () => void;
 }
 
-export function PaywallModal({ isOpen, onClose, onActivate }: PaywallModalProps) {
+export function PaywallModal({ isOpen, onClose, onPurchaseComplete }: PaywallModalProps) {
   const { t } = useTranslation();
-  const [licenseKey, setLicenseKey] = useState('');
-  const [isActivating, setIsActivating] = useState(false);
-  const [activationError, setActivationError] = useState('');
-  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setPurchaseError('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/afdian-webhook`;
+  const handlePurchase = async (packSize: number) => {
+    setIsPurchasing(true);
+    setPurchaseError('');
 
-  const handleActivate = async () => {
-    if (!licenseKey.trim()) return;
+    try {
+      const clientId = await getClientId();
 
-    setIsActivating(true);
-    setActivationError('');
-    const success = await onActivate(licenseKey);
-    setIsActivating(false);
+      const { data, error } = await supabase.functions.invoke('alipay-create-order', {
+        body: {
+          client_id: clientId,
+          pack_size: packSize,
+          return_url: window.location.origin + '/payment-success',
+        }
+      });
 
-    if (success) {
-      setLicenseKey('');
-      onClose();
-    } else {
-      setActivationError('激活失败，请检查激活码是否正确');
+      if (error) {
+        console.error('Error creating order:', error);
+        setPurchaseError('创建订单失败，请稍后重试');
+        setIsPurchasing(false);
+        return;
+      }
+
+      if (data?.payment_url) {
+        window.location.href = data.payment_url;
+      } else {
+        setPurchaseError('获取支付链接失败');
+        setIsPurchasing(false);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      setPurchaseError('网络错误，请检查连接');
+      setIsPurchasing(false);
     }
-  };
-
-  const copyWebhookUrl = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopiedWebhook(true);
-    setTimeout(() => setCopiedWebhook(false), 2000);
   };
 
   const pricingTiers = [
     {
-      name: t('paywall.single'),
+      name: t('paywall.pack10') || '10次套餐',
       price: '¥9.9',
-      certificates: 1,
-      popular: false,
-      afdianUrl: 'https://afdian.com/item/105ab0e81ee511f188375254001e7c00'
-    },
-    {
-      name: t('paywall.pack5'),
-      price: '¥39',
-      certificates: 5,
-      popular: true,
-      afdianUrl: 'https://afdian.com/item/4d67bc421ee511f1b6b152540025c377'
-    },
-    {
-      name: t('paywall.pack10'),
-      price: '¥69',
       certificates: 10,
       popular: false,
-      afdianUrl: 'https://afdian.com/item/66bf30e41ee511f18a525254001e7c00'
+      packSize: 10,
+    },
+    {
+      name: t('paywall.pack50') || '50次套餐',
+      price: '¥39.9',
+      certificates: 50,
+      popular: true,
+      packSize: 50,
+    },
+    {
+      name: t('paywall.pack100') || '100次套餐',
+      price: '¥69.9',
+      certificates: 100,
+      popular: false,
+      packSize: 100,
     }
   ];
 
@@ -81,10 +98,10 @@ export function PaywallModal({ isOpen, onClose, onActivate }: PaywallModalProps)
 
         <div className="relative p-8">
           <h2 className="text-3xl font-bold text-white text-center mb-2">
-            {t('paywall.title')}
+            {t('paywall.title') || '解锁更多证书生成次数'}
           </h2>
           <p className="text-slate-400 text-center mb-8">
-            {t('paywall.subtitle')}
+            {t('paywall.subtitle') || '选择适合您的套餐，支付宝安全支付'}
           </p>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -110,66 +127,29 @@ export function PaywallModal({ isOpen, onClose, onActivate }: PaywallModalProps)
                     <Check className="w-5 h-5 text-green-400" />
                     <span>{tier.certificates} 次证书生成</span>
                   </div>
-                  <a
-                    href={tier.afdianUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-2"
+                  <button
+                    onClick={() => handlePurchase(tier.packSize)}
+                    disabled={isPurchasing}
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-2"
                   >
-                    前往购买
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                    <ShoppingCart className="w-4 h-4" />
+                    {isPurchasing ? '处理中...' : '立即购买'}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-slate-700 pt-8">
-            <p className="text-slate-400 text-center mb-4">{t('paywall.enterKey')}</p>
-            <div className="max-w-md mx-auto space-y-3">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={licenseKey}
-                  onChange={(e) => {
-                    setLicenseKey(e.target.value);
-                    setActivationError('');
-                  }}
-                  placeholder={t('paywall.keyPlaceholder')}
-                  className="flex-1 px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
-                />
-                <button
-                  onClick={handleActivate}
-                  disabled={!licenseKey.trim() || isActivating}
-                  className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
-                >
-                  {isActivating ? t('paywall.activating') : t('paywall.activate')}
-                </button>
-              </div>
-              {activationError && (
-                <p className="text-red-400 text-sm text-center">{activationError}</p>
-              )}
+          {purchaseError && (
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <p className="text-red-400 text-center">{purchaseError}</p>
             </div>
+          )}
 
-            <div className="mt-8 p-4 bg-slate-800/50 rounded-lg">
-              <p className="text-slate-400 text-xs mb-2 text-center">Webhook URL (供爱发电配置使用)</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={webhookUrl}
-                  readOnly
-                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded text-slate-300 text-xs font-mono"
-                />
-                <button
-                  onClick={copyWebhookUrl}
-                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors flex items-center gap-1 text-xs"
-                >
-                  {copiedWebhook ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copiedWebhook ? '已复制' : '复制'}
-                </button>
-              </div>
-            </div>
+          <div className="border-t border-slate-700 pt-6 mt-6">
+            <p className="text-slate-500 text-xs text-center">
+              支付由支付宝提供安全保障 • 购买后次数将自动充值到您的账户
+            </p>
           </div>
         </div>
       </div>

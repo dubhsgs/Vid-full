@@ -15,20 +15,17 @@ import {
   canGenerateCertificate,
   useFreeCertificate,
   getRemainingFreeCertificates,
-  validateAndActivateLicense,
-  hasValidLicense
 } from './utils/licenseManager';
 import './i18n/config';
 
 function App() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isActivated, setIsActivated] = useState(hasValidLicense());
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [remainingFree, setRemainingFree] = useState(getRemainingFreeCertificates());
+  const [remainingFree, setRemainingFree] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
@@ -40,7 +37,11 @@ function App() {
   const [showForgingAnimation, setShowForgingAnimation] = useState(false);
 
   useEffect(() => {
-    setRemainingFree(getRemainingFreeCertificates());
+    const loadQuota = async () => {
+      const remaining = await getRemainingFreeCertificates();
+      setRemainingFree(remaining);
+    };
+    loadQuota();
   }, []);
 
   const heroImages = [
@@ -179,15 +180,9 @@ function App() {
     navigate('/card-generator');
   }, [navigate]);
 
-  const handleActivateLicense = async (key: string): Promise<boolean> => {
-    const result = await validateAndActivateLicense(key);
-
-    if (result.success) {
-      setRemainingFree(getRemainingFreeCertificates());
-      return true;
-    }
-
-    return false;
+  const refreshQuota = async () => {
+    const remaining = await getRemainingFreeCertificates();
+    setRemainingFree(remaining);
   };
 
   return (
@@ -515,7 +510,7 @@ function App() {
       <PaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
-        onActivate={handleActivateLicense}
+        onPurchaseComplete={refreshQuota}
       />
 
       {showForgingAnimation && (
