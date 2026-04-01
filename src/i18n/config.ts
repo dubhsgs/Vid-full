@@ -13,8 +13,7 @@ const resources = {
         title: 'Your Digital Identity,',
         titleHighlight: 'Permanently Documented',
         subtitle: 'V-ID provides digital identity proof of existence for digital assets and characters, creating an immutable record of your digital creations from the moment they are born.',
-        cta: 'Get Started',
-        carouselText: 'The Final Proof of Digital Existence: Anchoring Digital Assets in the Physical World.'
+        cta: 'Get Started'
       },
       about: {
         title: 'About V-ID Platform',
@@ -92,8 +91,7 @@ const resources = {
         title: '您的数字身份，',
         titleHighlight: '永久记录',
         subtitle: 'V-ID 为数字资产和角色提供数字存在证明，从诞生之刻起为您的数字创作建立不可篡改的记录。',
-        cta: '立即开始',
-        carouselText: '数字存在的终极证明：将数字资产锚定于现实世界。'
+        cta: '立即开始'
       },
       about: {
         title: '关于 V-ID 平台',

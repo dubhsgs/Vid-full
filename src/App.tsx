@@ -214,11 +214,6 @@ function App() {
                 </div>
               </div>
 
-              <div className="absolute bottom-6 left-6 right-6 z-20">
-                <p className="text-white text-lg sm:text-xl font-medium drop-shadow-2xl whitespace-nowrap overflow-hidden text-ellipsis">
-                  {t('hero.carouselText')}
-                </p>
-              </div>
 
               <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#171717] to-transparent pointer-events-none" />
             </div>
