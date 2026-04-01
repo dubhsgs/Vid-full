@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { CardGenerator } from './components/CardGenerator';
+import { MaintenanceMode } from './components/MaintenanceMode';
 import App from './App';
 
 export function AppWithRouter() {
   const [currentPage, setCurrentPage] = useState<'certificate' | 'card'>('certificate');
+
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
+  if (isMaintenanceMode) {
+    return <MaintenanceMode />;
+  }
 
   return (
     <div className="min-h-screen bg-[#171717]">

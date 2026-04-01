@@ -4,12 +4,22 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
+      maintenance: {
+        title: 'System Maintenance',
+        message: 'The system is currently under maintenance and temporarily unavailable. We apologize for any inconvenience.',
+        thank: 'Thank you for your patience.'
+      },
       hero: {
-        title: 'Your Virtual Identity,',
+        title: 'Your Digital Identity,',
         titleHighlight: 'Permanently Documented',
-        subtitle: 'V-ID provides digital identity proof of existence for virtual IPs and characters, creating an immutable record of your digital creations from the moment they are born.',
+        subtitle: 'V-ID provides digital identity proof of existence for digital assets and characters, creating an immutable record of your digital creations from the moment they are born.',
         cta: 'Get Started',
-        carouselText: 'The Final Proof of Virtual Existence: Anchoring Digital Souls in the Physical World.'
+        carouselText: 'The Final Proof of Digital Existence: Anchoring Digital Assets in the Physical World.'
+      },
+      about: {
+        title: 'About V-ID Platform',
+        description: 'A digital asset archival and identity recognition technology demonstration platform for developers.',
+        purpose: 'This platform showcases digital fingerprinting, cryptographic hashing, and immutable record-keeping technologies for educational and development purposes.'
       },
       process: {
         title: 'How It Works',
@@ -19,15 +29,15 @@ const resources = {
         },
         step2: {
           title: '02. Generate',
-          desc: 'Our system generates a unique Digital Fingerprint using SHA-256 digital identity hashing.'
+          desc: 'Our system generates a unique Digital Fingerprint using SHA-256 cryptographic hashing.'
         },
         step3: {
           title: '03. Receive',
-          desc: 'Receive an Immutable Birth Certificate with permanent proof of your creation existence.'
+          desc: 'Receive an Immutable Certificate with permanent proof of your creation existence.'
         },
         step4: {
           title: '04. Verify',
-          desc: 'Universal Verification: Anyone can verify the authenticity of your ID through the public digital identity ledger.'
+          desc: 'Universal Verification: Anyone can verify the authenticity of your ID through the public digital ledger.'
         }
       },
       form: {
@@ -46,8 +56,7 @@ const resources = {
         processing: 'Processing...',
         download: 'Download V-ID Certificate',
         certificateDownloaded: 'Certificate Generated Successfully!',
-        createAnother: 'Create Another Certificate',
-        freeRemaining: 'Free certificates remaining: {{count}}'
+        createAnother: 'Create Another Certificate'
       },
       progress: {
         reading: 'Reading file locally...',
@@ -62,35 +71,34 @@ const resources = {
         characterName: 'Character Name',
         creator: 'Creator'
       },
-      paywall: {
-        title: 'Unlock Unlimited Certificates',
-        subtitle: 'You\'ve used your free certificates. Choose a plan to continue:',
-        single: 'Single Certificate',
-        pack5: '5 Certificates',
-        pack10: '10 Certificates',
-        enterKey: 'Or enter an activation key:',
-        keyPlaceholder: 'Enter your license key',
-        activate: 'Activate',
-        activating: 'Activating...',
-        cancel: 'Cancel'
-      },
       footer: {
         disclaimer: 'Legal Disclaimer',
-        disclaimerText: 'V-ID is a digital notary service, not a legal title. We provide technical evidence for future IP disputes. This service creates digital identity proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
+        disclaimerText: 'V-ID is a digital archival platform for developers, not a legal title. We provide technical demonstration for digital asset management. This service creates digital identity proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
         manifesto: 'Privacy Manifesto',
         manifestoText: 'Digital sovereignty belongs to creators. No tracking. No emails. Only mathematical proof.',
-        copyright: '© 2026 V-ID. All rights reserved.'
+        copyright: '© 2026 V-ID Platform. All rights reserved.',
+        icp: 'ICP Filing Number'
       }
     }
   },
   zh: {
     translation: {
+      maintenance: {
+        title: '系统维护中',
+        message: '系统目前正在维护，暂时无法使用。给您带来不便，敬请谅解。',
+        thank: '感谢您的耐心等待。'
+      },
       hero: {
-        title: '您的虚拟身份，',
+        title: '您的数字身份，',
         titleHighlight: '永久记录',
-        subtitle: 'V-ID 为虚拟知识产权和角色提供加密存在证明，从诞生之刻起为您的数字创作建立不可篡改的记录。',
+        subtitle: 'V-ID 为数字资产和角色提供数字存在证明，从诞生之刻起为您的数字创作建立不可篡改的记录。',
         cta: '立即开始',
-        carouselText: '虚拟存在的终极证明：将数字灵魂锚定于现实世界。'
+        carouselText: '数字存在的终极证明：将数字资产锚定于现实世界。'
+      },
+      about: {
+        title: '关于 V-ID 平台',
+        description: '面向开发者的数字资产存档与身份识别技术展示平台',
+        purpose: '本平台展示数字指纹、加密散列和不可变记录保存技术，用于教育和开发目的。'
       },
       process: {
         title: '工作原理',
@@ -104,11 +112,11 @@ const resources = {
         },
         step3: {
           title: '03. 接收',
-          desc: '获得永久存在证明的不可篡改出生证书。'
+          desc: '获得永久存在证明的不可篡改证书。'
         },
         step4: {
           title: '04. 验证',
-          desc: '通用验证：任何人都可以通过公共区块链账本验证您 ID 的真实性。'
+          desc: '通用验证：任何人都可以通过公共数字账本验证您 ID 的真实性。'
         }
       },
       form: {
@@ -127,8 +135,7 @@ const resources = {
         processing: '处理中...',
         download: '下载 V-ID 证书',
         certificateDownloaded: '证书生成成功！',
-        createAnother: '创建另一个证书',
-        freeRemaining: '剩余免费证书：{{count}} 张'
+        createAnother: '创建另一个证书'
       },
       progress: {
         reading: '本地读取文件中...',
@@ -139,39 +146,38 @@ const resources = {
         title: '数字指纹 (SHA-256)',
         copy: '复制哈希',
         copied: '已复制',
-        verify: '在区块链上验证',
+        verify: '验证身份',
         characterName: '角色名称',
         creator: '创作者'
       },
-      paywall: {
-        title: '解锁无限证书',
-        subtitle: '您已用完免费证书。选择一个方案以继续：',
-        single: '单个证书',
-        pack5: '5 张证书',
-        pack10: '10 张证书',
-        enterKey: '或输入激活密钥：',
-        keyPlaceholder: '输入您的许可证密钥',
-        activate: '激活',
-        activating: '激活中...',
-        cancel: '取消'
-      },
       footer: {
         disclaimer: '法律声明',
-        disclaimerText: 'V-ID 是数字公证服务，而非法律所有权。我们为未来的知识产权纠纷提供技术证据。此服务创建特定时间点的加密存在证明，但不建立法律所有权或版权。有关知识产权事宜，请咨询法律专业人士。',
+        disclaimerText: 'V-ID 是面向开发者的数字存档平台，而非法律所有权凭证。我们为数字资产管理提供技术展示。此服务创建特定时间点的数字存在证明，但不建立法律所有权或版权。有关知识产权事宜，请咨询法律专业人士。',
         manifesto: '隐私宣言',
         manifestoText: '数字主权属于创作者。无追踪。无邮件。只有数学证明。',
-        copyright: '© 2026 V-ID. 保留所有权利。'
+        copyright: '© 2026 V-ID 平台. 保留所有权利。',
+        icp: 'ICP 备案号'
       }
     }
   },
   ja: {
     translation: {
+      maintenance: {
+        title: 'システムメンテナンス中',
+        message: 'システムは現在メンテナンス中で、一時的にご利用いただけません。ご不便をおかけして申し訳ございません。',
+        thank: 'ご理解とご協力をお願いいたします。'
+      },
       hero: {
-        title: 'あなたのバーチャルアイデンティティを',
+        title: 'あなたのデジタルアイデンティティを',
         titleHighlight: '永久的に記録',
-        subtitle: 'V-IDは、バーチャルIPとキャラクターの暗号的存在証明を提供し、デジタル創作物の誕生時から不変の記録を作成します。',
+        subtitle: 'V-IDは、デジタル資産とキャラクターの暗号的存在証明を提供し、デジタル創作物の誕生時から不変の記録を作成します。',
         cta: '今すぐ始める',
-        carouselText: 'バーチャル存在の最終証明：デジタルソウルを物理世界に固定する。'
+        carouselText: 'デジタル存在の最終証明：デジタル資産を物理世界に固定する。'
+      },
+      about: {
+        title: 'V-IDプラットフォームについて',
+        description: '開発者向けのデジタル資産アーカイブおよびアイデンティティ認識技術デモンストレーションプラットフォーム',
+        purpose: 'このプラットフォームは、教育および開発目的のためのデジタル指紋、暗号ハッシュ、および不変記録保管技術を展示します。'
       },
       process: {
         title: '仕組み',
@@ -185,11 +191,11 @@ const resources = {
         },
         step3: {
           title: '03. 受け取り',
-          desc: '創作物の永続的な存在証明を持つ不変の誕生証明書を受け取ります。'
+          desc: '創作物の永続的な存在証明を持つ不変の証明書を受け取ります。'
         },
         step4: {
           title: '04. 検証',
-          desc: 'ユニバーサル検証：誰でも公開ブロックチェーン台帳を通じてIDの真正性を確認できます。'
+          desc: 'ユニバーサル検証：誰でも公開デジタル台帳を通じてIDの真正性を確認できます。'
         }
       },
       form: {
@@ -208,8 +214,7 @@ const resources = {
         processing: '処理中...',
         download: 'V-ID証明書をダウンロード',
         certificateDownloaded: '証明書が正常に生成されました！',
-        createAnother: '別の証明書を作成',
-        freeRemaining: '残りの無料証明書：{{count}}枚'
+        createAnother: '別の証明書を作成'
       },
       progress: {
         reading: 'ファイルをローカルで読み込み中...',
@@ -220,190 +225,17 @@ const resources = {
         title: 'デジタル指紋 (SHA-256)',
         copy: 'ハッシュをコピー',
         copied: 'コピー済み',
-        verify: 'ブロックチェーンで検証',
+        verify: 'アイデンティティを検証',
         characterName: 'キャラクター名',
         creator: 'クリエイター'
       },
-      paywall: {
-        title: '無制限証明書をアンロック',
-        subtitle: '無料証明書を使い切りました。プランを選択して続行してください：',
-        single: '単一証明書',
-        pack5: '5証明書',
-        pack10: '10証明書',
-        enterKey: 'またはアクティベーションキーを入力：',
-        keyPlaceholder: 'ライセンスキーを入力',
-        activate: 'アクティベート',
-        activating: 'アクティベート中...',
-        cancel: 'キャンセル'
-      },
       footer: {
         disclaimer: '法的免責事項',
-        disclaimerText: 'V-IDはデジタル公証サービスであり、法的権利ではありません。将来のIP紛争のための技術的証拠を提供します。このサービスは特定時点での暗号的存在証明を作成しますが、法的所有権や著作権を確立するものではありません。知的財産権に関する事項については、法律専門家にご相談ください。',
+        disclaimerText: 'V-IDは開発者向けのデジタルアーカイブプラットフォームであり、法的権利ではありません。デジタル資産管理のための技術的デモンストレーションを提供します。このサービスは特定時点での暗号的存在証明を作成しますが、法的所有権や著作権を確立するものではありません。知的財産権に関する事項については、法律専門家にご相談ください。',
         manifesto: 'プライバシー宣言',
         manifestoText: 'デジタル主権はクリエイターに属します。トラッキングなし。メールなし。数学的証明のみ。',
-        copyright: '© 2026 V-ID. All rights reserved.'
-      }
-    }
-  },
-  fr: {
-    translation: {
-      hero: {
-        title: 'Votre Identité Virtuelle,',
-        titleHighlight: 'Documentée en Permanence',
-        subtitle: 'V-ID fournit une preuve d\'identité numérique pour les PI virtuelles et les personnages, créant un enregistrement immuable de vos créations numériques dès leur naissance.',
-        cta: 'Commencer',
-        carouselText: 'La Preuve Ultime de l\'Existence Virtuelle : Ancrer les Âmes Numériques dans le Monde Physique.'
-      },
-      process: {
-        title: 'Comment Ça Marche',
-        step1: {
-          title: '01. Télécharger',
-          desc: 'Téléchargez vos fichiers de personnage et fournissez les détails essentiels de votre création.'
-        },
-        step2: {
-          title: '02. Générer',
-          desc: 'Notre système génère une empreinte digitale unique en utilisant le hachage d\'identité numérique SHA-256.'
-        },
-        step3: {
-          title: '03. Recevoir',
-          desc: 'Recevez un certificat de naissance immuable avec preuve permanente de l\'existence de votre création.'
-        },
-        step4: {
-          title: '04. Vérifier',
-          desc: 'Vérification universelle : Tout le monde peut vérifier l\'authenticité de votre ID via le registre d\'identité numérique public.'
-        }
-      },
-      form: {
-        title: 'Créer Votre Certificat',
-        privacyGuard: 'Protection de la Vie Privée :',
-        privacyText: 'Votre fichier original reste sur votre appareil. Nous générons uniquement une empreinte digitale.',
-        dragDrop: 'Glissez et déposez votre image de personnage ici',
-        or: 'ou',
-        selectFile: 'Sélectionner un Fichier pour Hachage Local',
-        changeImage: 'Changer l\'image',
-        characterName: 'Nom du Personnage',
-        characterPlaceholder: 'ex. Nova StarSeeker',
-        creatorName: 'Nom du Créateur',
-        creatorPlaceholder: 'ex. Alex Chen',
-        generateProof: 'Générer le Certificat',
-        processing: 'Traitement...',
-        download: 'Télécharger le Certificat V-ID',
-        certificateDownloaded: 'Certificat Généré avec Succès!',
-        createAnother: 'Créer un Autre Certificat',
-        freeRemaining: 'Certificats gratuits restants : {{count}}'
-      },
-      progress: {
-        reading: 'Lecture du fichier localement...',
-        hashing: 'Calcul de l\'empreinte SHA-256...',
-        ready: 'Prêt pour l\'enregistrement.'
-      },
-      hash: {
-        title: 'Empreinte Digitale (SHA-256)',
-        copy: 'Copier le Hash',
-        copied: 'Copié',
-        verify: 'Vérifier l\'Identité',
-        characterName: 'Nom du Personnage',
-        creator: 'Créateur'
-      },
-      paywall: {
-        title: 'Débloquer Certificats Illimités',
-        subtitle: 'Vous avez utilisé vos certificats gratuits. Choisissez un plan pour continuer :',
-        single: 'Certificat Unique',
-        pack5: '5 Certificats',
-        pack10: '10 Certificats',
-        enterKey: 'Ou entrez une clé d\'activation :',
-        keyPlaceholder: 'Entrez votre clé de licence',
-        activate: 'Activer',
-        activating: 'Activation...',
-        cancel: 'Annuler'
-      },
-      footer: {
-        disclaimer: 'Avis de Non-Responsabilité',
-        disclaimerText: 'V-ID est un service de notarisation numérique, pas un titre légal. Nous fournissons des preuves techniques pour les futurs litiges de PI. Ce service crée une preuve d\'identité numérique à un moment précis, mais n\'établit pas la propriété légale ou le droit d\'auteur. Consultez des professionnels du droit pour les questions de propriété intellectuelle.',
-        manifesto: 'Manifeste de Confidentialité',
-        manifestoText: 'La souveraineté numérique appartient aux créateurs. Pas de suivi. Pas d\'emails. Seulement des preuves mathématiques.',
-        copyright: '© 2026 V-ID. Tous droits réservés.'
-      }
-    }
-  },
-  es: {
-    translation: {
-      hero: {
-        title: 'Tu Identidad Virtual,',
-        titleHighlight: 'Documentada Permanentemente',
-        subtitle: 'V-ID proporciona prueba criptográfica de existencia para IPs virtuales y personajes, creando un registro inmutable de tus creaciones digitales desde el momento en que nacen.',
-        cta: 'Comenzar',
-        carouselText: 'La Prueba Final de la Existencia Virtual: Anclando Almas Digitales en el Mundo Físico.'
-      },
-      process: {
-        title: 'Cómo Funciona',
-        step1: {
-          title: '01. Subir',
-          desc: 'Sube tus archivos de personaje y proporciona detalles esenciales sobre tu creación.'
-        },
-        step2: {
-          title: '02. Generar',
-          desc: 'Nuestro sistema genera una Huella Digital única usando hash criptográfico SHA-256.'
-        },
-        step3: {
-          title: '03. Recibir',
-          desc: 'Recibe un Certificado de Nacimiento Inmutable con prueba permanente de la existencia de tu creación.'
-        },
-        step4: {
-          title: '04. Verificar',
-          desc: 'Verificación Universal: Cualquiera puede verificar la autenticidad de tu ID a través del registro público de identidad digital.'
-        }
-      },
-      form: {
-        title: 'Crear Tu Certificado',
-        privacyGuard: 'Guardia de Privacidad:',
-        privacyText: 'Tu archivo original permanece en tu dispositivo. Solo generamos una huella digital.',
-        dragDrop: 'Arrastra y suelta tu imagen de personaje aquí',
-        or: 'o',
-        selectFile: 'Seleccionar Archivo para Hash Local',
-        changeImage: 'Cambiar Imagen',
-        characterName: 'Nombre del Personaje',
-        characterPlaceholder: 'ej. Nova StarSeeker',
-        creatorName: 'Nombre del Creador',
-        creatorPlaceholder: 'ej. Alex Chen',
-        generateProof: 'Generar Certificado',
-        processing: 'Procesando...',
-        download: 'Descargar Certificado V-ID',
-        certificateDownloaded: '¡Certificado Generado con Éxito!',
-        createAnother: 'Crear Otro Certificado',
-        freeRemaining: 'Certificados gratuitos restantes: {{count}}'
-      },
-      progress: {
-        reading: 'Leyendo archivo localmente...',
-        hashing: 'Calculando Huella SHA-256...',
-        ready: 'Listo para Registro.'
-      },
-      hash: {
-        title: 'Huella Digital (SHA-256)',
-        copy: 'Copiar Hash',
-        copied: 'Copiado',
-        verify: 'Verificar Identidad',
-        characterName: 'Nombre del Personaje',
-        creator: 'Creador'
-      },
-      paywall: {
-        title: 'Desbloquear Certificados Ilimitados',
-        subtitle: 'Has usado tus certificados gratuitos. Elige un plan para continuar:',
-        single: 'Certificado Individual',
-        pack5: '5 Certificados',
-        pack10: '10 Certificados',
-        enterKey: 'O ingresa una clave de activación:',
-        keyPlaceholder: 'Ingresa tu clave de licencia',
-        activate: 'Activar',
-        activating: 'Activando...',
-        cancel: 'Cancelar'
-      },
-      footer: {
-        disclaimer: 'Descargo de Responsabilidad Legal',
-        disclaimerText: 'V-ID es un servicio de notarización digital, no un título legal. Proporcionamos evidencia técnica para futuras disputas de PI. Este servicio crea prueba criptográfica de existencia en un momento específico, pero no establece propiedad legal o derechos de autor. Consulte a profesionales legales para asuntos de propiedad intelectual.',
-        manifesto: 'Manifiesto de Privacidad',
-        manifestoText: 'La soberanía digital pertenece a los creadores. Sin rastreo. Sin correos. Solo prueba matemática.',
-        copyright: '© 2026 V-ID. Todos los derechos reservados.'
+        copyright: '© 2026 V-IDプラットフォーム. All rights reserved.',
+        icp: 'ICP登録番号'
       }
     }
   }
@@ -413,7 +245,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en',
+    lng: 'zh',
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false

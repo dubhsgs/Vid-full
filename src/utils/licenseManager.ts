@@ -23,57 +23,15 @@ export function toggleDevMode(): boolean {
 }
 
 export async function getRemainingFreeCertificates(): Promise<number> {
-  if (isDevelopmentMode()) {
-    return 999;
-  }
-
-  try {
-    const clientId = await getClientId();
-    const { data, error } = await supabase.functions.invoke('quota-check', {
-      body: { client_id: clientId }
-    });
-
-    if (error) {
-      console.error('Error fetching quota:', error);
-      return 0;
-    }
-
-    return data?.remaining_credits || 0;
-  } catch (error) {
-    console.error('Unexpected error fetching quota:', error);
-    return 0;
-  }
+  return 999;
 }
 
 export async function useFreeCertificate(): Promise<boolean> {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  try {
-    const clientId = await getClientId();
-    const { data, error } = await supabase.functions.invoke('quota-use', {
-      body: { client_id: clientId }
-    });
-
-    if (error) {
-      console.error('Error using certificate:', error);
-      return false;
-    }
-
-    return data?.success || false;
-  } catch (error) {
-    console.error('Unexpected error using certificate:', error);
-    return false;
-  }
+  return true;
 }
 
 export async function canGenerateCertificate(): Promise<boolean> {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-  const remaining = await getRemainingFreeCertificates();
-  return remaining > 0;
+  return true;
 }
 
 export async function getClientQuotaInfo(): Promise<{

@@ -7,7 +7,6 @@ import { convertTemplateToImage } from './utils/htmlToImage';
 import { HashDisplay } from './components/HashDisplay';
 import { ProgressStage } from './components/ProgressStage';
 import { AnimatedGrid } from './components/AnimatedGrid';
-import { PaywallModal } from './components/PaywallModal';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { TemplateCertificate } from './components/TemplateCertificate';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -24,8 +23,6 @@ function App() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [remainingFree, setRemainingFree] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
@@ -36,13 +33,6 @@ function App() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showForgingAnimation, setShowForgingAnimation] = useState(false);
 
-  useEffect(() => {
-    const loadQuota = async () => {
-      const remaining = await getRemainingFreeCertificates();
-      setRemainingFree(remaining);
-    };
-    loadQuota();
-  }, []);
 
   const heroImages = [
     'https://i.ibb.co/KcybW441/dub777-A-woman-in-a-shiny-latex-suit-full-body-shot-drawn-in-b8ff18fe-dcfa-4d4c-8aff-0063516770c9-0.png',
@@ -180,10 +170,6 @@ function App() {
     navigate('/card-generator');
   }, [navigate]);
 
-  const refreshQuota = async () => {
-    const remaining = await getRemainingFreeCertificates();
-    setRemainingFree(remaining);
-  };
 
   return (
     <div className="min-h-screen bg-[#171717] text-white relative overflow-hidden">
@@ -301,11 +287,6 @@ function App() {
                   </p>
                 </div>
 
-                {!hasValidLicense() && remainingFree > 0 && (
-                  <div className="mb-6 text-center text-sm text-slate-400">
-                    {t('form.freeRemaining', { count: remainingFree })}
-                  </div>
-                )}
 
                 {!isEditing ? (
                   <>
@@ -500,18 +481,18 @@ function App() {
               </div>
             </div>
 
-            <div className="text-center text-slate-600 text-sm pt-6">
+            <div className="text-center text-slate-600 text-sm pt-6 space-y-2">
               <p>{t('footer.copyright')}</p>
+              <p className="text-slate-700 text-xs">
+                <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-500">
+                  {t('footer.icp')}: 备案号待添加
+                </a>
+              </p>
             </div>
           </div>
         </footer>
       </div>
 
-      <PaywallModal
-        isOpen={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        onPurchaseComplete={refreshQuota}
-      />
 
       {showForgingAnimation && (
         <ForgingAnimation
