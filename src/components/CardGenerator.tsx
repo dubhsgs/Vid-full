@@ -140,6 +140,23 @@ export function CardGenerator() {
             .maybeSingle();
 
           if (error) {
+            if (error.code === '23505' && error.message?.includes('sha256_hash')) {
+              const { data: existing } = await supabase
+                .from('v_ids')
+                .select('friendly_id')
+                .eq('sha256_hash', hashValue)
+                .maybeSingle();
+              if (existing?.friendly_id) {
+                setCitizenId(existing.friendly_id);
+                setForm(prev => ({
+                  ...prev,
+                  serialId: existing.friendly_id,
+                  qrContent: `https://vaid.top/verify/${existing.friendly_id}`,
+                }));
+                localStorage.removeItem('vid_original_file_hash');
+                return;
+              }
+            }
             console.error('Error saving to database:', error);
             setCitizenId(serialId);
             setForm(prev => ({
