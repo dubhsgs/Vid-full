@@ -529,17 +529,17 @@ For more information, visit: ${window.location.origin}
           <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
             <div className="flex flex-col">
               <h2 className="text-lg md:text-xl font-bold text-cyan-400 mb-4">Certificate Preview</h2>
-              <div className="bg-black/40 border border-cyan-500/20 rounded-xl p-4 flex items-center justify-center">
-                {certificateReady ? (
-                  <canvas
-                    ref={canvasRef}
-                    className="w-full h-auto max-w-full rounded-lg shadow-lg"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-64">
+              <div className="bg-black/40 border border-cyan-500/20 rounded-xl p-4 flex items-center justify-center relative min-h-64">
+                {!certificateReady && (
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                   </div>
                 )}
+                <canvas
+                  ref={canvasRef}
+                  className="w-full h-auto max-w-full rounded-lg shadow-lg"
+                  style={{ display: certificateReady ? 'block' : 'none' }}
+                />
               </div>
             </div>
 
