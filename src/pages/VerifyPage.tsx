@@ -102,28 +102,45 @@ export function VerifyPage() {
     verifyOTS();
   }, [record, otsStatus]);
 
-  const loadImage = useCallback((src: string, timeout = 10000): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+  const loadImage = useCallback(async (src: string, timeout = 10000): Promise<HTMLImageElement> => {
+    const isExternal = src.startsWith('http://') || src.startsWith('https://');
 
-      const timeoutId = setTimeout(() => {
-        img.src = '';
-        reject(new Error(`Image load timeout: ${src.substring(0, 50)}...`));
-      }, timeout);
+    const loadFromSrc = (url: string): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        if (!isExternal || url.startsWith('blob:')) {
+          img.crossOrigin = 'anonymous';
+        }
+        const timeoutId = setTimeout(() => {
+          img.src = '';
+          reject(new Error(`Image load timeout: ${url.substring(0, 50)}...`));
+        }, timeout);
+        img.onload = () => { clearTimeout(timeoutId); resolve(img); };
+        img.onerror = () => { clearTimeout(timeoutId); reject(new Error(`Failed to load: ${url.substring(0, 50)}`)); };
+        img.src = url;
+      });
 
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        resolve(img);
-      };
+    if (isExternal && !src.startsWith('data:')) {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), timeout);
+        const res = await fetch(src, { signal: controller.signal });
+        clearTimeout(tid);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        try {
+          const img = await loadFromSrc(blobUrl);
+          return img;
+        } finally {
+          URL.revokeObjectURL(blobUrl);
+        }
+      } catch {
+        return loadFromSrc(src);
+      }
+    }
 
-      img.onerror = (error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      };
-
-      img.src = src;
-    });
+    return loadFromSrc(src);
   }, []);
 
   const renderCertificate = useCallback(async () => {
