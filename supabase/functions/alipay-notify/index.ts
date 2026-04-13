@@ -73,17 +73,31 @@ Deno.serve(async (req: Request) => {
     console.log('Received notification:', params);
 
     const sign = params.sign;
-    const publicKey = Deno.env.get('ALIPAY_PUBLIC_KEY') || '';
+    const publicKey = Deno.env.get('ALIPAY_PUBLIC_KEY');
 
-    if (publicKey && sign) {
-      const isValid = await verifySignature(params, sign, publicKey);
-      if (!isValid) {
-        console.error('Invalid signature');
-        return new Response('fail', {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
-        });
-      }
+    if (!publicKey) {
+      console.error('ALIPAY_PUBLIC_KEY is not configured — refusing to process order');
+      return new Response('fail', {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (!sign) {
+      console.error('Missing signature in notification — refusing to process order');
+      return new Response('fail', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    const isValid = await verifySignature(params, sign, publicKey);
+    if (!isValid) {
+      console.error('Signature verification failed — refusing to process order');
+      return new Response('fail', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
     }
 
     const {

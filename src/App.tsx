@@ -32,6 +32,7 @@ function App() {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showForgingAnimation, setShowForgingAnimation] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
 
   const heroImages = [
@@ -366,10 +367,57 @@ function App() {
                       </div>
                     </div>
 
+                    <div className="mt-8">
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <div className="relative flex-shrink-0 mt-0.5">
+                          <input
+                            type="checkbox"
+                            checked={agreedToTerms}
+                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                            agreedToTerms
+                              ? 'bg-blue-600 border-blue-600'
+                              : 'bg-transparent border-slate-500 group-hover:border-blue-400'
+                          }`}>
+                            {agreedToTerms && (
+                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-sm text-slate-400 leading-relaxed">
+                          我已阅读并同意{' '}
+                          <a
+                            href="/terms"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            用户协议
+                          </a>
+                          {' '}和{' '}
+                          <a
+                            href="/privacy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            隐私政策
+                          </a>
+                          ，了解系统将使用浏览器指纹进行额度管理
+                        </span>
+                      </label>
+                    </div>
+
                     <button
                       onClick={handleEditInfo}
-                      disabled={!imageFile}
-                      className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
+                      disabled={!imageFile || !agreedToTerms}
+                      className="w-full mt-4 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >
                       Edit Info
                     </button>
