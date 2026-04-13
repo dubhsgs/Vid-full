@@ -159,6 +159,10 @@ function App() {
       localStorage.setItem('vid_character_name', characterName);
       localStorage.setItem('vid_creator_name', creatorName);
 
+      calculateSHA256(imageFile).then((hash) => {
+        localStorage.setItem('vid_original_file_hash', hash);
+      });
+
       setShowForgingAnimation(true);
     };
     img.src = imagePreview;

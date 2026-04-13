@@ -99,8 +99,12 @@ export function CardGenerator() {
               imageUrl = savedAvatar;
             }
 
-            const dataToHash = `${savedName}:${creatorName}:${issuedDate}:${imageUrl}`;
-            hashValue = await calculateSHA256(dataToHash);
+            const savedFileHash = localStorage.getItem('vid_original_file_hash');
+            if (savedFileHash) {
+              hashValue = savedFileHash;
+            } else {
+              hashValue = await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${imageUrl}`);
+            }
             setSha256Hash(hashValue);
           }
 

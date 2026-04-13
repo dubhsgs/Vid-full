@@ -69,7 +69,8 @@ export async function getUserOrders(): Promise<any[]> {
       .from('alipay_orders')
       .select('*')
       .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .setHeader('x-client-id', clientId);
 
     if (error) {
       console.error('Error fetching orders:', error);
