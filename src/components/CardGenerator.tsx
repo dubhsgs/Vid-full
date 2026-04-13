@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
+import { uploadImageToStorage } from '../utils/imageUpload';
 
 async function triggerOTSStamp(friendlyId: string, sha256Hash: string): Promise<void> {
   try {
@@ -26,6 +27,8 @@ const DPR = 2;
 const REAL_W = CANVAS_W * DPR;
 const REAL_H = CANVAS_H * DPR;
 
+const AVATAR_COLOR_START = '#b8dce8';
+const AVATAR_COLOR_END = '#e040a0';
 const QR_COLOR = '#de6aa8';
 
 interface FormData {
@@ -60,6 +63,7 @@ export function CardGenerator() {
 
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
+  const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
 
   const formatIssuedDate = useCallback((date = new Date()) => {
@@ -79,6 +83,7 @@ export function CardGenerator() {
   useEffect(() => {
     const initializeCard = async () => {
       const issuedDate = formatIssuedDate();
+      const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
       const savedName = localStorage.getItem('vid_character_name') || 'ELIZA REED';
       const creatorName = localStorage.getItem('vid_creator_name') || 'Anonymous Creator';
 
@@ -95,9 +100,30 @@ export function CardGenerator() {
         try {
           setIsSaving(true);
 
+          let imageUrl = '';
+          let hashValue = '';
           const originalFileHash = localStorage.getItem('vid_original_file_hash') || '';
-          const hashValue = originalFileHash || await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${serialId}`);
-          setSha256Hash(hashValue);
+
+          if (savedAvatar) {
+            console.log('[CardGenerator] Uploading thumbnail to Storage...');
+            const uploadedUrl = await uploadImageToStorage(savedAvatar, `${serialId}.png`);
+
+            if (uploadedUrl) {
+              imageUrl = uploadedUrl;
+              console.log('[CardGenerator] Thumbnail uploaded successfully:', imageUrl);
+            } else {
+              console.warn('[CardGenerator] Failed to upload thumbnail, using base64 fallback');
+              imageUrl = savedAvatar;
+            }
+
+            hashValue = originalFileHash || await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${imageUrl}`);
+            setSha256Hash(hashValue);
+          }
+
+          if (!hashValue) {
+            hashValue = await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${serialId}`);
+            setSha256Hash(hashValue);
+          }
 
           const { data, error } = await supabase
             .from('v_ids')
@@ -106,7 +132,7 @@ export function CardGenerator() {
               creator_name: creatorName,
               sha256_hash: hashValue,
               original_file_hash: originalFileHash || hashValue,
-              image_url: '',
+              image_url: imageUrl,
               friendly_id: serialId,
               ots_status: 'pending',
             })
@@ -193,6 +219,12 @@ export function CardGenerator() {
         ]);
         setBgImg(bg);
         setLogoImg(logo);
+
+        const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
+        if (savedAvatar) {
+          const avatarImage = await loadImage(savedAvatar);
+          setAvatarImg(avatarImage);
+        }
       } catch (e) {
         console.error('Failed to load resources:', e);
       }
@@ -222,6 +254,17 @@ export function CardGenerator() {
   useEffect(() => {
     generateQR();
   }, [generateQR]);
+
+  const hexToRgba = (hex: string, alpha = 1) => {
+    const normalized = hex.replace('#', '');
+    const value = normalized.length === 3
+      ? normalized.split('').map((c) => c + c).join('')
+      : normalized;
+    const r = parseInt(value.slice(0, 2), 16);
+    const g = parseInt(value.slice(2, 4), 16);
+    const b = parseInt(value.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
   const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) => {
     const imgRatio = img.width / img.height;
@@ -332,107 +375,55 @@ export function CardGenerator() {
     ctx.restore();
   };
 
-  const drawLeftPanel = (ctx: CanvasRenderingContext2D) => {
-    const cx = 195;
-    const topY = 170;
-    const bottomY = 455;
+  const drawAvatar = (ctx: CanvasRenderingContext2D) => {
+    const cx = 210, cy = 310, outerR = 100, innerR = 88;
 
     ctx.save();
-    const panelGrad = ctx.createLinearGradient(55, topY, 320, topY);
-    panelGrad.addColorStop(0, 'rgba(30, 40, 65, 0.0)');
-    panelGrad.addColorStop(0.5, 'rgba(30, 45, 70, 0.18)');
-    panelGrad.addColorStop(1, 'rgba(30, 40, 65, 0.0)');
-    ctx.fillStyle = panelGrad;
-    roundRect(ctx, 55, topY, 270, bottomY - topY, 12);
-    ctx.fill();
-    ctx.restore();
-
-    const hexCx = cx, hexCy = 265, hexR = 62;
-    ctx.save();
-    const hexGlow = ctx.createRadialGradient(hexCx, hexCy, 0, hexCx, hexCy, hexR + 30);
-    hexGlow.addColorStop(0, 'rgba(180, 210, 255, 0.10)');
-    hexGlow.addColorStop(0.6, 'rgba(120, 170, 240, 0.05)');
-    hexGlow.addColorStop(1, 'rgba(100, 150, 220, 0)');
-    ctx.fillStyle = hexGlow;
+    const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 20);
+    glow.addColorStop(0, hexToRgba(AVATAR_COLOR_END, 0));
+    glow.addColorStop(0.5, hexToRgba(AVATAR_COLOR_END, 0.12));
+    glow.addColorStop(0.8, hexToRgba(AVATAR_COLOR_START, 0.08));
+    glow.addColorStop(1, hexToRgba(AVATAR_COLOR_START, 0));
+    ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(hexCx, hexCy, hexR + 30, 0, Math.PI * 2);
+    ctx.arc(cx, cy, outerR + 20, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
 
-    for (let ring = 0; ring < 3; ring++) {
-      const r = hexR - ring * 14;
-      const alpha = 0.18 - ring * 0.04;
+    const ringGrad = ctx.createLinearGradient(cx, cy - outerR, cx, cy + outerR);
+    ringGrad.addColorStop(0, AVATAR_COLOR_START);
+    ringGrad.addColorStop(0.45, AVATAR_COLOR_START);
+    ringGrad.addColorStop(0.65, AVATAR_COLOR_END);
+    ringGrad.addColorStop(1, AVATAR_COLOR_END);
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+    ctx.strokeStyle = ringGrad;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(15, 18, 30, 0.8)';
+    ctx.fill();
+
+    if (avatarImg) {
       ctx.save();
       ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (i * Math.PI) / 3 - Math.PI / 6;
-        const hx = hexCx + r * Math.cos(angle);
-        const hy = hexCy + r * Math.sin(angle);
-        if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = `rgba(160, 200, 255, ${alpha})`;
-      ctx.lineWidth = ring === 0 ? 1.5 : 1;
-      ctx.stroke();
+      ctx.arc(cx, cy, innerR - 2, 0, Math.PI * 2);
+      ctx.clip();
+      const size = innerR * 2 - 4;
+      ctx.drawImage(
+        avatarImg,
+        0, 0, avatarImg.width, avatarImg.height,
+        cx - size / 2, cy - size / 2, size, size
+      );
       ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(100, 120, 160, 0.3)';
+      ctx.font = '40px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👤', cx, cy);
     }
-
-    ctx.save();
-    ctx.font = 'bold 28px "Segoe UI", system-ui';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(200, 220, 255, 0.85)';
-    ctx.shadowColor = 'rgba(160, 200, 255, 0.5)';
-    ctx.shadowBlur = 12;
-    ctx.fillText('V-ID', hexCx, hexCy);
-    ctx.restore();
-
-    ctx.save();
-    ctx.font = '600 9px "Segoe UI", system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(160, 190, 230, 0.5)';
-    ctx.letterSpacing = '2px';
-    ctx.fillText('VERIFIED IDENTITY', hexCx, hexCy + hexR + 22);
-    ctx.restore();
-
-    const dotRows = [
-      { y: 370, count: 7 },
-      { y: 388, count: 5 },
-      { y: 406, count: 7 },
-    ];
-    dotRows.forEach(({ y, count }) => {
-      const startX = cx - (count - 1) * 12;
-      for (let i = 0; i < count; i++) {
-        const dx = startX + i * 24;
-        const alpha = 0.12 + Math.random() * 0.18;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(dx, y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(140, 180, 240, ${alpha})`;
-        ctx.fill();
-        ctx.restore();
-      }
-    });
-
-    const lineY = 435;
-    ctx.save();
-    const lineGrad = ctx.createLinearGradient(80, lineY, cx * 2 - 80, lineY);
-    lineGrad.addColorStop(0, 'rgba(140, 180, 240, 0)');
-    lineGrad.addColorStop(0.5, 'rgba(140, 180, 240, 0.3)');
-    lineGrad.addColorStop(1, 'rgba(140, 180, 240, 0)');
-    ctx.strokeStyle = lineGrad;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(80, lineY);
-    ctx.lineTo(cx * 2 - 80, lineY);
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.font = '500 9px "Segoe UI", system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(120, 160, 210, 0.4)';
-    ctx.fillText('DIGITAL IDENTITY PROTOCOL', cx, 450);
     ctx.restore();
   };
 
@@ -606,13 +597,13 @@ export function CardGenerator() {
 
     drawPanel(ctx);
     drawLogo(ctx);
-    drawLeftPanel(ctx);
+    drawAvatar(ctx);
     drawDividerLine(ctx);
     drawTextFields(ctx);
     drawQRCode(ctx);
     drawDescription(ctx);
     drawLegalNotice(ctx);
-  }, [bgImg, logoImg, qrImg, form]);
+  }, [bgImg, logoImg, avatarImg, qrImg, form]);
 
   useEffect(() => {
     drawCanvas();
@@ -631,7 +622,7 @@ export function CardGenerator() {
     }
     drawPanel(ctx);
     drawLogo(ctx);
-    drawLeftPanel(ctx);
+    drawAvatar(ctx);
     drawDividerLine(ctx);
     drawTextFields(ctx);
     drawDescription(ctx);
