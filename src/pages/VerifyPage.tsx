@@ -11,6 +11,8 @@ interface VIDRecord {
   sha256_hash: string;
   image_url: string;
   created_at: string;
+  ots_status: string;
+  ots_file_path: string | null;
 }
 
 const CANVAS_W = 512;
@@ -26,6 +28,7 @@ export function VerifyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certificateReady, setCertificateReady] = useState(false);
+  const [otsStatus, setOtsStatus] = useState<string>('pending');
 
   useEffect(() => {
     const fetchRecord = async () => {
@@ -44,7 +47,7 @@ export function VerifyPage() {
 
         const { data, error } = await supabase
           .from('v_ids')
-          .select('id, friendly_id, character_name, creator_name, sha256_hash, image_url, created_at')
+          .select('id, friendly_id, character_name, creator_name, sha256_hash, image_url, created_at, ots_status, ots_file_path')
           .eq('friendly_id', normalizedId)
           .maybeSingle();
 
@@ -57,7 +60,9 @@ export function VerifyPage() {
           setError('No record found for this Citizen ID');
         } else {
           console.log('[VerifyPage] Record found:', data);
-          setRecord({ ...data, id: data.friendly_id || data.id });
+          const rec = { ...data, id: data.friendly_id || data.id };
+          setRecord(rec);
+          setOtsStatus(data.ots_status || 'pending');
         }
       } catch (err) {
         console.error('[VerifyPage] Error fetching record:', err);
@@ -69,6 +74,33 @@ export function VerifyPage() {
 
     fetchRecord();
   }, [id]);
+
+  useEffect(() => {
+    if (!record || otsStatus === 'confirmed') return;
+    if (otsStatus !== 'stamped') return;
+
+    const verifyOTS = async () => {
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ots-verify`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ friendly_id: record.id }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.ots_status) setOtsStatus(json.ots_status);
+        }
+      } catch (err) {
+        console.error('[OTS] Verify request failed:', err);
+      }
+    };
+
+    verifyOTS();
+  }, [record, otsStatus]);
 
   const loadImage = useCallback((src: string, timeout = 10000): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -388,6 +420,14 @@ For more information, visit: ${window.location.origin}
       zip.file('V-ID_Certificate.png', imageBlob);
       zip.file('Proof_of_Existence.txt', proofText);
 
+      if (record.ots_file_path || otsStatus === 'stamped' || otsStatus === 'confirmed') {
+        const otsPath = record.ots_file_path || `ots/${record.id}.ots`;
+        const { data: otsBlob } = await supabase.storage.from('v-id-images').download(otsPath);
+        if (otsBlob) {
+          zip.file(`${record.id}.ots`, otsBlob);
+        }
+      }
+
       const zipBlob = await zip.generateAsync({ type: 'blob' });
 
       const url = URL.createObjectURL(zipBlob);
@@ -560,9 +600,24 @@ For more information, visit: ${window.location.origin}
                 </div>
               </div>
             </div>
+
+            <div className="flex items-center gap-2 mt-3 mb-2">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                otsStatus === 'confirmed' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]' :
+                otsStatus === 'stamped'   ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]' :
+                otsStatus === 'failed'    ? 'bg-red-400' :
+                'bg-slate-500'
+              }`} />
+              <span className="text-xs font-mono text-slate-300">
+                {otsStatus === 'confirmed' && 'OTS 已在比特币链上确认'}
+                {otsStatus === 'stamped'   && 'OTS 时间戳已提交，等待区块链确认（约1小时）'}
+                {otsStatus === 'failed'    && 'OTS 时间戳提交失败'}
+                {otsStatus === 'pending'   && 'OTS 时间戳处理中...'}
+              </span>
+            </div>
+
             <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-              This identity has been anchored to the global distributed ledger.
-              The authenticity of this record is mathematically guaranteed.
+              原始图片的 SHA-256 指纹已通过 OpenTimestamps 协议锚定至比特币区块链，提供不可篡改的存在时间证明。
             </p>
           </div>
 
@@ -590,10 +645,9 @@ For more information, visit: ${window.location.origin}
         <div className="mt-6 md:mt-8 p-4 md:p-6 bg-cyan-500/5 border border-cyan-500/20 rounded-xl backdrop-blur-sm">
           <h3 className="text-base md:text-lg font-semibold text-cyan-400 mb-3">About This Verification</h3>
           <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-            This V-ID record is permanently registered in our decentralized identity ledger.
-            The SHA-256 hash provides digital identity proof of this identity's existence at the recorded timestamp.
-            For independent verification of the timestamp's authenticity, you can verify the hash on the
-            OpenTimestamps official website, which anchors proofs using digital identity technology.
+            此 V-ID 记录已永久注册在我们的去中心化身份台账中。原始图片文件的 SHA-256 哈希值通过
+            OpenTimestamps 协议真实锚定至比特币主网，任何人均可独立验证此证明的存在时间。
+            下载包中包含 <span className="text-cyan-400 font-mono">.ots</span> 证明文件，可使用官方 OTS 客户端离线验证。
           </p>
         </div>
       </div>

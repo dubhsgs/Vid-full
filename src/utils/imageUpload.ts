@@ -56,7 +56,7 @@ export async function uploadImageToStorage(dataUrl: string, filename?: string): 
     const { data, error } = await supabase.storage
       .from('v-id-images')
       .upload(filePath, blob, {
-        contentType: mimeType,
+        contentType: 'image/jpeg',
         upsert: false,
       });
 

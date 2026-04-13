@@ -5,6 +5,22 @@ import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
 import { uploadImageToStorage } from '../utils/imageUpload';
 
+async function triggerOTSStamp(friendlyId: string, sha256Hash: string): Promise<void> {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ots-stamp`;
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ friendly_id: friendlyId, sha256_hash: sha256Hash }),
+    });
+  } catch (err) {
+    console.error('[OTS] Stamp request failed (non-critical):', err);
+  }
+}
+
 const CANVAS_W = 1024;
 const CANVAS_H = 576;
 const DPR = 2;
@@ -86,25 +102,21 @@ export function CardGenerator() {
 
           let imageUrl = '';
           let hashValue = '';
+          const originalFileHash = localStorage.getItem('vid_original_file_hash') || '';
 
           if (savedAvatar) {
-            console.log('[CardGenerator] Uploading avatar to Storage...');
+            console.log('[CardGenerator] Uploading thumbnail to Storage...');
             const uploadedUrl = await uploadImageToStorage(savedAvatar, `${serialId}.png`);
 
             if (uploadedUrl) {
               imageUrl = uploadedUrl;
-              console.log('[CardGenerator] Avatar uploaded successfully:', imageUrl);
+              console.log('[CardGenerator] Thumbnail uploaded successfully:', imageUrl);
             } else {
-              console.warn('[CardGenerator] Failed to upload avatar, using base64 fallback');
+              console.warn('[CardGenerator] Failed to upload thumbnail, using base64 fallback');
               imageUrl = savedAvatar;
             }
 
-            const savedFileHash = localStorage.getItem('vid_original_file_hash');
-            if (savedFileHash) {
-              hashValue = savedFileHash;
-            } else {
-              hashValue = await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${imageUrl}`);
-            }
+            hashValue = originalFileHash || await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${imageUrl}`);
             setSha256Hash(hashValue);
           }
 
@@ -114,8 +126,10 @@ export function CardGenerator() {
               character_name: savedName,
               creator_name: creatorName,
               sha256_hash: hashValue,
+              original_file_hash: originalFileHash || hashValue,
               image_url: imageUrl,
-              friendly_id: serialId
+              friendly_id: serialId,
+              ots_status: 'pending',
             })
             .select('friendly_id')
             .maybeSingle();
@@ -136,6 +150,8 @@ export function CardGenerator() {
               serialId: data.friendly_id,
               qrContent: `https://vaid.top/verify/${data.friendly_id}`,
             }));
+            triggerOTSStamp(data.friendly_id, hashValue);
+            localStorage.removeItem('vid_original_file_hash');
           } else {
             console.log('No data returned, using generated serialId');
             setCitizenId(serialId);
@@ -649,8 +665,16 @@ visit our website or contact support.
 
     const imageBlob = await (await fetch(imageDataUrl)).blob();
     zip.file('V-ID_Certificate.png', imageBlob);
-
     zip.file('Proof_Verification_Guide.txt', verificationGuide);
+
+    if (citizenId) {
+      const { data: otsData } = await supabase.storage
+        .from('v-id-images')
+        .download(`ots/${citizenId}.ots`);
+      if (otsData) {
+        zip.file(`${citizenId}.ots`, otsData);
+      }
+    }
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
 
@@ -692,6 +716,9 @@ visit our website or contact support.
             className="max-w-full rounded-xl shadow-2xl"
             style={{ maxHeight: 'calc(100vh - 160px)' }}
           />
+          <p className="mt-4 text-xs text-slate-500 text-center max-w-lg leading-relaxed">
+            我们仅存储您的指纹证明与等比缩小的预览图，请妥善保管原图文件。
+          </p>
         </div>
       </div>
     </div>
