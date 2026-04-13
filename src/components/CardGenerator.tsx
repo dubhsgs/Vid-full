@@ -120,6 +120,11 @@ export function CardGenerator() {
             setSha256Hash(hashValue);
           }
 
+          if (!hashValue) {
+            hashValue = await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${serialId}`);
+            setSha256Hash(hashValue);
+          }
+
           const { data, error } = await supabase
             .from('v_ids')
             .insert({
