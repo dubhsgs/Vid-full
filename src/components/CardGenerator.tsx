@@ -298,8 +298,8 @@ export function CardGenerator() {
   };
 
   const drawPanel = (ctx: CanvasRenderingContext2D) => {
-    const pw = 944
-    const ph = 531
+    const pw = 958
+    const ph = 540
     const px = (CANVAS_W - pw) / 2
     const py = (CANVAS_H - ph) / 2
     const r = 22
@@ -387,17 +387,17 @@ export function CardGenerator() {
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
-    const cx = 222, cy = 308, outerR = 106, innerR = 92;
+    const cx = 214, cy = 312, outerR = 126, innerR = 110;
 
     ctx.save();
-    const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 24);
+    const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 28);
     glow.addColorStop(0, hexToRgba(AVATAR_COLOR_END, 0));
     glow.addColorStop(0.5, hexToRgba(AVATAR_COLOR_END, 0.12));
     glow.addColorStop(0.8, hexToRgba(AVATAR_COLOR_START, 0.08));
     glow.addColorStop(1, hexToRgba(AVATAR_COLOR_START, 0));
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(cx, cy, outerR + 20, 0, Math.PI * 2);
+    ctx.arc(cx, cy, outerR + 24, 0, Math.PI * 2);
     ctx.fill();
 
     const ringGrad = ctx.createLinearGradient(cx, cy - outerR, cx, cy + outerR);
@@ -408,7 +408,7 @@ export function CardGenerator() {
     ctx.beginPath();
     ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
     ctx.strokeStyle = ringGrad;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.stroke();
 
     ctx.beginPath();
@@ -439,7 +439,7 @@ export function CardGenerator() {
   };
 
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
-    const lx = 346, ly1 = 162, ly2 = 462;
+    const lx = 356, ly1 = 156, ly2 = 470;
     ctx.save();
     const glow = ctx.createLinearGradient(lx - 8, ly1, lx + 8, ly1);
     glow.addColorStop(0, 'rgba(160, 190, 240, 0)');
@@ -455,13 +455,13 @@ export function CardGenerator() {
     core.addColorStop(0.5, 'rgba(210, 225, 255, 0.55)');
     core.addColorStop(1, 'rgba(210, 225, 255, 0.18)');
     ctx.fillStyle = core;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.fillRect(lx - 1.5, ly1, 3, ly2 - ly1);
     ctx.restore();
   };
 
   const drawTextFields = (ctx: CanvasRenderingContext2D) => {
-    const startX = 368;
+    const startX = 390;
     const labelStyle = 'rgba(180, 190, 210, 0.7)';
     const valueStyle = '#ffffff';
     const greenStyle = '#00e676';
@@ -470,23 +470,23 @@ export function CardGenerator() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    let y = 214;
-    ctx.font = '500 16px "Segoe UI", system-ui';
+    let y = 236;
+    ctx.font = '500 18px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('NAME:', startX, y);
     const nameOffset = ctx.measureText('NAME: ').width;
-    ctx.font = '700 34px "Segoe UI", system-ui';
+    ctx.font = '700 38px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.name, startX + nameOffset + 4, y);
 
-    y = 278;
-    ctx.font = '500 16px "Segoe UI", system-ui';
+    y = 300;
+    ctx.font = '500 18px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('STATUS:', startX, y);
     const statusOffset = ctx.measureText('STATUS: ').width;
     ctx.shadowColor = 'rgba(0, 230, 118, 0.95)';
     ctx.shadowBlur = 8;
-    ctx.font = 'italic 700 28px "Segoe UI", system-ui';
+    ctx.font = 'italic 700 32px "Segoe UI", system-ui';
     ctx.fillStyle = greenStyle;
     ctx.fillText(form.status, startX + statusOffset + 4, y);
     ctx.shadowColor = 'rgba(0, 230, 118, 0.45)';
@@ -495,21 +495,21 @@ export function CardGenerator() {
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
-    y = 342;
-    ctx.font = '500 16px "Segoe UI", system-ui';
+    y = 364;
+    ctx.font = '500 18px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('ISSUED:', startX, y);
     const issuedOffset = ctx.measureText('ISSUED: ').width;
-    ctx.font = '700 30px "Segoe UI", system-ui';
+    ctx.font = '700 34px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.issuedDate, startX + issuedOffset + 4, y);
 
-    y = 406;
-    ctx.font = '500 16px "Segoe UI", system-ui';
+    y = 428;
+    ctx.font = '500 18px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('CITIZEN ID:', startX, y);
     const idOffset = ctx.measureText('CITIZEN ID: ').width;
-    ctx.font = '700 30px "Segoe UI", system-ui';
+    ctx.font = '700 34px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.serialId, startX + idOffset + 4, y);
 
@@ -517,17 +517,17 @@ export function CardGenerator() {
   };
 
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    const qx = 798, qy = 272, qs = 118;
+    const qx = 818, qy = 288, qs = 128;
 
     ctx.save();
     ctx.fillStyle = 'rgba(74, 82, 48, 0.52)';
     ctx.beginPath();
-    roundRect(ctx, qx - 15, qy - 15, qs + 30, qs + 80, 8);
+    roundRect(ctx, qx - 16, qy - 16, qs + 32, qs + 88, 8);
     ctx.fill();
     ctx.strokeStyle = 'rgba(182, 191, 138, 0.22)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    roundRect(ctx, qx - 15, qy - 15, qs + 30, qs + 80, 8);
+    roundRect(ctx, qx - 16, qy - 16, qs + 32, qs + 88, 8);
     ctx.stroke();
 
     if (!qrImg) {
@@ -578,7 +578,7 @@ export function CardGenerator() {
     ctx.fillStyle = 'rgba(180, 190, 210, 0.45)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(form.description, CANVAS_W / 2, 500);
+    ctx.fillText(form.description, CANVAS_W / 2, 508);
     ctx.restore();
   };
 
