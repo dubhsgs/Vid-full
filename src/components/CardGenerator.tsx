@@ -387,7 +387,7 @@ export function CardGenerator() {
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
-    const cx = 210, cy = 310, outerR = 100, innerR = 88;
+    const cx = 228, cy = 308, outerR = 88, innerR = 77;
 
     ctx.save();
     const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 20);
@@ -439,7 +439,7 @@ export function CardGenerator() {
   };
 
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
-    const lx = 340, ly1 = 170, ly2 = 455;
+    const lx = 332, ly1 = 176, ly2 = 446;
     ctx.save();
     const glow = ctx.createLinearGradient(lx - 8, ly1, lx + 8, ly1);
     glow.addColorStop(0, 'rgba(160, 190, 240, 0)');
@@ -460,7 +460,7 @@ export function CardGenerator() {
   };
 
   const drawTextFields = (ctx: CanvasRenderingContext2D) => {
-    const startX = 370;
+    const startX = 354;
     const labelStyle = 'rgba(180, 190, 210, 0.7)';
     const valueStyle = '#ffffff';
     const greenStyle = '#00e676';
@@ -469,16 +469,16 @@ export function CardGenerator() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    let y = 215;
+    let y = 212;
     ctx.font = '500 16px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('NAME:', startX, y);
     const nameOffset = ctx.measureText('NAME: ').width;
-    ctx.font = '700 30px "Segoe UI", system-ui';
+    ctx.font = '700 29px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.name, startX + nameOffset + 4, y);
 
-    y = 278;
+    y = 270;
     ctx.font = '500 16px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('STATUS:', startX, y);
@@ -494,21 +494,21 @@ export function CardGenerator() {
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
-    y = 338;
+    y = 328;
     ctx.font = '500 16px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('ISSUED:', startX, y);
     const issuedOffset = ctx.measureText('ISSUED: ').width;
-    ctx.font = '700 26px "Segoe UI", system-ui';
+    ctx.font = '700 25px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.issuedDate, startX + issuedOffset + 4, y);
 
-    y = 398;
+    y = 386;
     ctx.font = '500 16px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('CITIZEN ID:', startX, y);
     const idOffset = ctx.measureText('CITIZEN ID: ').width;
-    ctx.font = '700 26px "Segoe UI", system-ui';
+    ctx.font = '700 25px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.serialId, startX + idOffset + 4, y);
 
@@ -516,7 +516,7 @@ export function CardGenerator() {
   };
 
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    const qx = 838, qy = 290, qs = 95;
+    const qx = 820, qy = 292, qs = 95;
 
     ctx.save();
     ctx.fillStyle = 'rgba(74, 82, 48, 0.52)';
