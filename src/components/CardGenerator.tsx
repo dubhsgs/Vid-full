@@ -308,7 +308,7 @@ export function CardGenerator() {
       ctx.beginPath()
       roundRect(ctx, px, py, pw, ph, r)
       ctx.clip()
-      ctx.filter = 'blur(6px) brightness(0.94) saturate(1.02)'
+      ctx.filter = 'blur(10px) brightness(0.9) saturate(1.08)'
       drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H)
       ctx.filter = 'none'
       ctx.restore()
@@ -316,7 +316,7 @@ export function CardGenerator() {
     ctx.save()
     ctx.beginPath()
     roundRect(ctx, px, py, pw, ph, r)
-    ctx.fillStyle = 'rgba(12, 18, 28, 0.22)'
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.34)'
     ctx.fill()
     ctx.restore()
     ctx.save()
@@ -354,6 +354,27 @@ export function CardGenerator() {
     ctx.save()
     ctx.beginPath()
     roundRect(ctx, px, py, pw, ph, r)
+    ctx.clip()
+    ctx.globalAlpha = 0.07
+    ctx.strokeStyle = 'rgba(180, 220, 255, 0.08)'
+    ctx.lineWidth = 1
+    const lineCount = 8 + Math.floor(Math.random() * 3)
+    for (let i = 0; i < lineCount; i++) {
+      const startX = px + Math.random() * pw
+      const startY = py + Math.random() * ph
+      const length = 160 + Math.random() * 160
+      const angle = Math.random() * Math.PI * 2
+      const endX = startX + Math.cos(angle) * length
+      const endY = startY + Math.sin(angle) * length
+      ctx.beginPath()
+      ctx.moveTo(startX, startY)
+      ctx.lineTo(endX, endY)
+      ctx.stroke()
+    }
+    ctx.restore()
+    ctx.save()
+    ctx.beginPath()
+    roundRect(ctx, px, py, pw, ph, r)
     ctx.strokeStyle = 'rgba(225, 235, 255, 0.42)'
     ctx.lineWidth = 1.2
     ctx.stroke()
@@ -372,25 +393,26 @@ export function CardGenerator() {
 
   const drawLogo = (ctx: CanvasRenderingContext2D) => {
     if (!logoImg) return;
-    const logoH = 60;
+    const logoH = 86;
     const logoW = (logoImg.width / logoImg.height) * logoH;
     const lx = (CANVAS_W - logoW) / 2;
-    const ly = 45;
+    const ly = 32;
     ctx.drawImage(logoImg, lx, ly, logoW, logoH);
 
     ctx.save();
-    ctx.font = '600 11px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(200, 210, 230, 0.7)';
+    ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(200, 210, 230, 0.58)';
     ctx.textAlign = 'center';
-    ctx.fillText('V-ID Protocol', CANVAS_W / 2, ly + logoH + 18);
+    ctx.textBaseline = 'top';
+    ctx.fillText('V-ID Protocol', CANVAS_W / 2, ly + logoH + 14);
     ctx.restore();
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
-    const cx = 214, cy = 312, outerR = 126, innerR = 110;
+    const cx = 214, cy = 312, outerR = 110, innerR = 96;
 
     ctx.save();
-    const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 28);
+    const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 24);
     glow.addColorStop(0, hexToRgba(AVATAR_COLOR_END, 0));
     glow.addColorStop(0.5, hexToRgba(AVATAR_COLOR_END, 0.12));
     glow.addColorStop(0.8, hexToRgba(AVATAR_COLOR_START, 0.08));
@@ -405,10 +427,21 @@ export function CardGenerator() {
     ringGrad.addColorStop(0.45, AVATAR_COLOR_START);
     ringGrad.addColorStop(0.65, AVATAR_COLOR_END);
     ringGrad.addColorStop(1, AVATAR_COLOR_END);
+
     ctx.beginPath();
     ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
     ctx.strokeStyle = ringGrad;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    const secondRingGrad = ctx.createLinearGradient(cx, cy - (outerR + 12), cx, cy + (outerR + 12));
+    secondRingGrad.addColorStop(0, AVATAR_COLOR_START);
+    secondRingGrad.addColorStop(0.5, AVATAR_COLOR_END);
+    secondRingGrad.addColorStop(1, AVATAR_COLOR_END);
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR + 12, 0, Math.PI * 2);
+    ctx.strokeStyle = secondRingGrad;
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.beginPath();
@@ -439,7 +472,7 @@ export function CardGenerator() {
   };
 
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
-    const lx = 356, ly1 = 156, ly2 = 470;
+    const lx = 346, ly1 = 160, ly2 = 462;
     ctx.save();
     const glow = ctx.createLinearGradient(lx - 8, ly1, lx + 8, ly1);
     glow.addColorStop(0, 'rgba(160, 190, 240, 0)');
@@ -461,8 +494,8 @@ export function CardGenerator() {
   };
 
   const drawTextFields = (ctx: CanvasRenderingContext2D) => {
-    const startX = 390;
-    const labelStyle = 'rgba(180, 190, 210, 0.7)';
+    const startX = 372;
+    const labelStyle = 'rgba(180, 190, 210, 0.70)';
     const valueStyle = '#ffffff';
     const greenStyle = '#00e676';
 
@@ -470,23 +503,23 @@ export function CardGenerator() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    let y = 236;
-    ctx.font = '500 18px "Segoe UI", system-ui';
+    let y = 214;
+    ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('NAME:', startX, y);
     const nameOffset = ctx.measureText('NAME: ').width;
-    ctx.font = '700 38px "Segoe UI", system-ui';
+    ctx.font = '700 22px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.name, startX + nameOffset + 4, y);
 
-    y = 300;
-    ctx.font = '500 18px "Segoe UI", system-ui';
+    y = 276;
+    ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('STATUS:', startX, y);
     const statusOffset = ctx.measureText('STATUS: ').width;
     ctx.shadowColor = 'rgba(0, 230, 118, 0.95)';
     ctx.shadowBlur = 8;
-    ctx.font = 'italic 700 32px "Segoe UI", system-ui';
+    ctx.font = 'italic 700 22px "Segoe UI", system-ui';
     ctx.fillStyle = greenStyle;
     ctx.fillText(form.status, startX + statusOffset + 4, y);
     ctx.shadowColor = 'rgba(0, 230, 118, 0.45)';
@@ -495,21 +528,21 @@ export function CardGenerator() {
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
-    y = 364;
-    ctx.font = '500 18px "Segoe UI", system-ui';
+    y = 338;
+    ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('ISSUED:', startX, y);
     const issuedOffset = ctx.measureText('ISSUED: ').width;
-    ctx.font = '700 34px "Segoe UI", system-ui';
+    ctx.font = '700 22px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.issuedDate, startX + issuedOffset + 4, y);
 
-    y = 428;
-    ctx.font = '500 18px "Segoe UI", system-ui';
+    y = 400;
+    ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('CITIZEN ID:', startX, y);
     const idOffset = ctx.measureText('CITIZEN ID: ').width;
-    ctx.font = '700 34px "Segoe UI", system-ui';
+    ctx.font = '700 22px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.serialId, startX + idOffset + 4, y);
 
@@ -517,22 +550,22 @@ export function CardGenerator() {
   };
 
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    const qx = 818, qy = 288, qs = 128;
+    const qx = 828, qy = 294, qs = 84;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(74, 82, 48, 0.52)';
+    ctx.fillStyle = 'rgba(60, 66, 40, 0.50)';
     ctx.beginPath();
-    roundRect(ctx, qx - 16, qy - 16, qs + 32, qs + 88, 8);
+    roundRect(ctx, qx - 6, qy - 6, qs + 12, qs + 40, 7);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(182, 191, 138, 0.22)';
+    ctx.strokeStyle = 'rgba(182, 191, 138, 0.18)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    roundRect(ctx, qx - 16, qy - 16, qs + 32, qs + 88, 8);
+    roundRect(ctx, qx - 6, qy - 6, qs + 12, qs + 40, 7);
     ctx.stroke();
 
     if (!qrImg) {
       ctx.fillStyle = 'rgba(180, 190, 210, 0.5)';
-      ctx.font = '14px "Segoe UI", system-ui';
+      ctx.font = '12px "Segoe UI", system-us';
       ctx.textAlign = 'center';
       ctx.fillText('Generating...', qx + qs / 2, qy + qs / 2);
       ctx.restore();
@@ -561,14 +594,17 @@ export function CardGenerator() {
     qrGlow.addColorStop(0.5, 'rgba(255, 160, 205, 0.05)');
     qrGlow.addColorStop(1, 'rgba(255, 160, 205, 0)');
     ctx.fillStyle = qrGlow;
-    ctx.fillRect(qx - 6, qy - 6, qs + 12, qs + 12);
+    ctx.fillRect(qx - 4, qy - 4, qs + 8, qs + 8);
 
-    ctx.font = '500 7px "JetBrains Mono", "Courier New", monospace';
+    ctx.font = '500 11px "JetBrains Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(70, 140, 180, 0.50)';
+    ctx.fillStyle = 'rgba(210, 215, 200, 0.72)';
     const hashPrefix = sha256Hash ? sha256Hash.slice(0, 8) : '00000000';
-    ctx.fillText(`HASH: 0x${hashPrefix}...`, qx + qs / 2, qy + qs + 20);
-    ctx.fillText('STATUS: ON-CHAIN SYNCED', qx + qs / 2, qy + qs + 30);
+    ctx.fillText(`TOKEN: ${form.qrToken}`, qx + qs / 2, qy + qs + 12);
+
+    ctx.font = '500 10px "JetBrains Mono", "Courier New", monospace';
+    ctx.fillText('RECORD:', qx + qs / 2, qy + qs + 24);
+    ctx.fillText('SECURE DATA PROOF', qx + qs / 2, qy + qs + 35);
     ctx.restore();
   };
 
