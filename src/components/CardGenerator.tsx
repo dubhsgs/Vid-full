@@ -400,9 +400,8 @@ export function CardGenerator() {
     ctx.drawImage(logoImg, lx, ly, logoW, logoH);
   };
 
-  // 【核心修改 1：重构左侧光环坐标与极致放大半径】
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
-    const cx = 260, cy = 288, outerR = 210, innerR = 190;
+    const cx = 260, cy = 308, outerR = 210, innerR = 190;
 
     ctx.save();
     const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 24);
@@ -464,7 +463,6 @@ export function CardGenerator() {
     ctx.restore();
   };
 
-  // 【核心修改 2：分割线大幅右移至中心地带】
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
     const lx = 490, ly1 = 160, ly2 = 462;
     ctx.save();
@@ -487,7 +485,6 @@ export function CardGenerator() {
     ctx.restore();
   };
 
-  // 【核心修改 3：文本字段整体右移，并重新分配行间距填补空白】
   const drawTextFields = (ctx: CanvasRenderingContext2D) => {
     const startX = 530;
     const labelStyle = 'rgba(180, 190, 210, 0.70)';
@@ -507,7 +504,7 @@ export function CardGenerator() {
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.name, startX + nameOffset + 4, y);
 
-    y = 260;
+    y = 265;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('STATUS:', startX, y);
@@ -523,7 +520,7 @@ export function CardGenerator() {
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
 
-    y = 330;
+    y = 340;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('ISSUED:', startX, y);
@@ -532,7 +529,7 @@ export function CardGenerator() {
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.issuedDate, startX + issuedOffset + 4, y);
 
-    y = 400;
+    y = 415;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('CITIZEN ID:', startX, y);
@@ -544,9 +541,8 @@ export function CardGenerator() {
     ctx.restore();
   };
 
-  // 【核心修改 4：二维码框略微右移，紧贴卡片右边缘】
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    const qx = 860, qy = 294, qs = 84;
+    const qx = 850, qy = 294, qs = 84;
 
     ctx.save();
     ctx.fillStyle = 'rgba(60, 66, 40, 0.50)';
