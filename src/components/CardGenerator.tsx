@@ -215,7 +215,7 @@ export function CardGenerator() {
       try {
         const [bg, logo] = await Promise.all([
           loadImage('/bg.jpg'),
-          loadImage('/logo.png'),
+          loadImage('/vaid_logo透明.png'),
         ]);
         setBgImg(bg);
         setLogoImg(logo);
@@ -398,14 +398,6 @@ export function CardGenerator() {
     const lx = (CANVAS_W - logoW) / 2;
     const ly = 32;
     ctx.drawImage(logoImg, lx, ly, logoW, logoH);
-
-    ctx.save();
-    ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(200, 210, 230, 0.58)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText('V-ID Protocol', CANVAS_W / 2, ly + logoH + 14);
-    ctx.restore();
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
