@@ -298,65 +298,76 @@ export function CardGenerator() {
   };
 
   const drawPanel = (ctx: CanvasRenderingContext2D) => {
-    const px = 45, py = 28, pw = 934, ph = 520, r = 18;
-
+    const pw = 944
+    const ph = 531
+    const px = (CANVAS_W - pw) / 2
+    const py = (CANVAS_H - ph) / 2
+    const r = 22
     if (bgImg) {
-      ctx.save();
-      ctx.beginPath();
-      roundRect(ctx, px, py, pw, ph, r);
-      ctx.clip();
-      ctx.filter = 'blur(3px) brightness(0.92)';
-      drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
-      ctx.filter = 'none';
-      ctx.restore();
+      ctx.save()
+      ctx.beginPath()
+      roundRect(ctx, px, py, pw, ph, r)
+      ctx.clip()
+      ctx.filter = 'blur(6px) brightness(0.94) saturate(1.02)'
+      drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H)
+      ctx.filter = 'none'
+      ctx.restore()
     }
-
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, px, py, pw, ph, r);
-    ctx.fillStyle = 'rgba(18, 22, 34, 0.14)';
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, px, py, pw, ph, r);
-    ctx.clip();
+    ctx.save()
+    ctx.beginPath()
+    roundRect(ctx, px, py, pw, ph, r)
+    ctx.fillStyle = 'rgba(12, 18, 28, 0.22)'
+    ctx.fill()
+    ctx.restore()
+    ctx.save()
+    ctx.beginPath()
+    roundRect(ctx, px, py, pw, ph, r)
+    ctx.clip()
     const cornerGlows = [
       { x: px + 8, y: py + 8 },
       { x: px + pw - 8, y: py + 8 },
       { x: px + 8, y: py + ph - 8 },
       { x: px + pw - 8, y: py + ph - 8 },
-    ];
+    ]
     cornerGlows.forEach(({ x, y }) => {
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, 128);
-      glow.addColorStop(0, 'rgba(210, 230, 255, 0.24)');
-      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.14)');
-      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.08)');
-      glow.addColorStop(1, 'rgba(170, 205, 255, 0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(x - 128, y - 128, 256, 256);
-    });
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, px, py, pw, ph, r);
-    ctx.strokeStyle = 'rgba(200, 215, 240, 0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(140, 180, 255, 0.12)';
-    ctx.shadowBlur = 25;
-    ctx.beginPath();
-    roundRect(ctx, px, py, pw, ph, r);
-    ctx.strokeStyle = 'rgba(140, 180, 255, 0.08)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.shadowColor = 'transparent';
-    ctx.restore();
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, 128)
+      glow.addColorStop(0, 'rgba(210, 230, 255, 0.24)')
+      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.14)')
+      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.08)')
+      glow.addColorStop(1, 'rgba(170, 205, 255, 0)')
+      ctx.fillStyle = glow
+      ctx.fillRect(x - 128, y - 128, 256, 256)
+    })
+    ctx.restore()
+    ctx.save()
+    ctx.beginPath()
+    roundRect(ctx, px, py, pw, ph, r)
+    ctx.clip()
+    ctx.globalAlpha = 0.06
+    ctx.fillStyle = '#d6f0ff'
+    for (let i = 0; i < 130; i++) {
+      const x = px + Math.random() * pw
+      const y = py + Math.random() * ph
+      ctx.fillRect(x, y, 1, 1)
+    }
+    ctx.restore()
+    ctx.save()
+    ctx.beginPath()
+    roundRect(ctx, px, py, pw, ph, r)
+    ctx.strokeStyle = 'rgba(225, 235, 255, 0.42)'
+    ctx.lineWidth = 1.2
+    ctx.stroke()
+    ctx.restore()
+    ctx.save()
+    ctx.shadowColor = 'rgba(140, 180, 255, 0.18)'
+    ctx.shadowBlur = 32
+    ctx.beginPath()
+    roundRect(ctx, px, py, pw, ph, r)
+    ctx.strokeStyle = 'rgba(140, 180, 255, 0.14)'
+    ctx.lineWidth = 2.5
+    ctx.stroke()
+    ctx.shadowColor = 'transparent'
+    ctx.restore()
   };
 
   const drawLogo = (ctx: CanvasRenderingContext2D) => {
