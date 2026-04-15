@@ -21,8 +21,8 @@ async function triggerOTSStamp(friendlyId: string, sha256Hash: string): Promise<
   }
 }
 
-const CANVAS_W = 1024;
-const CANVAS_H = 576;
+const CANVAS_W = 1720;
+const CANVAS_H = 968;
 const DPR = 2;
 const REAL_W = CANVAS_W * DPR;
 const REAL_H = CANVAS_H * DPR;
@@ -298,7 +298,15 @@ export function CardGenerator() {
   };
 
   const drawPanel = (ctx: CanvasRenderingContext2D) => {
-    const px = 45, py = 28, pw = 934, ph = 520, r = 18;
+    const cardWidth = 1720;
+    const cardHeight = 968;
+    const width = CANVAS_W;
+    const height = CANVAS_H;
+    const px = (width - cardWidth) / 2;
+    const py = (height - cardHeight) / 2;
+    const pw = cardWidth;
+    const ph = cardHeight;
+    const r = 18;
 
     if (bgImg) {
       ctx.save();
