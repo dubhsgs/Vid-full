@@ -401,7 +401,7 @@ export function CardGenerator() {
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
-    const cx = 260, cy = 308, outerR = 210, innerR = 190;
+    const cx = 250, cy = 288, outerR = 160, innerR = 145;
 
     ctx.save();
     const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 24);
@@ -464,7 +464,7 @@ export function CardGenerator() {
   };
 
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
-    const lx = 490, ly1 = 160, ly2 = 462;
+    const lx = 480, ly1 = 160, ly2 = 462;
     ctx.save();
     const glow = ctx.createLinearGradient(lx - 8, ly1, lx + 8, ly1);
     glow.addColorStop(0, 'rgba(160, 190, 240, 0)');
@@ -486,7 +486,7 @@ export function CardGenerator() {
   };
 
   const drawTextFields = (ctx: CanvasRenderingContext2D) => {
-    const startX = 530;
+    const startX = 520;
     const labelStyle = 'rgba(180, 190, 210, 0.70)';
     const valueStyle = '#ffffff';
     const greenStyle = '#00e676';
@@ -495,7 +495,7 @@ export function CardGenerator() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    let y = 190;
+    let y = 196;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('NAME:', startX, y);
@@ -504,7 +504,7 @@ export function CardGenerator() {
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.name, startX + nameOffset + 4, y);
 
-    y = 265;
+    y = 268;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('STATUS:', startX, y);
@@ -529,7 +529,7 @@ export function CardGenerator() {
     ctx.fillStyle = valueStyle;
     ctx.fillText(form.issuedDate, startX + issuedOffset + 4, y);
 
-    y = 415;
+    y = 412;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('CITIZEN ID:', startX, y);
@@ -542,7 +542,7 @@ export function CardGenerator() {
   };
 
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    const qx = 850, qy = 294, qs = 84;
+    const qx = 840, qy = 294, qs = 84;
 
     ctx.save();
     ctx.fillStyle = 'rgba(60, 66, 40, 0.50)';
