@@ -70,6 +70,13 @@ const resources = {
         characterName: 'Character Name',
         creator: 'Creator'
       },
+      paywall: {
+        title: 'Unlock More Certificate Generations',
+        subtitle: 'Choose your plan, secure payment via Alipay',
+        pack10: '10x Plan',
+        pack50: '50x Plan',
+        pack100: '100x Plan'
+      },
       footer: {
         disclaimer: 'Legal Disclaimer',
         disclaimerText: 'V-ID is a digital archival platform for developers, not a legal title. We provide technical demonstration for digital asset management. This service creates digital identity proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
@@ -147,6 +154,13 @@ const resources = {
         verify: '验证身份',
         characterName: '角色名称',
         creator: '创作者'
+      },
+      paywall: {
+        title: '解锁更多证书生成次数',
+        subtitle: '选择适合您的套餐，支付宝安全支付',
+        pack10: '10次套餐',
+        pack50: '50次套餐',
+        pack100: '100次套餐'
       },
       footer: {
         disclaimer: '法律声明',

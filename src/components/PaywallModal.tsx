@@ -1,6 +1,5 @@
 import { X, Check, ShoppingCart } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { supabase } from '../utils/licenseManager';
 import { getClientId } from '../utils/fingerprint';
 
@@ -10,21 +9,46 @@ interface PaywallModalProps {
   onPurchaseComplete?: () => void;
 }
 
+const pricingTiers = [
+  {
+    name: '10次套餐',
+    price: '¥9.9',
+    certificates: 10,
+    popular: false,
+    packSize: 10,
+  },
+  {
+    name: '50次套餐',
+    price: '¥39.9',
+    certificates: 50,
+    popular: true,
+    packSize: 50,
+  },
+  {
+    name: '100次套餐',
+    price: '¥69.9',
+    certificates: 100,
+    popular: false,
+    packSize: 100,
+  },
+];
+
 export function PaywallModal({ isOpen, onClose, onPurchaseComplete }: PaywallModalProps) {
-  const { t } = useTranslation();
-  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchasingPackSize, setPurchasingPackSize] = useState<number | null>(null);
   const [purchaseError, setPurchaseError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setPurchaseError('');
+      setPurchasingPackSize(null);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handlePurchase = async (packSize: number) => {
-    setIsPurchasing(true);
+    if (purchasingPackSize !== null) return;
+    setPurchasingPackSize(packSize);
     setPurchaseError('');
 
     try {
@@ -35,13 +59,13 @@ export function PaywallModal({ isOpen, onClose, onPurchaseComplete }: PaywallMod
           client_id: clientId,
           pack_size: packSize,
           return_url: window.location.origin + '/payment-success',
-        }
+        },
       });
 
       if (error) {
         console.error('Error creating order:', error);
         setPurchaseError('创建订单失败，请稍后重试');
-        setIsPurchasing(false);
+        setPurchasingPackSize(null);
         return;
       }
 
@@ -49,38 +73,14 @@ export function PaywallModal({ isOpen, onClose, onPurchaseComplete }: PaywallMod
         window.location.href = data.payment_url;
       } else {
         setPurchaseError('获取支付链接失败');
-        setIsPurchasing(false);
+        setPurchasingPackSize(null);
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
+    } catch (err) {
+      console.error('Unexpected error:', err);
       setPurchaseError('网络错误，请检查连接');
-      setIsPurchasing(false);
+      setPurchasingPackSize(null);
     }
   };
-
-  const pricingTiers = [
-    {
-      name: t('paywall.pack10') || '10次套餐',
-      price: '¥9.9',
-      certificates: 10,
-      popular: false,
-      packSize: 10,
-    },
-    {
-      name: t('paywall.pack50') || '50次套餐',
-      price: '¥39.9',
-      certificates: 50,
-      popular: true,
-      packSize: 50,
-    },
-    {
-      name: t('paywall.pack100') || '100次套餐',
-      price: '¥69.9',
-      certificates: 100,
-      popular: false,
-      packSize: 100,
-    }
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -98,46 +98,51 @@ export function PaywallModal({ isOpen, onClose, onPurchaseComplete }: PaywallMod
 
         <div className="relative p-8">
           <h2 className="text-3xl font-bold text-white text-center mb-2">
-            {t('paywall.title') || '解锁更多证书生成次数'}
+            解锁更多证书生成次数
           </h2>
           <p className="text-slate-400 text-center mb-8">
-            {t('paywall.subtitle') || '选择适合您的套餐，支付宝安全支付'}
+            选择适合您的套餐，支付宝安全支付
           </p>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {pricingTiers.map((tier, index) => (
-              <div
-                key={index}
-                className={`relative p-6 rounded-xl border transition-all ${
-                  tier.popular
-                    ? 'border-blue-500 bg-blue-500/5 scale-105'
-                    : 'border-slate-700 bg-slate-900/50 hover:border-blue-500/50'
-                }`}
-              >
-                {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                    最划算
-                  </div>
-                )}
+            {pricingTiers.map((tier) => {
+              const isThisPurchasing = purchasingPackSize === tier.packSize;
+              const isAnyPurchasing = purchasingPackSize !== null;
 
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
-                  <div className="text-3xl font-bold text-blue-400 mb-4">{tier.price}</div>
-                  <div className="flex items-center justify-center gap-2 text-slate-300 mb-6">
-                    <Check className="w-5 h-5 text-green-400" />
-                    <span>{tier.certificates} 次证书生成</span>
+              return (
+                <div
+                  key={tier.packSize}
+                  className={`relative p-6 rounded-xl border transition-all ${
+                    tier.popular
+                      ? 'border-blue-500 bg-blue-500/5 scale-105'
+                      : 'border-slate-700 bg-slate-900/50 hover:border-blue-500/50'
+                  }`}
+                >
+                  {tier.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                      最划算
+                    </div>
+                  )}
+
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
+                    <div className="text-3xl font-bold text-blue-400 mb-4">{tier.price}</div>
+                    <div className="flex items-center justify-center gap-2 text-slate-300 mb-6">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>{tier.certificates} 次证书生成</span>
+                    </div>
+                    <button
+                      onClick={() => handlePurchase(tier.packSize)}
+                      disabled={isAnyPurchasing}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      {isThisPurchasing ? '处理中...' : '立即购买'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handlePurchase(tier.packSize)}
-                    disabled={isPurchasing}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-2"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    {isPurchasing ? '处理中...' : '立即购买'}
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {purchaseError && (
