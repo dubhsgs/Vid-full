@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
 import { uploadImageToStorage } from '../utils/imageUpload';
+import { useFreeCertificate } from '../utils/licenseManager';
 
 async function triggerOTSStamp(friendlyId: string, sha256Hash: string): Promise<void> {
   try {
@@ -99,6 +100,7 @@ export function CardGenerator() {
 
       (async () => {
         try {
+          await useFreeCertificate();
           setIsSaving(true);
 
           let imageUrl = '';

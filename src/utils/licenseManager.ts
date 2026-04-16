@@ -23,15 +23,45 @@ export function toggleDevMode(): boolean {
 }
 
 export async function getRemainingFreeCertificates(): Promise<number> {
-  return 999;
+  if (isDevelopmentMode()) {
+    return 999;
+  }
+
+  const quotaInfo = await getClientQuotaInfo();
+  return quotaInfo.remaining_credits;
 }
 
 export async function useFreeCertificate(): Promise<boolean> {
-  return true;
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  const clientId = await getClientId();
+
+  try {
+    const { data, error } = await supabase.functions.invoke('quota-use', {
+      body: { client_id: clientId, amount: 1 }
+    });
+
+    if (error) {
+      console.error('Error using certificate:', error);
+      return false;
+    }
+
+    return data?.success || false;
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return false;
+  }
 }
 
 export async function canGenerateCertificate(): Promise<boolean> {
-  return true;
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  const remaining = await getRemainingFreeCertificates();
+  return remaining > 0;
 }
 
 export async function getClientQuotaInfo(): Promise<{
