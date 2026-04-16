@@ -89,6 +89,23 @@ export async function getClientQuotaInfo(): Promise<{
   }
 }
 
+export async function getOrderStatus(outTradeNo: string): Promise<'pending' | 'paid' | 'not_found'> {
+  try {
+    const clientId = await getClientId();
+    const { data, error } = await supabase
+      .from('alipay_orders')
+      .select('status')
+      .eq('out_trade_no', outTradeNo)
+      .eq('client_id', clientId)
+      .maybeSingle();
+
+    if (error || !data) return 'not_found';
+    return data.status === 'paid' ? 'paid' : 'pending';
+  } catch {
+    return 'not_found';
+  }
+}
+
 export async function getUserOrders(): Promise<any[]> {
   try {
     const clientId = await getClientId();

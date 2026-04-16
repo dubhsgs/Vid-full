@@ -5,6 +5,7 @@ import { CardGenerator } from './components/CardGenerator.tsx';
 import { VerifyPage } from './pages/VerifyPage.tsx';
 import { PrivacyPage } from './pages/PrivacyPage.tsx';
 import { TermsPage } from './pages/TermsPage.tsx';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage.tsx';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
       <Route path="/verify/:id" element={<VerifyPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/payment-success" element={<PaymentSuccessPage />} />
     </Routes>
   </BrowserRouter>
 );

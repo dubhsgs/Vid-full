@@ -13,9 +13,9 @@ interface CreateOrderRequest {
 }
 
 const PACK_PRICES: Record<number, number> = {
-  10: 9.9,
-  50: 39.9,
-  100: 69.9,
+  1: 0.01, // TEMP test price — change to 9.9 before go-live
+  5: 39.9,
+  10: 69.9,
 };
 
 function getBeijingTimestamp(): string {
@@ -99,7 +99,8 @@ Deno.serve(async (req: Request) => {
     const appId = Deno.env.get('ALIPAY_APP_ID') || '2021006140690444';
     const privateKey = Deno.env.get('ALIPAY_PRIVATE_KEY') || '';
     const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/alipay-notify`;
-    const actualReturnUrl = return_url || `${Deno.env.get('SUPABASE_URL')}/payment-success`;
+    const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('SUPABASE_URL');
+    const actualReturnUrl = return_url || `${siteUrl}/payment-success`;
 
     const bizContent = {
       out_trade_no: outTradeNo,
