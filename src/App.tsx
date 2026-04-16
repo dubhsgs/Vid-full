@@ -35,6 +35,7 @@ function App() {
   const [showForgingAnimation, setShowForgingAnimation] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
 
 
   const heroImages = [
@@ -51,6 +52,10 @@ function App() {
     }, 5000);
     return () => clearInterval(interval);
   }, [heroImages.length]);
+
+  useEffect(() => {
+    getRemainingFreeCertificates().then(setRemainingCredits);
+  }, []);
 
   const handleImageChange = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -111,10 +116,11 @@ function App() {
     setImageScale(Math.max(0.5, Math.min(3, newScale)));
   };
 
-  const handleNextToGenerator = () => {
+  const handleNextToGenerator = async () => {
     if (!imagePreview || !imageFile || !characterName.trim() || !creatorName.trim()) return;
 
-    if (!canGenerateCertificate()) {
+    const canGenerate = await canGenerateCertificate();
+    if (!canGenerate) {
       setShowPaywall(true);
       return;
     }
@@ -281,6 +287,24 @@ function App() {
                 <h3 className="text-2xl font-bold text-white mb-8 text-center">
                   {t('form.title')}
                 </h3>
+
+                {remainingCredits !== null && (
+                  <div className={`mb-6 p-3 rounded-lg border flex items-center justify-between ${
+                    remainingCredits === 0
+                      ? 'bg-red-500/10 border-red-500/30'
+                      : 'bg-green-500/10 border-green-500/30'
+                  }`}>
+                    <span className={`text-sm font-medium ${remainingCredits === 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      {remainingCredits === 0 ? '免费次数已用完，请购买套餐继续使用' : `剩余免费次数：${remainingCredits} 次`}
+                    </span>
+                    <button
+                      onClick={() => setShowPaywall(true)}
+                      className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
+                    >
+                      购买套餐
+                    </button>
+                  </div>
+                )}
 
                 <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-start gap-3">
                   <Lock className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
