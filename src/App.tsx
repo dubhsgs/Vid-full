@@ -10,6 +10,7 @@ import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { TemplateCertificate } from './components/TemplateCertificate';
 import { ForgingAnimation } from './components/ForgingAnimation';
+import { PaywallModal } from './components/PaywallModal';
 import {
   canGenerateCertificate,
   useFreeCertificate,
@@ -33,6 +34,7 @@ function App() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showForgingAnimation, setShowForgingAnimation] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
 
   const heroImages = [
@@ -548,6 +550,11 @@ function App() {
           onComplete={handleAnimationComplete}
         />
       )}
+
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
     </div>
   );
 }
