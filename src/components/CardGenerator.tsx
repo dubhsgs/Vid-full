@@ -21,9 +21,10 @@ async function triggerOTSStamp(friendlyId: string, sha256Hash: string): Promise<
   }
 }
 
+// --- 高清渲染基准 ---
 const CANVAS_W = 1024;
 const CANVAS_H = 576;
-const DPR = 2;
+const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2;
 const REAL_W = CANVAS_W * DPR;
 const REAL_H = CANVAS_H * DPR;
 
@@ -298,97 +299,65 @@ export function CardGenerator() {
   };
 
   const drawPanel = (ctx: CanvasRenderingContext2D) => {
-    const pw = 958
-    const ph = 540
-    const px = (CANVAS_W - pw) / 2
-    const py = (CANVAS_H - ph) / 2
-    const r = 22
+    // 【核心修复：卡片宽度缩小至 880，留出左右背景空间，对齐参考图宽窄】
+    const pw = 880;
+    const ph = 494; // 16:9 内部比例
+    const px = (CANVAS_W - pw) / 2;
+    const py = (CANVAS_H - ph) / 2;
+    const r = 32;   // 圆角加大
     if (bgImg) {
-      ctx.save()
-      ctx.beginPath()
-      roundRect(ctx, px, py, pw, ph, r)
-      ctx.clip()
-      ctx.filter = 'blur(10px) brightness(0.9) saturate(1.08)'
-      drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H)
-      ctx.filter = 'none'
-      ctx.restore()
+      ctx.save();
+      ctx.beginPath();
+      roundRect(ctx, px, py, pw, ph, r);
+      ctx.clip();
+      ctx.filter = 'blur(10px) brightness(0.9) saturate(1.08)';
+      drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
+      ctx.filter = 'none';
+      ctx.restore();
     }
-    ctx.save()
-    ctx.beginPath()
-    roundRect(ctx, px, py, pw, ph, r)
-    ctx.fillStyle = 'rgba(10, 14, 22, 0.34)'
-    ctx.fill()
-    ctx.restore()
-    ctx.save()
-    ctx.beginPath()
-    roundRect(ctx, px, py, pw, ph, r)
-    ctx.clip()
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, px, py, pw, ph, r);
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.34)';
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, px, py, pw, ph, r);
+    ctx.clip();
     const cornerGlows = [
       { x: px + 8, y: py + 8 },
       { x: px + pw - 8, y: py + 8 },
       { x: px + 8, y: py + ph - 8 },
       { x: px + pw - 8, y: py + ph - 8 },
-    ]
+    ];
     cornerGlows.forEach(({ x, y }) => {
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, 128)
-      glow.addColorStop(0, 'rgba(210, 230, 255, 0.24)')
-      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.14)')
-      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.08)')
-      glow.addColorStop(1, 'rgba(170, 205, 255, 0)')
-      ctx.fillStyle = glow
-      ctx.fillRect(x - 128, y - 128, 256, 256)
-    })
-    ctx.restore()
-    ctx.save()
-    ctx.beginPath()
-    roundRect(ctx, px, py, pw, ph, r)
-    ctx.clip()
-    ctx.globalAlpha = 0.06
-    ctx.fillStyle = '#d6f0ff'
-    for (let i = 0; i < 130; i++) {
-      const x = px + Math.random() * pw
-      const y = py + Math.random() * ph
-      ctx.fillRect(x, y, 1, 1)
-    }
-    ctx.restore()
-    ctx.save()
-    ctx.beginPath()
-    roundRect(ctx, px, py, pw, ph, r)
-    ctx.clip()
-    ctx.globalAlpha = 0.07
-    ctx.strokeStyle = 'rgba(180, 220, 255, 0.08)'
-    ctx.lineWidth = 1
-    const lineCount = 8 + Math.floor(Math.random() * 3)
-    for (let i = 0; i < lineCount; i++) {
-      const startX = px + Math.random() * pw
-      const startY = py + Math.random() * ph
-      const length = 160 + Math.random() * 160
-      const angle = Math.random() * Math.PI * 2
-      const endX = startX + Math.cos(angle) * length
-      const endY = startY + Math.sin(angle) * length
-      ctx.beginPath()
-      ctx.moveTo(startX, startY)
-      ctx.lineTo(endX, endY)
-      ctx.stroke()
-    }
-    ctx.restore()
-    ctx.save()
-    ctx.beginPath()
-    roundRect(ctx, px, py, pw, ph, r)
-    ctx.strokeStyle = 'rgba(225, 235, 255, 0.42)'
-    ctx.lineWidth = 1.2
-    ctx.stroke()
-    ctx.restore()
-    ctx.save()
-    ctx.shadowColor = 'rgba(140, 180, 255, 0.18)'
-    ctx.shadowBlur = 32
-    ctx.beginPath()
-    roundRect(ctx, px, py, pw, ph, r)
-    ctx.strokeStyle = 'rgba(140, 180, 255, 0.14)'
-    ctx.lineWidth = 2.5
-    ctx.stroke()
-    ctx.shadowColor = 'transparent'
-    ctx.restore()
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, 128);
+      glow.addColorStop(0, 'rgba(210, 230, 255, 0.24)');
+      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.14)');
+      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.08)');
+      glow.addColorStop(1, 'rgba(170, 205, 255, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - 128, y - 128, 256, 256);
+    });
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, px, py, pw, ph, r);
+    ctx.strokeStyle = 'rgba(225, 235, 255, 0.42)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.shadowColor = 'rgba(140, 180, 255, 0.18)';
+    ctx.shadowBlur = 32;
+    ctx.beginPath();
+    roundRect(ctx, px, py, pw, ph, r);
+    ctx.strokeStyle = 'rgba(140, 180, 255, 0.14)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
+    ctx.restore();
   };
 
   const drawLogo = (ctx: CanvasRenderingContext2D) => {
@@ -401,7 +370,8 @@ export function CardGenerator() {
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D) => {
-    const cx = 250, cy = 288, outerR = 160, innerR = 145;
+    // 【核心修复：平衡后的坐标与半径】
+    const cx = 270, cy = 305, outerR = 175, innerR = 160;
 
     ctx.save();
     const glow = ctx.createRadialGradient(cx, cy + 10, innerR - 5, cx, cy + 10, outerR + 24);
@@ -426,31 +396,28 @@ export function CardGenerator() {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    const secondRingGrad = ctx.createLinearGradient(cx, cy - (outerR + 12), cx, cy + (outerR + 12));
-    secondRingGrad.addColorStop(0, AVATAR_COLOR_START);
-    secondRingGrad.addColorStop(0.5, AVATAR_COLOR_END);
-    secondRingGrad.addColorStop(1, AVATAR_COLOR_END);
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR + 12, 0, Math.PI * 2);
-    ctx.strokeStyle = secondRingGrad;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
     ctx.beginPath();
     ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(15, 18, 30, 0.8)';
     ctx.fill();
 
+    // 【高清重采样修复：解决头像模糊】
     if (avatarImg) {
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, innerR - 2, 0, Math.PI * 2);
       ctx.clip();
-      const size = innerR * 2 - 4;
+      
+      const imgW = avatarImg.width, imgH = avatarImg.height;
+      const minSide = Math.min(imgW, imgH);
+      const sx = (imgW - minSide) / 2, sy = (imgH - minSide) / 2;
+      const targetSize = (innerR - 2) * 2;
+      
       ctx.drawImage(
         avatarImg,
-        0, 0, avatarImg.width, avatarImg.height,
-        cx - size / 2, cy - size / 2, size, size
+        sx, sy, minSide, minSide,
+        cx - innerR + 2, cy - innerR + 2,
+        targetSize, targetSize
       );
       ctx.restore();
     } else {
@@ -464,139 +431,84 @@ export function CardGenerator() {
   };
 
   const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
-    const lx = 480, ly1 = 160, ly2 = 462;
+    const lx = 485, ly1 = 170, ly2 = 450;
     ctx.save();
     const glow = ctx.createLinearGradient(lx - 8, ly1, lx + 8, ly1);
     glow.addColorStop(0, 'rgba(160, 190, 240, 0)');
-    glow.addColorStop(0.28, 'rgba(160, 190, 240, 0.10)');
     glow.addColorStop(0.5, 'rgba(160, 190, 240, 0.16)');
-    glow.addColorStop(0.72, 'rgba(160, 190, 240, 0.10)');
     glow.addColorStop(1, 'rgba(160, 190, 240, 0)');
     ctx.fillStyle = glow;
     ctx.fillRect(lx - 8, ly1, 16, ly2 - ly1);
 
     const core = ctx.createLinearGradient(lx - 1.5, ly1, lx + 1.5, ly1);
-    core.addColorStop(0, 'rgba(210, 225, 255, 0.18)');
     core.addColorStop(0.5, 'rgba(210, 225, 255, 0.55)');
-    core.addColorStop(1, 'rgba(210, 225, 255, 0.18)');
     ctx.fillStyle = core;
-    ctx.lineWidth = 4;
     ctx.fillRect(lx - 1.5, ly1, 3, ly2 - ly1);
     ctx.restore();
   };
 
   const drawTextFields = (ctx: CanvasRenderingContext2D) => {
-    const startX = 520;
+    const startX = 525;
     const labelStyle = 'rgba(180, 190, 210, 0.70)';
     const valueStyle = '#ffffff';
-    const greenStyle = '#00e676';
 
     ctx.save();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    let y = 196;
+    // 收紧行距对齐右图扁平感
+    let y = 195;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('NAME:', startX, y);
-    const nameOffset = ctx.measureText('NAME: ').width;
     ctx.font = '700 22px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
-    ctx.fillText(form.name, startX + nameOffset + 4, y);
+    ctx.fillText(form.name, startX + 90, y);
 
-    y = 268;
+    y = 265;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('STATUS:', startX, y);
-    const statusOffset = ctx.measureText('STATUS: ').width;
-    ctx.shadowColor = 'rgba(0, 230, 118, 0.95)';
-    ctx.shadowBlur = 8;
     ctx.font = 'italic 700 22px "Segoe UI", system-ui';
-    ctx.fillStyle = greenStyle;
-    ctx.fillText(form.status, startX + statusOffset + 4, y);
-    ctx.shadowColor = 'rgba(0, 230, 118, 0.45)';
-    ctx.shadowBlur = 20;
-    ctx.fillText(form.status, startX + statusOffset + 4, y);
-    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#00e676';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#00e676';
+    ctx.fillText(form.status, startX + 105, y);
     ctx.shadowBlur = 0;
 
-    y = 340;
+    y = 335;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('ISSUED:', startX, y);
-    const issuedOffset = ctx.measureText('ISSUED: ').width;
     ctx.font = '700 22px "Segoe UI", system-ui';
     ctx.fillStyle = valueStyle;
-    ctx.fillText(form.issuedDate, startX + issuedOffset + 4, y);
+    ctx.fillText(form.issuedDate, startX + 95, y);
 
-    y = 412;
+    y = 405;
     ctx.font = '500 22px "Segoe UI", system-ui';
     ctx.fillStyle = labelStyle;
     ctx.fillText('CITIZEN ID:', startX, y);
-    const idOffset = ctx.measureText('CITIZEN ID: ').width;
-    ctx.font = '700 22px "Segoe UI", system-ui';
+    ctx.font = '700 20px "JetBrains Mono", monospace';
     ctx.fillStyle = valueStyle;
-    ctx.fillText(form.serialId, startX + idOffset + 4, y);
-
+    ctx.fillText(form.serialId, startX + 135, y);
     ctx.restore();
   };
 
   const drawQRCode = (ctx: CanvasRenderingContext2D) => {
-    const qx = 840, qy = 294, qs = 84;
-
+    const qx = 835, qy = 294, qs = 84;
     ctx.save();
     ctx.fillStyle = 'rgba(60, 66, 40, 0.50)';
     ctx.beginPath();
     roundRect(ctx, qx - 6, qy - 6, qs + 12, qs + 40, 7);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(182, 191, 138, 0.18)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    roundRect(ctx, qx - 6, qy - 6, qs + 12, qs + 40, 7);
-    ctx.stroke();
 
-    if (!qrImg) {
-      ctx.fillStyle = 'rgba(180, 190, 210, 0.5)';
-      ctx.font = '12px "Segoe UI", system-us';
-      ctx.textAlign = 'center';
-      ctx.fillText('Generating...', qx + qs / 2, qy + qs / 2);
-      ctx.restore();
-      return;
+    if (qrImg) {
+      ctx.drawImage(qrImg, qx, qy, qs, qs);
     }
 
-    const qrCanvas = document.createElement('canvas');
-    qrCanvas.width = qs;
-    qrCanvas.height = qs;
-    const qrCtx = qrCanvas.getContext('2d')!;
-    qrCtx.drawImage(qrImg, 0, 0, qs, qs);
-    qrCtx.globalCompositeOperation = 'source-in';
-    const qrGrad = qrCtx.createLinearGradient(0, 0, qs, qs);
-    qrGrad.addColorStop(0, 'rgba(255, 168, 204, 0.92)');
-    qrGrad.addColorStop(0.35, 'rgba(236, 120, 182, 0.9)');
-    qrGrad.addColorStop(0.7, 'rgba(222, 106, 168, 0.84)');
-    qrGrad.addColorStop(1, 'rgba(198, 82, 150, 0.78)');
-    qrCtx.fillStyle = qrGrad;
-    qrCtx.fillRect(0, 0, qs, qs);
-    qrCtx.globalCompositeOperation = 'source-over';
-
-    ctx.drawImage(qrCanvas, qx, qy, qs, qs);
-
-    const qrGlow = ctx.createRadialGradient(qx + qs * 0.35, qy + qs * 0.28, 0, qx + qs * 0.35, qy + qs * 0.28, qs * 0.95);
-    qrGlow.addColorStop(0, 'rgba(255, 176, 212, 0.12)');
-    qrGlow.addColorStop(0.5, 'rgba(255, 160, 205, 0.05)');
-    qrGlow.addColorStop(1, 'rgba(255, 160, 205, 0)');
-    ctx.fillStyle = qrGlow;
-    ctx.fillRect(qx - 4, qy - 4, qs + 8, qs + 8);
-
-    ctx.font = '500 11px "JetBrains Mono", "Courier New", monospace';
+    ctx.font = '500 11px monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(210, 215, 200, 0.72)';
-    const hashPrefix = sha256Hash ? sha256Hash.slice(0, 8) : '00000000';
     ctx.fillText(`TOKEN: ${form.qrToken}`, qx + qs / 2, qy + qs + 12);
-
-    ctx.font = '500 10px "JetBrains Mono", "Courier New", monospace';
-    ctx.fillText('RECORD:', qx + qs / 2, qy + qs + 24);
-    ctx.fillText('SECURE DATA PROOF', qx + qs / 2, qy + qs + 35);
     ctx.restore();
   };
 
@@ -606,12 +518,8 @@ export function CardGenerator() {
     ctx.fillStyle = 'rgba(180, 190, 210, 0.45)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(form.description, CANVAS_W / 2, 508);
+    ctx.fillText(form.description, CANVAS_W / 2, 514);
     ctx.restore();
-  };
-
-  const drawLegalNotice = (ctx: CanvasRenderingContext2D) => {
-
   };
 
   const drawCanvas = useCallback(() => {
@@ -620,6 +528,7 @@ export function CardGenerator() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 【锁定显示尺寸，防止挤压变形】
     canvas.width = REAL_W;
     canvas.height = REAL_H;
     canvas.style.width = CANVAS_W + 'px';
@@ -627,12 +536,8 @@ export function CardGenerator() {
     ctx.scale(DPR, DPR);
 
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-
     if (bgImg) {
       drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
-    } else {
-      ctx.fillStyle = '#0d0d1a';
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     }
 
     drawPanel(ctx);
@@ -642,7 +547,6 @@ export function CardGenerator() {
     drawTextFields(ctx);
     drawQRCode(ctx);
     drawDescription(ctx);
-    drawLegalNotice(ctx);
   }, [bgImg, logoImg, avatarImg, qrImg, form]);
 
   useEffect(() => {
@@ -667,7 +571,6 @@ export function CardGenerator() {
     drawTextFields(ctx);
     drawDescription(ctx);
     drawQRCode(ctx);
-    drawLegalNotice(ctx);
 
     const imageDataUrl = canvas.toDataURL('image/png');
 
@@ -739,7 +642,6 @@ visit our website or contact support.
     }
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
-
     const link = document.createElement('a');
     link.download = `V-ID_${form.serialId}_Complete.zip`;
     link.href = URL.createObjectURL(zipBlob);
@@ -749,40 +651,18 @@ visit our website or contact support.
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d1a] text-white">
-      <div className="max-w-[1200px] mx-auto p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-100 mb-1">Card Generator</h1>
-            <p className="text-sm text-slate-400">Preview your certificate</p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate('/')}
-              className="px-5 py-2.5 bg-slate-700/60 hover:bg-slate-600/70 border border-slate-600/20 text-slate-200 rounded-lg font-semibold transition-all"
-            >
-              Back to Home
-            </button>
-            <button
-              onClick={exportPNG}
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-blue-500/30"
-            >
-              Download Certificate
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <canvas
-            ref={canvasRef}
-            className="max-w-full rounded-xl shadow-2xl"
-            style={{ maxHeight: 'calc(100vh - 160px)' }}
-          />
-          <p className="mt-4 text-xs text-slate-500 text-center max-w-lg leading-relaxed">
-            我们仅存储您的指纹证明与等比缩小的预览图，请妥善保管原图文件。
-          </p>
+    <div className="min-h-screen bg-[#0d0d1a] text-white flex flex-col items-center">
+      <div className="max-w-[1200px] w-full p-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-tight">Identity Preview</h1>
+        <div className="flex gap-4">
+          <button onClick={() => navigate('/')} className="px-5 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all">Back</button>
+          <button onClick={exportPNG} className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Download</button>
         </div>
       </div>
+      <canvas ref={canvasRef} className="rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
+      <p className="mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
+        * PROOF OF IDENTITY ANCHORED ON V-ID LEDGER
+      </p>
     </div>
   );
 }
