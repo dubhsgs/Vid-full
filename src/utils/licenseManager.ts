@@ -1,12 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
 import { getClientId } from './fingerprint';
+import { supabase } from './supabase';
+
+export { supabase };
 
 const DEV_MODE_KEY = 'v-id-dev-mode';
-
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export function isDevelopmentMode(): boolean {
   const isDevServer = import.meta.env.DEV;
