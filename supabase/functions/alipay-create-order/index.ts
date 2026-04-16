@@ -1,6 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
-import { encode as base64Encode } from 'https://deno.land/std@0.177.0/encoding/base64.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,29 +18,34 @@ const PACK_PRICES: Record<number, number> = {
   100: 69.9,
 };
 
-async function generateSignature(params: Record<string, any>, privateKey: string): Promise<string> {
-  const sortedParams = Object.keys(params)
+function getBeijingTimestamp(): string {
+  const now = new Date();
+  const beijingOffset = 8 * 60;
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const beijingMs = utcMs + beijingOffset * 60000;
+  const d = new Date(beijingMs);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+async function generateSignature(params: Record<string, string>, privateKeyPem: string): Promise<string> {
+  const signStr = Object.keys(params)
     .filter(key => params[key] !== '' && params[key] !== null && params[key] !== undefined)
     .sort()
     .map(key => `${key}=${params[key]}`)
     .join('&');
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode(sortedParams);
-
-  const pemHeader = '-----BEGIN PRIVATE KEY-----';
-  const pemFooter = '-----END PRIVATE KEY-----';
-  const pemContents = privateKey.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
+  const pemContents = privateKeyPem
+    .replace(/-----BEGIN (RSA )?PRIVATE KEY-----/g, '')
+    .replace(/-----END (RSA )?PRIVATE KEY-----/g, '')
+    .replace(/\s+/g, '');
 
   const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
 
   const key = await crypto.subtle.importKey(
     'pkcs8',
     binaryKey,
-    {
-      name: 'RSASSA-PKCS1-v1_5',
-      hash: 'SHA-256',
-    },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['sign']
   );
@@ -50,18 +53,15 @@ async function generateSignature(params: Record<string, any>, privateKey: string
   const signature = await crypto.subtle.sign(
     'RSASSA-PKCS1-v1_5',
     key,
-    data
+    new TextEncoder().encode(signStr)
   );
 
-  return base64Encode(new Uint8Array(signature));
+  return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -75,10 +75,7 @@ Deno.serve(async (req: Request) => {
     if (!client_id || !pack_size || !PACK_PRICES[pack_size]) {
       return new Response(
         JSON.stringify({ error: 'Invalid request parameters' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -87,13 +84,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: order, error: orderError } = await supabase
       .from('alipay_orders')
-      .insert({
-        out_trade_no: outTradeNo,
-        client_id,
-        pack_size,
-        amount,
-        status: 'pending',
-      })
+      .insert({ out_trade_no: outTradeNo, client_id, pack_size, amount, status: 'pending' })
       .select()
       .single();
 
@@ -101,10 +92,7 @@ Deno.serve(async (req: Request) => {
       console.error('Error creating order:', orderError);
       return new Response(
         JSON.stringify({ error: 'Failed to create order' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -126,17 +114,22 @@ Deno.serve(async (req: Request) => {
       format: 'JSON',
       charset: 'utf-8',
       sign_type: 'RSA2',
-      timestamp: new Date().toISOString().replace('T', ' ').substr(0, 19),
+      timestamp: getBeijingTimestamp(),
       version: '1.0',
       notify_url: notifyUrl,
       return_url: actualReturnUrl,
       biz_content: JSON.stringify(bizContent),
     };
 
-    if (privateKey) {
-      const sign = await generateSignature(params, privateKey);
-      params.sign = sign;
+    if (!privateKey) {
+      return new Response(
+        JSON.stringify({ error: 'Payment configuration missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    const sign = await generateSignature(params, privateKey);
+    params.sign = sign;
 
     const queryString = Object.keys(params)
       .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
@@ -145,27 +138,14 @@ Deno.serve(async (req: Request) => {
     const paymentUrl = `https://openapi.alipay.com/gateway.do?${queryString}`;
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        order_id: order.id,
-        out_trade_no: outTradeNo,
-        payment_url: paymentUrl,
-        amount,
-        pack_size,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ success: true, order_id: order.id, out_trade_no: outTradeNo, payment_url: paymentUrl, amount, pack_size }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
