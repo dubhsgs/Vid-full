@@ -1,0 +1,406 @@
+import { getClientId } from './fingerprint';
+import { supabase } from './supabase';
+
+export { supabase };
+
+const DEV_MODE_KEY = 'v-id-dev-mode';
+const GENERATION_READY_KEY = 'v-id-generation-ready-at';
+const GENERATION_READY_TTL_MS = 5 * 60 * 1000;
+const ACTIVATION_CODE_STORAGE_KEY = 'v-id-activation-code';
+
+export interface OrderStatusInfo {
+  out_trade_no: string;
+  status: 'pending' | 'paid' | 'cancelled';
+  pack_size: number;
+  amount: number;
+  paid_at: string | null;
+  license_key: string | null;
+}
+
+export interface ActivationCodeInfo {
+  code: string;
+  pack_size: number;
+  total_uses: number;
+  remaining_uses: number;
+  status: 'active' | 'exhausted' | 'revoked';
+}
+
+export interface GenerationAccessState {
+  can_generate: boolean;
+  free_remaining: number;
+  activation_code: ActivationCodeInfo | null;
+}
+
+export interface GenerationAccessResult {
+  success: boolean;
+  source: 'free' | 'activation' | 'none' | 'dev';
+  free_remaining: number;
+  activation_code: ActivationCodeInfo | null;
+  error?: string;
+}
+
+interface ActivationCodeStatusResponse {
+  found?: boolean;
+  usable?: boolean;
+  code?: string;
+  pack_size?: number;
+  total_uses?: number;
+  remaining_uses?: number;
+  status?: ActivationCodeInfo['status'];
+}
+
+function mapActivationCodeInfo(data: ActivationCodeStatusResponse | null | undefined): ActivationCodeInfo | null {
+  if (!data?.code || !data.pack_size || !data.total_uses || data.remaining_uses === undefined || !data.status) {
+    return null;
+  }
+
+  return {
+    code: data.code,
+    pack_size: data.pack_size,
+    total_uses: data.total_uses,
+    remaining_uses: data.remaining_uses,
+    status: data.status,
+  };
+}
+
+export function normalizeActivationCode(rawCode: string): string {
+  const trimmed = rawCode.trim().toUpperCase();
+  const compact = trimmed.replace(/[^A-Z0-9]/g, '');
+
+  if (compact.startsWith('VAID') && compact.length === 16) {
+    return `VAID-${compact.slice(4, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}`;
+  }
+
+  return trimmed;
+}
+
+export function saveActivationCode(rawCode: string): string {
+  const normalizedCode = normalizeActivationCode(rawCode);
+  if (normalizedCode) {
+    localStorage.setItem(ACTIVATION_CODE_STORAGE_KEY, normalizedCode);
+  }
+  return normalizedCode;
+}
+
+export function getSavedActivationCode(): string {
+  const rawValue = localStorage.getItem(ACTIVATION_CODE_STORAGE_KEY) || '';
+  return rawValue ? normalizeActivationCode(rawValue) : '';
+}
+
+export function clearSavedActivationCode(): void {
+  localStorage.removeItem(ACTIVATION_CODE_STORAGE_KEY);
+}
+
+export function isDevelopmentMode(): boolean {
+  if (!import.meta.env.DEV) {
+    return false;
+  }
+
+  return localStorage.getItem(DEV_MODE_KEY) !== 'false';
+}
+
+export function toggleDevMode(): boolean {
+  if (!import.meta.env.DEV) {
+    console.warn('开发者模式仅在本地开发环境可用');
+    return false;
+  }
+
+  const currentMode = localStorage.getItem(DEV_MODE_KEY) === 'true';
+  const newMode = !currentMode;
+  localStorage.setItem(DEV_MODE_KEY, String(newMode));
+  console.log(`开发者模式 ${newMode ? '已启用' : '已禁用'} - 无限制生成证书`);
+  return newMode;
+}
+
+export async function getRemainingFreeCertificates(): Promise<number> {
+  if (isDevelopmentMode()) {
+    return 999;
+  }
+
+  const quotaInfo = await getClientQuotaInfo();
+  return quotaInfo.remaining_credits;
+}
+
+export async function useFreeCertificate(): Promise<boolean> {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  const clientId = await getClientId();
+
+  try {
+    const { data, error } = await supabase.functions.invoke('quota-use', {
+      body: { client_id: clientId, amount: 1 },
+    });
+
+    if (error) {
+      console.error('Error using certificate:', error);
+      return false;
+    }
+
+    return data?.success || false;
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return false;
+  }
+}
+
+export async function getClientQuotaInfo(): Promise<{
+  remaining_credits: number;
+  total_used: number;
+  client_id: string;
+}> {
+  const clientId = await getClientId();
+
+  try {
+    const { data, error } = await supabase.functions.invoke('quota-check', {
+      body: { client_id: clientId },
+    });
+
+    if (error) {
+      console.error('Error fetching quota info:', error);
+      return { remaining_credits: 0, total_used: 0, client_id: clientId };
+    }
+
+    return {
+      remaining_credits: data?.remaining_credits || 0,
+      total_used: data?.total_used || 0,
+      client_id: clientId,
+    };
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return { remaining_credits: 0, total_used: 0, client_id: clientId };
+  }
+}
+
+export async function getActivationCodeInfo(rawCode?: string): Promise<ActivationCodeInfo | null> {
+  const activationCode = normalizeActivationCode(rawCode ?? getSavedActivationCode());
+
+  if (!activationCode) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('license-key-status', {
+      body: { code: activationCode },
+    });
+
+    if (error) {
+      console.error('Error fetching activation code info:', error);
+      return null;
+    }
+
+    if (!data?.found) {
+      return null;
+    }
+
+    return mapActivationCodeInfo(data);
+  } catch (error) {
+    console.error('Unexpected error fetching activation code info:', error);
+    return null;
+  }
+}
+
+export async function getGenerationAccessState(rawCode?: string): Promise<GenerationAccessState> {
+  if (isDevelopmentMode()) {
+    return {
+      can_generate: true,
+      free_remaining: 999,
+      activation_code: null,
+    };
+  }
+
+  const quotaInfo = await getClientQuotaInfo();
+
+  if (quotaInfo.remaining_credits > 0) {
+    return {
+      can_generate: true,
+      free_remaining: quotaInfo.remaining_credits,
+      activation_code: null,
+    };
+  }
+
+  const activationCodeInfo = await getActivationCodeInfo(rawCode);
+  const activationUsable = !!activationCodeInfo && activationCodeInfo.status === 'active' && activationCodeInfo.remaining_uses > 0;
+
+  return {
+    can_generate: activationUsable,
+    free_remaining: quotaInfo.remaining_credits,
+    activation_code: activationCodeInfo,
+  };
+}
+
+export async function useActivationCode(rawCode?: string): Promise<{
+  success: boolean;
+  activation_code: ActivationCodeInfo | null;
+  error?: string;
+}> {
+  const activationCode = normalizeActivationCode(rawCode ?? getSavedActivationCode());
+
+  if (!activationCode) {
+    return {
+      success: false,
+      activation_code: null,
+      error: 'ACTIVATION_CODE_REQUIRED',
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('license-key-use', {
+      body: { code: activationCode },
+    });
+
+    if (error) {
+      console.error('Error consuming activation code:', error);
+      return {
+        success: false,
+        activation_code: null,
+        error: 'ACTIVATION_CODE_REQUEST_FAILED',
+      };
+    }
+
+    const activationCodeInfo = mapActivationCodeInfo(data);
+    if (!data?.success) {
+      return {
+        success: false,
+        activation_code: activationCodeInfo,
+        error: data?.error || 'ACTIVATION_CODE_UNAVAILABLE',
+      };
+    }
+
+    if (activationCodeInfo?.code) {
+      saveActivationCode(activationCodeInfo.code);
+    }
+
+    return {
+      success: true,
+      activation_code: activationCodeInfo,
+    };
+  } catch (error) {
+    console.error('Unexpected error consuming activation code:', error);
+    return {
+      success: false,
+      activation_code: null,
+      error: 'ACTIVATION_CODE_REQUEST_FAILED',
+    };
+  }
+}
+
+export async function consumeGenerationAccess(rawCode?: string): Promise<GenerationAccessResult> {
+  if (isDevelopmentMode()) {
+    return {
+      success: true,
+      source: 'dev',
+      free_remaining: 999,
+      activation_code: null,
+    };
+  }
+
+  const quotaInfo = await getClientQuotaInfo();
+
+  if (quotaInfo.remaining_credits > 0) {
+    const success = await useFreeCertificate();
+    const updatedQuota = success ? await getClientQuotaInfo() : quotaInfo;
+
+    return {
+      success,
+      source: success ? 'free' : 'none',
+      free_remaining: updatedQuota.remaining_credits,
+      activation_code: null,
+      error: success ? undefined : 'FREE_QUOTA_CONSUME_FAILED',
+    };
+  }
+
+  const activationResult = await useActivationCode(rawCode);
+
+  return {
+    success: activationResult.success,
+    source: activationResult.success ? 'activation' : 'none',
+    free_remaining: quotaInfo.remaining_credits,
+    activation_code: activationResult.activation_code,
+    error: activationResult.error,
+  };
+}
+
+export async function getUserOrders(): Promise<any[]> {
+  try {
+    const clientId = await getClientId();
+    const { data, error } = await supabase
+      .from('alipay_orders')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .setHeader('x-client-id', clientId);
+
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Unexpected error fetching orders:', error);
+    return [];
+  }
+}
+
+export async function getOrderStatus(outTradeNo: string): Promise<OrderStatusInfo | null> {
+  try {
+    const clientId = await getClientId();
+    const { data, error } = await supabase
+      .from('alipay_orders')
+      .select('out_trade_no, status, pack_size, amount, paid_at, license_key')
+      .eq('out_trade_no', outTradeNo)
+      .setHeader('x-client-id', clientId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching order status:', error);
+      return null;
+    }
+
+    return (data as OrderStatusInfo | null) ?? null;
+  } catch (error) {
+    console.error('Unexpected error fetching order status:', error);
+    return null;
+  }
+}
+
+export function markGenerationReady(): void {
+  sessionStorage.setItem(GENERATION_READY_KEY, String(Date.now()));
+}
+
+export function consumeGenerationReady(): boolean {
+  const rawValue = sessionStorage.getItem(GENERATION_READY_KEY);
+  sessionStorage.removeItem(GENERATION_READY_KEY);
+
+  if (!rawValue) {
+    return false;
+  }
+
+  const timestamp = Number(rawValue);
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= GENERATION_READY_TTL_MS;
+}
+
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  (window as any).V_ID_DEV = {
+    toggleDevMode,
+    isDevelopmentMode,
+    getClientId,
+    getQuotaInfo: getClientQuotaInfo,
+    getActivationCodeInfo,
+    clearSavedActivationCode,
+    info: () => {
+      console.log('=== V-ID 开发者工具 ===');
+      console.log('使用方法:');
+      console.log('  V_ID_DEV.toggleDevMode() - 切换开发者模式（无限制生成）');
+      console.log('  V_ID_DEV.isDevelopmentMode() - 检查当前是否为开发模式');
+      console.log('  V_ID_DEV.getClientId() - 获取当前浏览器指纹');
+      console.log('  V_ID_DEV.getQuotaInfo() - 获取免费额度信息');
+      console.log('  V_ID_DEV.getActivationCodeInfo(code) - 查询激活码状态');
+      console.log('当前状态:');
+      console.log(`  开发者模式: ${isDevelopmentMode() ? '✓ 已启用' : '✗ 未启用'}`);
+      console.log(`  已保存激活码: ${getSavedActivationCode() || '无'}`);
+    },
+  };
+}
