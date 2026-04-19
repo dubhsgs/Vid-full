@@ -44,6 +44,7 @@ const AVATAR_IMAGE_RATIO = 0.79;
 const AVATAR_COVER_SCALE = 1.14;
 const DIVIDER_X_RATIO = 0.4176;
 const DIVIDER_LENGTH_SCALE = 0.828;
+const DIVIDER_TOP_SCALE = 0.95;
 const TEXT_START_X_RATIO = 0.4592;
 const TEXT_NAME_Y_RATIO = 0.3776;
 const TEXT_STATUS_Y_RATIO = 0.4808;
@@ -383,9 +384,10 @@ export function CardGenerator() {
   const getDividerGeometry = () => {
     const { cy, ringR } = getAvatarGeometry();
     const dividerHalfLength = ringR * DIVIDER_LENGTH_SCALE;
+    const dividerTopHalfLength = dividerHalfLength * DIVIDER_TOP_SCALE;
     return {
       lx: PANEL_X + PANEL_W * DIVIDER_X_RATIO,
-      ly1: cy - dividerHalfLength,
+      ly1: cy - dividerTopHalfLength,
       ly2: cy + dividerHalfLength,
     };
   };
@@ -506,8 +508,8 @@ export function CardGenerator() {
     offCtx.clearRect(0, 0, processedW, processedH);
     offCtx.putImageData(imageData, 0, 0);
 
-    const logoW = 191;
-    const logoH = 92;
+    const logoW = 211;
+    const logoH = 102;
     const lx = (CANVAS_W - logoW) / 2;
     const ly = 58;
 
@@ -587,8 +589,8 @@ export function CardGenerator() {
       const dx = cx - targetSize / 2;
       const dy = cy - targetSize / 2;
 
-      ctx.filter = 'saturate(0.76) brightness(0.90) contrast(1.04)';
-      ctx.globalAlpha = 0.82;
+      ctx.filter = 'saturate(1.02) brightness(0.98) contrast(1.02)';
+      ctx.globalAlpha = 0.95;
       ctx.drawImage(
         avatarImg,
         sx,
@@ -606,14 +608,14 @@ export function CardGenerator() {
       const colorWash = ctx.createLinearGradient(cx - imageR, cy - imageR, cx + imageR, cy + imageR);
       colorWash.addColorStop(0, 'rgba(210, 255, 245, 0.08)');
       colorWash.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
-      colorWash.addColorStop(1, hexToRgba(AVATAR_COLOR_END, 0.14));
+      colorWash.addColorStop(1, hexToRgba(AVATAR_COLOR_END, 0.08));
       ctx.fillStyle = colorWash;
       ctx.fillRect(cx - imageR, cy - imageR, imageR * 2, imageR * 2);
 
       const vignette = ctx.createRadialGradient(cx, cy, imageR * 0.35, cx, cy, imageR);
       vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
       vignette.addColorStop(0.72, 'rgba(5, 8, 16, 0.08)');
-      vignette.addColorStop(1, 'rgba(5, 8, 16, 0.38)');
+      vignette.addColorStop(1, 'rgba(5, 8, 16, 0.22)');
       ctx.fillStyle = vignette;
       ctx.fillRect(cx - imageR, cy - imageR, imageR * 2, imageR * 2);
       ctx.restore();
