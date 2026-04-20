@@ -101,6 +101,8 @@ export function CardGenerator() {
 
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
+  const [textureImg, setTextureImg] = useState<HTMLImageElement | null>(null);
+  const [textureImg2, setTextureImg2] = useState<HTMLImageElement | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
 
@@ -261,10 +263,14 @@ export function CardGenerator() {
     const loadResources = async () => {
       const bgUrl = resolveAssetUrl('bg.jpg');
       const logoUrl = resolveAssetUrl('vaid_logo_mark.png');
+      const textureUrl = resolveAssetUrl('texture_layer.png');
+      const textureUrl2 = resolveAssetUrl('texture_layer_2.png');
 
-      const [bgResult, logoResult] = await Promise.allSettled([
+      const [bgResult, logoResult, textureResult, texture2Result] = await Promise.allSettled([
         loadImage(bgUrl),
         loadImage(logoUrl),
+        loadImage(textureUrl),
+        loadImage(textureUrl2),
       ]);
 
       if (bgResult.status === 'fulfilled') {
@@ -279,6 +285,20 @@ export function CardGenerator() {
       } else {
         setLogoImg(null);
         console.error('[CardGenerator] Failed to load logo image:', logoUrl, logoResult.reason);
+      }
+
+      if (textureResult.status === 'fulfilled') {
+        setTextureImg(textureResult.value);
+      } else {
+        setTextureImg(null);
+        console.error('[CardGenerator] Failed to load texture image:', textureUrl, textureResult.reason);
+      }
+
+      if (texture2Result.status === 'fulfilled') {
+        setTextureImg2(texture2Result.value);
+      } else {
+        setTextureImg2(null);
+        console.error('[CardGenerator] Failed to load secondary texture image:', textureUrl2, texture2Result.reason);
       }
 
       const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
@@ -413,13 +433,72 @@ export function CardGenerator() {
     };
   };
 
+  const drawCircuitTexture = (ctx: CanvasRenderingContext2D) => {
+    if (!textureImg) return;
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.8;
+    drawCover(ctx, textureImg, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+    ctx.restore();
+  };
+
+  const drawDreamTexture = (ctx: CanvasRenderingContext2D) => {
+    if (!textureImg2) return;
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.3;
+    drawCover(ctx, textureImg2, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+
+    // Directional bloom: stronger on the left, softer on the right.
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.42;
+    ctx.filter = 'blur(18px) saturate(1.1) brightness(1.08)';
+    drawCover(ctx, textureImg2, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+    ctx.filter = 'none';
+    ctx.globalCompositeOperation = 'destination-in';
+    const leftToRightMask = ctx.createLinearGradient(PANEL_X, PANEL_Y, PANEL_X + PANEL_W, PANEL_Y);
+    leftToRightMask.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    leftToRightMask.addColorStop(0.35, 'rgba(255, 255, 255, 0.82)');
+    leftToRightMask.addColorStop(0.7, 'rgba(255, 255, 255, 0.42)');
+    leftToRightMask.addColorStop(1, 'rgba(255, 255, 255, 0.18)');
+    ctx.fillStyle = leftToRightMask;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+    ctx.restore();
+
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.18;
+    const leftHotspot = ctx.createRadialGradient(
+      PANEL_X + PANEL_W * 0.24,
+      PANEL_Y + PANEL_H * 0.52,
+      PANEL_W * 0.02,
+      PANEL_X + PANEL_W * 0.24,
+      PANEL_Y + PANEL_H * 0.52,
+      PANEL_W * 0.72
+    );
+    leftHotspot.addColorStop(0, 'rgba(220, 255, 250, 0.95)');
+    leftHotspot.addColorStop(0.45, 'rgba(190, 225, 245, 0.34)');
+    leftHotspot.addColorStop(1, 'rgba(190, 225, 245, 0)');
+    ctx.fillStyle = leftHotspot;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+
+    ctx.restore();
+  };
+
   const drawPanel = (ctx: CanvasRenderingContext2D) => {
     if (bgImg) {
       ctx.save();
       ctx.beginPath();
       roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
       ctx.clip();
-      ctx.filter = 'blur(10px) brightness(0.9) saturate(1.08)';
+      ctx.filter = 'blur(6px) brightness(1.15) saturate(1.06)';
       drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
       ctx.filter = 'none';
       ctx.restore();
@@ -427,7 +506,7 @@ export function CardGenerator() {
     ctx.save();
     ctx.beginPath();
     roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
-    ctx.fillStyle = 'rgba(10, 14, 22, 0.34)';
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.12)';
     ctx.fill();
     ctx.restore();
     ctx.save();
@@ -442,9 +521,9 @@ export function CardGenerator() {
     ];
     cornerGlows.forEach(({ x, y }) => {
       const glow = ctx.createRadialGradient(x, y, 0, x, y, 128);
-      glow.addColorStop(0, 'rgba(210, 230, 255, 0.24)');
-      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.14)');
-      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.08)');
+      glow.addColorStop(0, 'rgba(210, 230, 255, 0.14)');
+      glow.addColorStop(0.22, 'rgba(210, 230, 255, 0.08)');
+      glow.addColorStop(0.5, 'rgba(170, 205, 255, 0.04)');
       glow.addColorStop(1, 'rgba(170, 205, 255, 0)');
       ctx.fillStyle = glow;
       ctx.fillRect(x - 128, y - 128, 256, 256);
@@ -787,7 +866,7 @@ export function CardGenerator() {
     drawTextFields(ctx);
     drawQRCode(ctx);
     drawDescription(ctx);
-  }, [bgImg, logoImg, avatarImg, qrImg, form]);
+  }, [bgImg, logoImg, textureImg, textureImg2, avatarImg, qrImg, form]);
 
   useEffect(() => {
     drawCanvas();
