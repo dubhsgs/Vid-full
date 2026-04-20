@@ -247,3 +247,10 @@
   - tiny QR text vertical spacing adjustments
   - whether the QR hash/value line should sit slightly lower or use a slightly dimmer color
   - final balance between logo, divider, text block, and QR block
+
+## Temporary testing rule (2026-04-20)
+
+- User explicitly clarified: recent routing/refresh convenience changes are **temporary for testing only**.
+- Important constraint for next sessions:
+  - after testing is done, restore the previous production logic/flow.
+  - do not treat these temporary behaviors as final product decisions.

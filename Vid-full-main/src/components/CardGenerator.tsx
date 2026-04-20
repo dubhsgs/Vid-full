@@ -80,6 +80,7 @@ interface FormData {
 }
 
 export function CardGenerator() {
+  const CARD_GENERATOR_SESSION_KEY = 'v-id-card-generator-session';
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const siteOrigin = window.location.origin;
@@ -103,6 +104,7 @@ export function CardGenerator() {
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [textureImg, setTextureImg] = useState<HTMLImageElement | null>(null);
   const [textureImg2, setTextureImg2] = useState<HTMLImageElement | null>(null);
+  const [textureImg3, setTextureImg3] = useState<HTMLImageElement | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
 
@@ -125,18 +127,22 @@ export function CardGenerator() {
       const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
       const savedName = localStorage.getItem('vid_character_name');
       const creatorName = localStorage.getItem('vid_creator_name');
+      const hasCardSession = sessionStorage.getItem(CARD_GENERATOR_SESSION_KEY) === '1';
 
       if (!savedAvatar || !savedName || !creatorName) {
+        sessionStorage.removeItem(CARD_GENERATOR_SESSION_KEY);
         setAccessError('缺少生成证书所需的数据，请从首页重新开始。');
         navigate('/', { replace: true });
         return;
       }
 
-      if (!consumeGenerationReady()) {
+      if (!hasCardSession && !consumeGenerationReady()) {
         setAccessError('本次生成链接已失效，请返回首页重新发起生成。');
         navigate('/', { replace: true });
         return;
       }
+
+      sessionStorage.setItem(CARD_GENERATOR_SESSION_KEY, '1');
 
       const issuedDate = formatIssuedDate();
 
@@ -247,7 +253,7 @@ export function CardGenerator() {
     };
 
     initializeCard();
-  }, [formatIssuedDate, generateSerialId, navigate, siteOrigin]);
+  }, [CARD_GENERATOR_SESSION_KEY, formatIssuedDate, generateSerialId, navigate, siteOrigin]);
 
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -265,12 +271,14 @@ export function CardGenerator() {
       const logoUrl = resolveAssetUrl('vaid_logo_mark.png');
       const textureUrl = resolveAssetUrl('texture_layer.png');
       const textureUrl2 = resolveAssetUrl('texture_layer_2.png');
+      const textureUrl3 = resolveAssetUrl('texture_layer_3.png');
 
-      const [bgResult, logoResult, textureResult, texture2Result] = await Promise.allSettled([
+      const [bgResult, logoResult, textureResult, texture2Result, texture3Result] = await Promise.allSettled([
         loadImage(bgUrl),
         loadImage(logoUrl),
         loadImage(textureUrl),
         loadImage(textureUrl2),
+        loadImage(textureUrl3),
       ]);
 
       if (bgResult.status === 'fulfilled') {
@@ -299,6 +307,13 @@ export function CardGenerator() {
       } else {
         setTextureImg2(null);
         console.error('[CardGenerator] Failed to load secondary texture image:', textureUrl2, texture2Result.reason);
+      }
+
+      if (texture3Result.status === 'fulfilled') {
+        setTextureImg3(texture3Result.value);
+      } else {
+        setTextureImg3(null);
+        console.error('[CardGenerator] Failed to load tertiary texture image:', textureUrl3, texture3Result.reason);
       }
 
       const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
@@ -453,7 +468,7 @@ export function CardGenerator() {
     ctx.clip();
 
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 0.3;
+    ctx.globalAlpha = 0.5;
     drawCover(ctx, textureImg2, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
     // Directional bloom: stronger on the left, softer on the right.
@@ -489,6 +504,20 @@ export function CardGenerator() {
     ctx.fillStyle = leftHotspot;
     ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
+    ctx.restore();
+  };
+
+  const drawRainbowLayer = (ctx: CanvasRenderingContext2D) => {
+    if (!textureImg3) return;
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 1;
+    ctx.filter = 'blur(4px) saturate(1.06)';
+    drawCover(ctx, textureImg3, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+    ctx.filter = 'none';
     ctx.restore();
   };
 
@@ -545,6 +574,131 @@ export function CardGenerator() {
     ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.shadowColor = 'transparent';
+    ctx.restore();
+  };
+
+  const drawTechTexture = (ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+
+    // Irregular wave-grid with very low opacity (reference-inspired).
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = 'rgba(244, 250, 255, 0.18)';
+    ctx.lineWidth = 0.7;
+
+    const cols = 52;
+    const rows = 30;
+    const pad = 6;
+    const areaW = PANEL_W - pad * 2;
+    const areaH = PANEL_H - pad * 2;
+
+    const pointAt = (u: number, v: number) => {
+      const x0 = PANEL_X + pad + areaW * u;
+      const y0 = PANEL_Y + pad + areaH * v;
+      const warpX =
+        Math.sin(v * Math.PI * 4.4 + u * Math.PI * 1.3) * (PANEL_W * 0.012) +
+        Math.sin(v * Math.PI * 1.2 - u * Math.PI * 2.1) * (PANEL_W * 0.006);
+      const warpY =
+        Math.sin(u * Math.PI * 3.6 + v * Math.PI * 1.5) * (PANEL_H * 0.025) +
+        Math.sin(u * Math.PI * 1.05 - v * Math.PI * 3.0) * (PANEL_H * 0.012);
+      return { x: x0 + warpX, y: y0 + warpY };
+    };
+
+    for (let c = 0; c <= cols; c++) {
+      const u = c / cols;
+      ctx.beginPath();
+      for (let r = 0; r <= rows; r++) {
+        const v = r / rows;
+        const p = pointAt(u, v);
+        if (r === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+
+    for (let r = 0; r <= rows; r++) {
+      const v = r / rows;
+      ctx.beginPath();
+      for (let c = 0; c <= cols; c++) {
+        const u = c / cols;
+        const p = pointAt(u, v);
+        if (c === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  };
+  const drawCardMistBlur = (ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+
+    ctx.filter = 'blur(20px)';
+    ctx.globalCompositeOperation = 'screen';
+
+    const mistBand = ctx.createLinearGradient(
+      PANEL_X,
+      PANEL_Y + PANEL_H * 0.22,
+      PANEL_X + PANEL_W,
+      PANEL_Y + PANEL_H * 0.92
+    );
+    mistBand.addColorStop(0, 'rgba(255, 228, 150, 0.0525)');
+    mistBand.addColorStop(0.28, 'rgba(255, 221, 132, 0.0385)');
+    mistBand.addColorStop(0.62, 'rgba(255, 214, 112, 0.025)');
+    mistBand.addColorStop(1, 'rgba(255, 208, 98, 0.0175)');
+    ctx.fillStyle = mistBand;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+
+    const centerMist = ctx.createRadialGradient(
+      PANEL_X + PANEL_W * 0.2,
+      PANEL_Y + PANEL_H * 0.38,
+      PANEL_W * 0.03,
+      PANEL_X + PANEL_W * 0.2,
+      PANEL_Y + PANEL_H * 0.38,
+      PANEL_W * 0.64
+    );
+    centerMist.addColorStop(0, 'rgba(255, 232, 166, 0.0203)');
+    centerMist.addColorStop(0.55, 'rgba(255, 220, 128, 0.0077)');
+    centerMist.addColorStop(1, 'rgba(255, 208, 98, 0.0021)');
+    ctx.fillStyle = centerMist;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+
+    const topLeftBoost = ctx.createRadialGradient(
+      PANEL_X + PANEL_W * 0.08,
+      PANEL_Y + PANEL_H * 0.12,
+      PANEL_W * 0.02,
+      PANEL_X + PANEL_W * 0.08,
+      PANEL_Y + PANEL_H * 0.12,
+      PANEL_W * 0.36
+    );
+    topLeftBoost.addColorStop(0, 'rgba(255, 234, 170, 0.065)');
+    topLeftBoost.addColorStop(0.5, 'rgba(255, 222, 138, 0.0275)');
+    topLeftBoost.addColorStop(1, 'rgba(255, 208, 98, 0)');
+    ctx.fillStyle = topLeftBoost;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+
+    const rightBottomLift = ctx.createRadialGradient(
+      PANEL_X + PANEL_W * 0.9,
+      PANEL_Y + PANEL_H * 0.88,
+      PANEL_W * 0.03,
+      PANEL_X + PANEL_W * 0.9,
+      PANEL_Y + PANEL_H * 0.88,
+      PANEL_W * 0.4
+    );
+    rightBottomLift.addColorStop(0, 'rgba(255, 226, 146, 0.0553)');
+    rightBottomLift.addColorStop(0.6, 'rgba(255, 214, 112, 0.0228)');
+    rightBottomLift.addColorStop(1, 'rgba(255, 208, 98, 0)');
+    ctx.fillStyle = rightBottomLift;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+
+    ctx.filter = 'none';
     ctx.restore();
   };
 
@@ -778,11 +932,20 @@ export function CardGenerator() {
       const valueX = startX + labelWidth + labelGap;
 
       ctx.font = sharedFont;
-      ctx.fillStyle = line.valueColor;
       if (line.label === 'STATUS:') {
-        ctx.shadowBlur = 7;
-        ctx.shadowColor = 'rgba(31, 224, 107, 0.38)';
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = 'rgba(31, 224, 107, 0.63)';
+        ctx.shadowBlur = 36;
+        ctx.shadowColor = 'rgba(31, 224, 107, 0.95)';
+        ctx.fillText(line.value, valueX, line.y);
+        ctx.restore();
+
+        ctx.fillStyle = line.valueColor;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(31, 224, 107, 0.95)';
       } else {
+        ctx.fillStyle = line.valueColor;
         ctx.shadowBlur = 0;
       }
       ctx.fillText(line.value, valueX, line.y);
@@ -826,7 +989,7 @@ export function CardGenerator() {
     ctx.fillText('PROOF:', textCenterX, proofLabelY, textSafeWidth);
 
     ctx.font = `700 ${QR_TEXT_SECONDARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
-    ctx.fillStyle = 'rgba(214, 206, 190, 0.92)';
+    ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
     ctx.fillText('Verified on-chain', textCenterX, proofValueY, textSafeWidth);
     ctx.restore();
   };
@@ -860,13 +1023,15 @@ export function CardGenerator() {
     }
 
     drawPanel(ctx);
+    drawTechTexture(ctx);
     drawLogo(ctx);
     drawAvatar(ctx);
     drawDividerLine(ctx);
     drawTextFields(ctx);
     drawQRCode(ctx);
     drawDescription(ctx);
-  }, [bgImg, logoImg, textureImg, textureImg2, avatarImg, qrImg, form]);
+    drawCardMistBlur(ctx);
+  }, [bgImg, logoImg, textureImg, textureImg2, textureImg3, avatarImg, qrImg, form]);
 
   useEffect(() => {
     drawCanvas();
@@ -884,12 +1049,14 @@ export function CardGenerator() {
       drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
     }
     drawPanel(ctx);
+    drawTechTexture(ctx);
     drawLogo(ctx);
     drawAvatar(ctx);
     drawDividerLine(ctx);
     drawTextFields(ctx);
     drawDescription(ctx);
     drawQRCode(ctx);
+    drawCardMistBlur(ctx);
 
     const imageDataUrl = canvas.toDataURL('image/png');
 
@@ -976,7 +1143,10 @@ visit our website or contact support.
           <h1 className="text-2xl font-bold">无法继续生成</h1>
           <p className="text-slate-300 leading-relaxed">{accessError}</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              sessionStorage.removeItem(CARD_GENERATOR_SESSION_KEY);
+              navigate('/');
+            }}
             className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all"
           >
             返回首页
@@ -991,7 +1161,15 @@ visit our website or contact support.
       <div className="max-w-[1200px] w-full p-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Identity Preview</h1>
         <div className="flex gap-4">
-          <button onClick={() => navigate('/')} className="px-5 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all">Back</button>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem(CARD_GENERATOR_SESSION_KEY);
+              navigate('/');
+            }}
+            className="px-5 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all"
+          >
+            Back
+          </button>
           <button onClick={exportPNG} className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Download</button>
         </div>
       </div>
