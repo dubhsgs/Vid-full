@@ -269,8 +269,8 @@ export function CardGenerator() {
     const loadResources = async () => {
       const bgUrl = resolveAssetUrl('bg.jpg');
       const logoUrl = resolveAssetUrl('vaid_logo_mark.png');
-      const textureUrl = resolveAssetUrl('texture_layer.png');
-      const textureUrl2 = resolveAssetUrl('texture_layer_2.png');
+      const textureUrl = resolveAssetUrl('grid_texture.png');
+      const textureUrl2 = resolveAssetUrl('grid_texture_2.png');
       const textureUrl3 = resolveAssetUrl('texture_layer_3.png');
 
       const [bgResult, logoResult, textureResult, texture2Result, texture3Result] = await Promise.allSettled([
@@ -299,7 +299,7 @@ export function CardGenerator() {
         setTextureImg(textureResult.value);
       } else {
         setTextureImg(null);
-        console.error('[CardGenerator] Failed to load texture image:', textureUrl, textureResult.reason);
+        console.error('[CardGenerator] Failed to load grid texture image:', textureUrl, textureResult.reason);
       }
 
       if (texture2Result.status === 'fulfilled') {
@@ -468,7 +468,7 @@ export function CardGenerator() {
     ctx.clip();
 
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 1;
     drawCover(ctx, textureImg2, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
     // Directional bloom: stronger on the left, softer on the right.
@@ -578,60 +578,24 @@ export function CardGenerator() {
   };
 
   const drawTechTexture = (ctx: CanvasRenderingContext2D) => {
+    if (!textureImg) return;
     ctx.save();
     ctx.beginPath();
     roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
     ctx.clip();
 
-    // Irregular wave-grid with very low opacity (reference-inspired).
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.2;
-    ctx.strokeStyle = 'rgba(244, 250, 255, 0.18)';
-    ctx.lineWidth = 0.7;
+    // Keep texture clearly visible on the dark glass panel.
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.18;
+    ctx.filter = 'contrast(1.35) brightness(1.08)';
+    const textureScale = 1.5;
+    const scaledW = PANEL_W * textureScale;
+    const scaledH = PANEL_H * textureScale;
+    const scaledX = PANEL_X - (scaledW - PANEL_W) / 2;
+    const scaledY = PANEL_Y - (scaledH - PANEL_H) / 2;
+    drawCover(ctx, textureImg, scaledX, scaledY, scaledW, scaledH);
 
-    const cols = 52;
-    const rows = 30;
-    const pad = 6;
-    const areaW = PANEL_W - pad * 2;
-    const areaH = PANEL_H - pad * 2;
-
-    const pointAt = (u: number, v: number) => {
-      const x0 = PANEL_X + pad + areaW * u;
-      const y0 = PANEL_Y + pad + areaH * v;
-      const warpX =
-        Math.sin(v * Math.PI * 4.4 + u * Math.PI * 1.3) * (PANEL_W * 0.012) +
-        Math.sin(v * Math.PI * 1.2 - u * Math.PI * 2.1) * (PANEL_W * 0.006);
-      const warpY =
-        Math.sin(u * Math.PI * 3.6 + v * Math.PI * 1.5) * (PANEL_H * 0.025) +
-        Math.sin(u * Math.PI * 1.05 - v * Math.PI * 3.0) * (PANEL_H * 0.012);
-      return { x: x0 + warpX, y: y0 + warpY };
-    };
-
-    for (let c = 0; c <= cols; c++) {
-      const u = c / cols;
-      ctx.beginPath();
-      for (let r = 0; r <= rows; r++) {
-        const v = r / rows;
-        const p = pointAt(u, v);
-        if (r === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-    }
-
-    for (let r = 0; r <= rows; r++) {
-      const v = r / rows;
-      ctx.beginPath();
-      for (let c = 0; c <= cols; c++) {
-        const u = c / cols;
-        const p = pointAt(u, v);
-        if (c === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1;
+    ctx.filter = 'none';
     ctx.restore();
   };
   const drawCardMistBlur = (ctx: CanvasRenderingContext2D) => {
@@ -719,6 +683,10 @@ export function CardGenerator() {
     offCtx.drawImage(logoImg, sourceX, sourceY, sourceW, sourceH, 0, 0, processedW, processedH);
     const imageData = offCtx.getImageData(0, 0, processedW, processedH);
     const { data } = imageData;
+    let sumR = 0;
+    let sumG = 0;
+    let sumB = 0;
+    let sumWeight = 0;
 
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
@@ -736,6 +704,12 @@ export function CardGenerator() {
       data[i + 1] = 241;
       data[i + 2] = 214;
       data[i + 3] = alpha;
+
+      const w = alpha / 255;
+      sumR += data[i] * w;
+      sumG += data[i + 1] * w;
+      sumB += data[i + 2] * w;
+      sumWeight += w;
     }
 
     offCtx.clearRect(0, 0, processedW, processedH);
@@ -745,12 +719,12 @@ export function CardGenerator() {
     const logoH = 102;
     const lx = (CANVAS_W - logoW) / 2;
     const ly = 58;
-
     ctx.save();
     ctx.globalAlpha = 0.95;
-    ctx.shadowColor = 'rgba(255, 247, 214, 0.20)';
-    ctx.shadowBlur = 14;
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
     ctx.drawImage(offscreen, lx, ly, logoW, logoH);
+
     ctx.restore();
 
   };
