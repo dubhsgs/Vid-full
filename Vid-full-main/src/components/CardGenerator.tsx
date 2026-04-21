@@ -725,6 +725,18 @@ export function CardGenerator() {
     ctx.shadowBlur = 0;
     ctx.drawImage(offscreen, lx, ly, logoW, logoH);
 
+    // Neon bloom passes for logo.
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = 'rgba(120, 232, 248, 0.72)';
+    ctx.shadowBlur = 24;
+    ctx.drawImage(offscreen, lx, ly, logoW, logoH);
+
+    ctx.globalAlpha = 0.94;
+    ctx.shadowColor = 'rgba(228, 116, 204, 0.62)';
+    ctx.shadowBlur = 14;
+    ctx.drawImage(offscreen, lx, ly, logoW, logoH);
+
     ctx.restore();
 
   };
@@ -752,24 +764,89 @@ export function CardGenerator() {
 
     ctx.beginPath();
     ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.44)';
+    const outerRingStroke = 'createConicGradient' in ctx
+      ? (() => {
+          const g = ctx.createConicGradient(-Math.PI / 2, cx, cy);
+          // Mostly solid teal/magenta, with only subtle blend at the splice zones.
+          g.addColorStop(0.0, '#32d7d2');
+          g.addColorStop(0.47, '#32d7d2');
+          g.addColorStop(0.5, '#e040a0');
+          g.addColorStop(0.97, '#e040a0');
+          g.addColorStop(1.0, '#32d7d2');
+          return g;
+        })()
+      : ctx.createLinearGradient(cx - ringR, cy, cx + ringR, cy);
+    if (!('createConicGradient' in ctx)) {
+      (outerRingStroke as CanvasGradient).addColorStop(0, '#32d7d2');
+      (outerRingStroke as CanvasGradient).addColorStop(1, '#e040a0');
+    }
+    ctx.strokeStyle = outerRingStroke;
     ctx.lineWidth = 4;
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.16)';
-    ctx.shadowBlur = 14;
+    ctx.shadowColor = 'rgba(80, 200, 220, 0.20)';
+    ctx.shadowBlur = 10;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    ctx.beginPath();
-    ctx.arc(cx, cy, ringR * 0.94, Math.PI * 0.18, Math.PI * 1.18);
-    ctx.strokeStyle = 'rgba(202, 247, 235, 0.48)';
-    ctx.lineWidth = 2;
+    // Neon bloom pass for the outer ring.
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.strokeStyle = outerRingStroke;
+    ctx.lineWidth = 7;
+    ctx.shadowColor = 'rgba(138, 214, 255, 0.55)';
+    ctx.shadowBlur = 22;
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(cx, cy, ringR * 0.95, Math.PI * 1.1, Math.PI * 1.95);
-    ctx.strokeStyle = hexToRgba(AVATAR_COLOR_END, 0.62);
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = 'rgba(230, 140, 220, 0.48)';
+    ctx.shadowBlur = 12;
     ctx.stroke();
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    // Subtle outer orbit hints for extra rotational feel.
+    const outerOrbits = [
+      { r: ringR * 1.06, a1: Math.PI * 0.12, a2: Math.PI * 0.42, w: 1.2, c: 'rgba(150, 232, 248, 0.30)' },
+      { r: ringR * 1.08, a1: Math.PI * 0.78, a2: Math.PI * 1.06, w: 1.1, c: 'rgba(216, 136, 214, 0.28)' },
+      { r: ringR * 1.05, a1: Math.PI * 1.36, a2: Math.PI * 1.70, w: 1.2, c: 'rgba(146, 226, 244, 0.26)' },
+      { r: ringR * 1.07, a1: Math.PI * 1.92, a2: Math.PI * 2.20, w: 1.0, c: 'rgba(224, 146, 220, 0.24)' },
+    ];
+    outerOrbits.forEach((arc) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, arc.r, arc.a1, arc.a2);
+      ctx.strokeStyle = arc.c;
+      ctx.lineWidth = arc.w;
+      ctx.shadowColor = arc.c.replace(/0\.\d+\)/, '0.36)');
+      ctx.shadowBlur = 6;
+      ctx.stroke();
+    });
+    ctx.shadowBlur = 0;
+
+    // Add short/long orbit dashes with stable pseudo-random distribution.
+    const dashCount = 13;
+    for (let i = 0; i < dashCount; i++) {
+      const seed = i * 1.371 + 0.618;
+      const t = (Math.sin(seed * 12.9898) + 1) * 0.5;
+      const t2 = (Math.sin(seed * 7.233 + 2.41) + 1) * 0.5;
+      const t3 = (Math.sin(seed * 5.921 + 1.17) + 1) * 0.5;
+
+      const radius = ringR * (0.84 + t * 0.14);
+      const start = t2 * Math.PI * 2;
+      const span = (0.12 + t3 * 0.22) * Math.PI;
+      const end = start + span;
+      const isCool = i % 2 === 0;
+      const color = isCool
+        ? `rgba(168, 236, 255, ${0.3 + t * 0.24})`
+        : `rgba(182, 154, 255, ${0.28 + t * 0.24})`;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, start, end);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.3 + t * 1.6;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 6 + t * 5;
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
 
     const innerGlass = ctx.createRadialGradient(cx, cy - 18, 12, cx, cy, imageR + 24);
     innerGlass.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
@@ -857,6 +934,19 @@ export function CardGenerator() {
     core.addColorStop(0.5, 'rgba(215, 244, 235, 0.62)');
     ctx.fillStyle = core;
     ctx.fillRect(lx - 1.5, ly1, 3, ly2 - ly1);
+
+    // Neon pass for divider core.
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = 'rgba(122, 238, 230, 0.34)';
+    ctx.shadowColor = 'rgba(122, 238, 230, 0.58)';
+    ctx.shadowBlur = 12;
+    ctx.fillRect(lx - 1, ly1, 2, ly2 - ly1);
+
+    ctx.fillStyle = 'rgba(230, 132, 206, 0.22)';
+    ctx.shadowColor = 'rgba(230, 132, 206, 0.44)';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(lx - 0.8, ly1, 1.6, ly2 - ly1);
+    ctx.shadowBlur = 0;
     ctx.restore();
   };
 
@@ -952,6 +1042,24 @@ export function CardGenerator() {
     ctx.stroke();
 
     if (qrImg) {
+      // Neon only for QR modules (exclude the outer plate border).
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(qx, qy, qs, qs);
+      ctx.clip();
+
+      ctx.globalCompositeOperation = 'screen';
+      ctx.shadowColor = 'rgba(248, 152, 205, 0.34)';
+      ctx.shadowBlur = 7;
+      ctx.drawImage(qrImg, qx, qy, qs, qs);
+
+      ctx.shadowColor = 'rgba(120, 228, 246, 0.21)';
+      ctx.shadowBlur = 4;
+      ctx.drawImage(qrImg, qx, qy, qs, qs);
+      ctx.restore();
+
+      ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = 'source-over';
       ctx.drawImage(qrImg, qx, qy, qs, qs);
     }
 
@@ -1149,7 +1257,7 @@ visit our website or contact support.
       </div>
       <canvas ref={canvasRef} className="rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
       <p className="mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
-        * PROOF OF IDENTITY ANCHORED ON V-ID LEDGER
+        * PROOF OF IDENTITY RECORDED BY VAID
       </p>
     </div>
   );
