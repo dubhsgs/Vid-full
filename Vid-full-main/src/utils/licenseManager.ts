@@ -7,6 +7,7 @@ const DEV_MODE_KEY = 'v-id-dev-mode';
 const GENERATION_READY_KEY = 'v-id-generation-ready-at';
 const GENERATION_READY_TTL_MS = 5 * 60 * 1000;
 const ACTIVATION_CODE_STORAGE_KEY = 'v-id-activation-code';
+const DEV_MODE_ENABLED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_MODE === 'true';
 
 export interface OrderStatusInfo {
   out_trade_no: string;
@@ -112,15 +113,15 @@ export function clearSavedActivationCode(): void {
 }
 
 export function isDevelopmentMode(): boolean {
-  if (!import.meta.env.DEV) {
+  if (!DEV_MODE_ENABLED) {
     return false;
   }
 
-  return localStorage.getItem(DEV_MODE_KEY) !== 'false';
+  return localStorage.getItem(DEV_MODE_KEY) === 'true';
 }
 
 export function toggleDevMode(): boolean {
-  if (!import.meta.env.DEV) {
+  if (!DEV_MODE_ENABLED) {
     console.warn('开发者模式仅在本地开发环境可用');
     return false;
   }

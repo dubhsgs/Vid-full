@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface QuotaUseRequest {
   client_id: string;
+  amount?: number;
 }
 
 Deno.serve(async (req: Request) => {
@@ -24,7 +25,7 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { client_id }: QuotaUseRequest = await req.json();
+    const { client_id, amount }: QuotaUseRequest = await req.json();
 
     if (!client_id) {
       return new Response(
@@ -36,67 +37,138 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: quotaRows, error: consumeError } = await supabase.rpc('consume_user_credit', {
-      p_client_id: client_id,
-    });
+    const consumeAmount = Number.isFinite(amount) ? Math.max(1, Math.floor(Number(amount))) : 1;
 
-    if (consumeError) {
-      console.error('Error consuming quota:', consumeError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Database error' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const consumeViaFallback = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const { data: quota, error: quotaError } = await supabase
+          .from('user_quotas')
+          .select('client_id, remaining_credits, total_used')
+          .eq('client_id', client_id)
+          .maybeSingle();
+
+        if (quotaError) {
+          console.error('Error reading quota (fallback):', quotaError);
+          return {
+            ok: false as const,
+            status: 500,
+            body: { success: false, error: 'Database error' },
+          };
         }
-      );
+
+        if (!quota) {
+          const { error: insertError } = await supabase.from('user_quotas').insert({
+            client_id,
+            remaining_credits: 3,
+            total_used: 0,
+          });
+
+          if (insertError) {
+            console.error('Error creating quota row (fallback):', insertError);
+            return {
+              ok: false as const,
+              status: 500,
+              body: { success: false, error: 'Database error' },
+            };
+          }
+
+          continue;
+        }
+
+        if (quota.remaining_credits < consumeAmount) {
+          return {
+            ok: false as const,
+            status: 403,
+            body: { success: false, error: 'Insufficient credits' },
+          };
+        }
+
+        const nextRemaining = quota.remaining_credits - consumeAmount;
+        const nextUsed = quota.total_used + consumeAmount;
+
+        const { data: updatedRow, error: updateError } = await supabase
+          .from('user_quotas')
+          .update({
+            remaining_credits: nextRemaining,
+            total_used: nextUsed,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('client_id', client_id)
+          .eq('remaining_credits', quota.remaining_credits)
+          .eq('total_used', quota.total_used)
+          .select('remaining_credits, total_used')
+          .maybeSingle();
+
+        if (updateError) {
+          console.error('Error updating quota (fallback):', updateError);
+          return {
+            ok: false as const,
+            status: 500,
+            body: { success: false, error: 'Database error' },
+          };
+        }
+
+        if (updatedRow) {
+          return {
+            ok: true as const,
+            status: 200,
+            body: {
+              success: true,
+              remaining_credits: updatedRow.remaining_credits,
+              total_used: updatedRow.total_used,
+            },
+          };
+        }
+      }
+
+      return {
+        ok: false as const,
+        status: 409,
+        body: { success: false, error: 'Quota conflict, retry' },
+      };
+    };
+
+    const rpcResult = consumeAmount === 1
+      ? await supabase.rpc('consume_user_credit', { p_client_id: client_id })
+      : { data: null, error: { message: 'RPC only supports amount=1' } };
+
+    if (!rpcResult.error) {
+      const quotaRows = rpcResult.data;
+      const updatedQuota = Array.isArray(quotaRows) ? quotaRows[0] : null;
+      if (updatedQuota) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            remaining_credits: updatedQuota.remaining_credits,
+            total_used: updatedQuota.total_used,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
-    const updatedQuota = Array.isArray(quotaRows) ? quotaRows[0] : null;
-    if (updatedQuota) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          remaining_credits: updatedQuota.remaining_credits,
-          total_used: updatedQuota.total_used,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (rpcResult.error) {
+      console.error('Error consuming quota via RPC, using fallback:', rpcResult.error);
     }
 
-    const { data: existingQuota, error: fetchError } = await supabase
-      .from('user_quotas')
-      .select('client_id')
-      .eq('client_id', client_id)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error('Error fetching quota after consume attempt:', fetchError);
+    const fallbackResult = await consumeViaFallback();
+    if (fallbackResult.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Database error' }),
+        JSON.stringify(fallbackResult.body),
         {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    if (!existingQuota) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No quota found' }),
-        {
-          status: 404,
+          status: fallbackResult.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: false, error: 'Insufficient credits' }),
+      JSON.stringify(fallbackResult.body),
       {
-        status: 403,
+        status: fallbackResult.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

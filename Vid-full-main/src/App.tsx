@@ -42,6 +42,8 @@ function App() {
   const [activationCodeInfo, setActivationCodeInfo] = useState<ActivationCodeInfo | null>(null);
   const [activationCodeError, setActivationCodeError] = useState('');
   const [isCheckingActivationCode, setIsCheckingActivationCode] = useState(false);
+  const [generationError, setGenerationError] = useState('');
+  const [isSubmittingNext, setIsSubmittingNext] = useState(false);
 
 
   const heroImages = [
@@ -82,6 +84,30 @@ function App() {
 
     refreshAccessDashboard(savedCode);
   }, [refreshAccessDashboard]);
+
+  useEffect(() => {
+    const syncDashboard = () => {
+      const preferredCode = activationCodeInput.trim() || getSavedActivationCode();
+      refreshAccessDashboard(preferredCode);
+    };
+
+    const intervalId = window.setInterval(syncDashboard, 5000);
+    const handleFocus = () => syncDashboard();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncDashboard();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activationCodeInput, refreshAccessDashboard]);
 
   const handleBindActivationCode = useCallback(async (codeOverride?: string) => {
     const rawCode = (codeOverride ?? activationCodeInput).trim();
@@ -148,6 +174,11 @@ function App() {
 
   const handleEditInfo = () => {
     if (!imagePreview || !imageFile) return;
+    if (!characterName.trim() || !creatorName.trim()) {
+      setGenerationError('请先填写角色名称和创作者名称');
+      return;
+    }
+    setGenerationError('');
     setIsEditing(true);
     setImageScale(1);
     setImagePosition({ x: 0, y: 0 });
@@ -179,111 +210,151 @@ function App() {
   };
 
   const handleNextToGenerator = async () => {
-    if (!imagePreview || !imageFile || !characterName.trim() || !creatorName.trim()) return;
+    if (isSubmittingNext) return;
 
-    let activeActivationCode = activationCodeInfo;
-
-    if (activationCodeInput.trim()) {
-      const normalizedInput = normalizeActivationCode(activationCodeInput);
-      setActivationCodeInput(normalizedInput);
-      activeActivationCode = await handleBindActivationCode(normalizedInput);
-    }
-
-    const { freeRemaining } = await refreshAccessDashboard(activeActivationCode?.code || activationCodeInput);
-    const hasUsableActivationCode = !!activeActivationCode
-      && activeActivationCode.status === 'active'
-      && activeActivationCode.remaining_uses > 0;
-
-    if (freeRemaining <= 0 && !hasUsableActivationCode) {
-      if (!activeActivationCode && activationCodeInput.trim()) {
-        setActivationCodeError('激活码不存在，请检查后重试');
-      }
-      setShowPaywall(true);
+    if (!imagePreview || !imageFile) {
+      setGenerationError('请先上传图片');
       return;
     }
 
-    const canvas = document.createElement('canvas');
-    const size = 240;
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
+    if (!characterName.trim() || !creatorName.trim()) {
+      setGenerationError('请先返回上一步填写角色名称和创作者名称');
+      return;
+    }
 
-    const img = new Image();
-    img.onload = async () => {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-      ctx.clip();
+    setGenerationError('');
+    setIsSubmittingNext(true);
 
-      const displayContainerSize = 320;
-
-      const displayImageWidth = displayContainerSize;
-      const displayImageHeight = (img.height / img.width) * displayContainerSize;
-
-      const displayCenterX = displayContainerSize / 2;
-      const displayCenterY = displayContainerSize / 2;
-
-      const scaledDisplayWidth = displayImageWidth * imageScale;
-      const scaledDisplayHeight = displayImageHeight * imageScale;
-
-      const displayX = displayCenterX - scaledDisplayWidth / 2 + imagePosition.x;
-      const displayY = displayCenterY - scaledDisplayHeight / 2 + imagePosition.y;
-
-      const canvasRatio = size / displayContainerSize;
-
-      const canvasX = displayX * canvasRatio;
-      const canvasY = displayY * canvasRatio;
-      const canvasWidth = scaledDisplayWidth * canvasRatio;
-      const canvasHeight = scaledDisplayHeight * canvasRatio;
-
-      ctx.drawImage(img, canvasX, canvasY, canvasWidth, canvasHeight);
-      ctx.restore();
-
-      const croppedAvatar = canvas.toDataURL('image/png');
-      localStorage.setItem('vid_uploaded_avatar', croppedAvatar);
-      localStorage.setItem('vid_character_name', characterName);
-      localStorage.setItem('vid_creator_name', creatorName);
-
-      try {
-        const hash = await calculateSHA256(imageFile);
-        localStorage.setItem('vid_original_file_hash', hash);
-
-        const accessResult = await consumeGenerationAccess(activationCodeInput);
-        const refreshedState = await refreshAccessDashboard(accessResult.activation_code?.code || activationCodeInput);
-
-        if (accessResult.activation_code?.code) {
-          setActivationCodeInput(accessResult.activation_code.code);
-        }
-
-        if (!accessResult.success) {
-          if (accessResult.error === 'ACTIVATION_CODE_REQUIRED') {
-            setActivationCodeError('请输入激活码后再生成');
-          } else if (accessResult.activation_code) {
-            setActivationCodeInfo(accessResult.activation_code);
-            setActivationCodeError('这个激活码已用完或不可用，请更换新的激活码');
-          }
-
-          const latestActivationCode = accessResult.activation_code ?? refreshedState.savedCodeInfo;
-          const hasUsableLatestActivationCode = !!latestActivationCode
-            && latestActivationCode.status === 'active'
-            && latestActivationCode.remaining_uses > 0;
-
-          if (refreshedState.freeRemaining <= 0 && !hasUsableLatestActivationCode) {
-            setShowPaywall(true);
-          }
-          return;
-        }
-
-        setRemainingCredits(accessResult.free_remaining);
-        setActivationCodeInfo(accessResult.activation_code ?? refreshedState.savedCodeInfo);
-        setActivationCodeError('');
-        markGenerationReady();
-        setShowForgingAnimation(true);
-      } catch (error) {
-        console.error('Failed to prepare generation flow:', error);
+    try {
+      const normalizedInput = normalizeActivationCode(activationCodeInput);
+      if (activationCodeInput.trim() && normalizedInput !== activationCodeInput) {
+        setActivationCodeInput(normalizedInput);
       }
-    };
-    img.src = imagePreview;
+
+      const { freeRemaining, savedCodeInfo } = await refreshAccessDashboard(normalizedInput);
+      let activeActivationCode = savedCodeInfo ?? activationCodeInfo;
+
+      // Free quota takes priority. Only validate activation code after free quota is exhausted.
+      if (freeRemaining <= 0 && normalizedInput) {
+        activeActivationCode = await handleBindActivationCode(normalizedInput);
+      } else if (freeRemaining > 0) {
+        setActivationCodeError('');
+      }
+
+      const hasUsableActivationCode = !!activeActivationCode
+        && activeActivationCode.status === 'active'
+        && activeActivationCode.remaining_uses > 0;
+
+      if (freeRemaining <= 0 && !hasUsableActivationCode) {
+        if (!activeActivationCode && normalizedInput) {
+          setActivationCodeError('激活码不存在，请检查后重试');
+        }
+        setShowPaywall(true);
+        setIsSubmittingNext(false);
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const size = 240;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+
+      const img = new Image();
+      img.onload = async () => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.clip();
+
+        const displayContainerSize = 320;
+
+        const displayImageWidth = displayContainerSize;
+        const displayImageHeight = (img.height / img.width) * displayContainerSize;
+
+        const displayCenterX = displayContainerSize / 2;
+        const displayCenterY = displayContainerSize / 2;
+
+        const scaledDisplayWidth = displayImageWidth * imageScale;
+        const scaledDisplayHeight = displayImageHeight * imageScale;
+
+        const displayX = displayCenterX - scaledDisplayWidth / 2 + imagePosition.x;
+        const displayY = displayCenterY - scaledDisplayHeight / 2 + imagePosition.y;
+
+        const canvasRatio = size / displayContainerSize;
+
+        const canvasX = displayX * canvasRatio;
+        const canvasY = displayY * canvasRatio;
+        const canvasWidth = scaledDisplayWidth * canvasRatio;
+        const canvasHeight = scaledDisplayHeight * canvasRatio;
+
+        ctx.drawImage(img, canvasX, canvasY, canvasWidth, canvasHeight);
+        ctx.restore();
+
+        const croppedAvatar = canvas.toDataURL('image/png');
+        localStorage.setItem('vid_uploaded_avatar', croppedAvatar);
+        localStorage.setItem('vid_character_name', characterName);
+        localStorage.setItem('vid_creator_name', creatorName);
+
+        try {
+          const hash = await calculateSHA256(imageFile);
+          localStorage.setItem('vid_original_file_hash', hash);
+
+          const accessResult = await consumeGenerationAccess(normalizedInput);
+          const refreshedState = await refreshAccessDashboard(accessResult.activation_code?.code || normalizedInput);
+
+          if (accessResult.activation_code?.code) {
+            setActivationCodeInput(accessResult.activation_code.code);
+          }
+
+          if (!accessResult.success) {
+            if (accessResult.error === 'ACTIVATION_CODE_REQUIRED') {
+              setActivationCodeError('请输入激活码后再生成');
+            } else if (accessResult.activation_code) {
+              setActivationCodeInfo(accessResult.activation_code);
+              setActivationCodeError('这个激活码已用完或不可用，请更换新的激活码');
+            } else if (accessResult.error === 'FREE_QUOTA_CONSUME_FAILED') {
+              setGenerationError('剩余次数扣减失败，请稍后重试');
+            } else {
+              setGenerationError('生成前校验失败，请稍后重试');
+            }
+
+            const latestActivationCode = accessResult.activation_code ?? refreshedState.savedCodeInfo;
+            const hasUsableLatestActivationCode = !!latestActivationCode
+              && latestActivationCode.status === 'active'
+              && latestActivationCode.remaining_uses > 0;
+
+            if (refreshedState.freeRemaining <= 0 && !hasUsableLatestActivationCode) {
+              setShowPaywall(true);
+            }
+            return;
+          }
+
+          setRemainingCredits(accessResult.free_remaining);
+          setActivationCodeInfo(accessResult.activation_code ?? refreshedState.savedCodeInfo);
+          setActivationCodeError('');
+          setGenerationError('');
+          markGenerationReady();
+          setShowForgingAnimation(true);
+        } catch (error) {
+          console.error('Failed to prepare generation flow:', error);
+          setGenerationError('生成流程异常，请稍后重试');
+        } finally {
+          setIsSubmittingNext(false);
+        }
+      };
+
+      img.onerror = () => {
+        setGenerationError('图片读取失败，请重新上传后重试');
+        setIsSubmittingNext(false);
+      };
+
+      img.src = imagePreview;
+    } catch (error) {
+      console.error('Failed to check generation prerequisites:', error);
+      setGenerationError('次数状态校验失败，请稍后重试');
+      setIsSubmittingNext(false);
+    }
   };
 
   const handleAnimationComplete = useCallback(() => {
@@ -437,6 +508,7 @@ function App() {
                           setActivationCodeInfo(null);
                         }
                         setActivationCodeError('');
+                        setGenerationError('');
                       }}
                       placeholder="输入激活码，例如 VAID-ABCD-EFGH-IJKL"
                       className="flex-1 px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -453,6 +525,12 @@ function App() {
                   {activationCodeError && (
                     <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300">
                       {activationCodeError}
+                    </div>
+                  )}
+
+                  {generationError && (
+                    <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-200">
+                      {generationError}
                     </div>
                   )}
                 </div>
@@ -519,7 +597,10 @@ function App() {
                           id="characterName"
                           type="text"
                           value={characterName}
-                          onChange={(e) => setCharacterName(e.target.value)}
+                          onChange={(e) => {
+                            setCharacterName(e.target.value);
+                            setGenerationError('');
+                          }}
                           placeholder="e.g., Nova StarSeeker"
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
@@ -533,7 +614,10 @@ function App() {
                           id="creatorName"
                           type="text"
                           value={creatorName}
-                          onChange={(e) => setCreatorName(e.target.value)}
+                          onChange={(e) => {
+                            setCreatorName(e.target.value);
+                            setGenerationError('');
+                          }}
                           placeholder="e.g., Alex Chen"
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
@@ -589,7 +673,7 @@ function App() {
 
                     <button
                       onClick={handleEditInfo}
-                      disabled={!imageFile || !agreedToTerms}
+                      disabled={!imageFile || !agreedToTerms || !characterName.trim() || !creatorName.trim()}
                       className="w-full mt-4 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >
                       Edit Info
@@ -666,10 +750,10 @@ function App() {
                       </button>
                       <button
                         onClick={handleNextToGenerator}
-                        disabled={!characterName.trim() || !creatorName.trim()}
+                        disabled={isSubmittingNext}
                         className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                       >
-                        Next
+                        {isSubmittingNext ? '处理中...' : 'Next'}
                       </button>
                     </div>
                   </div>
