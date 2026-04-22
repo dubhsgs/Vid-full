@@ -492,3 +492,42 @@
   - backend accounting remains separated (free quota vs activation code), frontend is presentation-unified.
 - Validation status:
   - `npx eslint src/App.tsx` passed after each UI update.
+
+## Generation flow stabilization + quota incident fix (2026-04-22, late night)
+
+- User reported: clicking `Next` in edit mode had no visible response.
+- Root cause chain identified:
+  1. frontend had silent early-return paths (missing visible error feedback in some branches),
+  2. `quota-use` could fail when RPC path errored, which interrupted generation at access-consume step.
+
+### Frontend hardening applied (`src/App.tsx`)
+
+- Added visible generation error state + UI message area (no more silent failure).
+- Added `isSubmittingNext` to avoid double submit and show `处理中...`.
+- Added explicit prechecks and user-facing messages for missing image/name/creator.
+- Kept free-first logic: when free quota > 0, do not block on activation-code validation before generate.
+- Result: user can now see exact failure reason when generation chain breaks.
+
+### Backend fix applied (`supabase/functions/quota-use/index.ts`)
+
+- Implemented dual-path consume logic:
+  - primary: RPC `consume_user_credit`,
+  - fallback: direct `user_quotas` read/update consume path with conflict retry.
+- This prevents `FREE_QUOTA_CONSUME_FAILED` caused by RPC-only dependency.
+- Deployed to production project `vimglsksvvvnxkjnaqeh`:
+  - function: `quota-use`
+  - deployment confirmed successful.
+- Live probe verified:
+  - `quota-check` returned 3,
+  - immediate `quota-use` returned success and decremented to 2.
+
+### Stability snapshot
+
+- Full checks passed on current code: `lint`, `typecheck`, `build`.
+- Git snapshot commit created:
+  - `7f2209b` — `fix(flow): stabilize next-step quota check and quota-use fallback`
+
+### Decision after verification
+
+- User preference confirmed: stop further risky refactors while flow is smooth.
+- Current strategy: keep this version as stable baseline; future changes should be one-item-at-a-time with immediate verification.
