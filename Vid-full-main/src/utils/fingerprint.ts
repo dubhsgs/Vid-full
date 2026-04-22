@@ -1,7 +1,7 @@
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 let clientIdCache: string | null = null;
-let fpPromise: Promise<any> | null = null;
+let fpPromise: ReturnType<typeof FingerprintJS.load> | null = null;
 const FALLBACK_CLIENT_ID_KEY = 'fallback_client_id';
 
 export async function getClientId(): Promise<string> {

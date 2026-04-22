@@ -39,6 +39,26 @@ export interface GenerationAccessResult {
   error?: string;
 }
 
+interface UserOrderRecord {
+  [key: string]: unknown;
+}
+
+interface VIdDevTools {
+  toggleDevMode: () => boolean;
+  isDevelopmentMode: () => boolean;
+  getClientId: () => Promise<string>;
+  getQuotaInfo: typeof getClientQuotaInfo;
+  getActivationCodeInfo: typeof getActivationCodeInfo;
+  clearSavedActivationCode: typeof clearSavedActivationCode;
+  info: () => void;
+}
+
+declare global {
+  interface Window {
+    V_ID_DEV?: VIdDevTools;
+  }
+}
+
 interface ActivationCodeStatusResponse {
   found?: boolean;
   usable?: boolean;
@@ -121,7 +141,7 @@ export async function getRemainingFreeCertificates(): Promise<number> {
   return quotaInfo.remaining_credits;
 }
 
-export async function useFreeCertificate(): Promise<boolean> {
+export async function consumeFreeCertificate(): Promise<boolean> {
   if (isDevelopmentMode()) {
     return true;
   }
@@ -230,7 +250,7 @@ export async function getGenerationAccessState(rawCode?: string): Promise<Genera
   };
 }
 
-export async function useActivationCode(rawCode?: string): Promise<{
+export async function consumeActivationCode(rawCode?: string): Promise<{
   success: boolean;
   activation_code: ActivationCodeInfo | null;
   error?: string;
@@ -299,7 +319,7 @@ export async function consumeGenerationAccess(rawCode?: string): Promise<Generat
   const quotaInfo = await getClientQuotaInfo();
 
   if (quotaInfo.remaining_credits > 0) {
-    const success = await useFreeCertificate();
+    const success = await consumeFreeCertificate();
     const updatedQuota = success ? await getClientQuotaInfo() : quotaInfo;
 
     return {
@@ -311,7 +331,7 @@ export async function consumeGenerationAccess(rawCode?: string): Promise<Generat
     };
   }
 
-  const activationResult = await useActivationCode(rawCode);
+  const activationResult = await consumeActivationCode(rawCode);
 
   return {
     success: activationResult.success,
@@ -322,7 +342,7 @@ export async function consumeGenerationAccess(rawCode?: string): Promise<Generat
   };
 }
 
-export async function getUserOrders(): Promise<any[]> {
+export async function getUserOrders(): Promise<UserOrderRecord[]> {
   try {
     const clientId = await getClientId();
     const { data, error } = await supabase
@@ -411,7 +431,7 @@ export function consumeGenerationReady(): boolean {
 }
 
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  (window as any).V_ID_DEV = {
+  window.V_ID_DEV = {
     toggleDevMode,
     isDevelopmentMode,
     getClientId,

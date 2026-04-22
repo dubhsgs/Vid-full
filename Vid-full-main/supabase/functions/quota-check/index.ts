@@ -36,11 +36,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    let { data: quota, error } = await supabase
+    const { data: initialQuota, error } = await supabase
       .from('user_quotas')
       .select('*')
       .eq('client_id', client_id)
       .maybeSingle();
+    let quota = initialQuota;
 
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching quota:', error);

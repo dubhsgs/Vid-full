@@ -94,7 +94,6 @@ Deno.serve(async (req: Request) => {
     ];
 
     let confirmed = false;
-    let upgradedBytes: Uint8Array | null = null;
 
     for (const calUrl of calendarUrls) {
       const result = await upgradeOTSProof(otsBytes, calUrl);
@@ -109,15 +108,6 @@ Deno.serve(async (req: Request) => {
         .from('v_ids')
         .update({ ots_status: 'confirmed' })
         .eq('friendly_id', friendly_id);
-
-      if (upgradedBytes) {
-        await supabase.storage
-          .from('v-id-images')
-          .upload(record.ots_file_path, upgradedBytes, {
-            contentType: 'application/octet-stream',
-            upsert: true,
-          });
-      }
 
       return new Response(
         JSON.stringify({ success: true, ots_status: 'confirmed' }),

@@ -103,8 +103,6 @@ export function CardGenerator() {
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [textureImg, setTextureImg] = useState<HTMLImageElement | null>(null);
-  const [textureImg2, setTextureImg2] = useState<HTMLImageElement | null>(null);
-  const [textureImg3, setTextureImg3] = useState<HTMLImageElement | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
 
@@ -270,15 +268,11 @@ export function CardGenerator() {
       const bgUrl = resolveAssetUrl('bg.jpg');
       const logoUrl = resolveAssetUrl('vaid_logo_mark.png');
       const textureUrl = resolveAssetUrl('grid_texture.png');
-      const textureUrl2 = resolveAssetUrl('grid_texture_2.png');
-      const textureUrl3 = resolveAssetUrl('texture_layer_3.png');
 
-      const [bgResult, logoResult, textureResult, texture2Result, texture3Result] = await Promise.allSettled([
+      const [bgResult, logoResult, textureResult] = await Promise.allSettled([
         loadImage(bgUrl),
         loadImage(logoUrl),
         loadImage(textureUrl),
-        loadImage(textureUrl2),
-        loadImage(textureUrl3),
       ]);
 
       if (bgResult.status === 'fulfilled') {
@@ -300,20 +294,6 @@ export function CardGenerator() {
       } else {
         setTextureImg(null);
         console.error('[CardGenerator] Failed to load grid texture image:', textureUrl, textureResult.reason);
-      }
-
-      if (texture2Result.status === 'fulfilled') {
-        setTextureImg2(texture2Result.value);
-      } else {
-        setTextureImg2(null);
-        console.error('[CardGenerator] Failed to load secondary texture image:', textureUrl2, texture2Result.reason);
-      }
-
-      if (texture3Result.status === 'fulfilled') {
-        setTextureImg3(texture3Result.value);
-      } else {
-        setTextureImg3(null);
-        console.error('[CardGenerator] Failed to load tertiary texture image:', textureUrl3, texture3Result.reason);
       }
 
       const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
@@ -350,7 +330,7 @@ export function CardGenerator() {
     } catch (e) {
       console.error('QR generation failed:', e);
     }
-  }, [citizenId, loadImage]);
+  }, [citizenId, loadImage, siteOrigin]);
 
   useEffect(() => {
     generateQR();
@@ -446,79 +426,6 @@ export function CardGenerator() {
       qy,
       qs,
     };
-  };
-
-  const drawCircuitTexture = (ctx: CanvasRenderingContext2D) => {
-    if (!textureImg) return;
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
-    ctx.clip();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 0.8;
-    drawCover(ctx, textureImg, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-    ctx.restore();
-  };
-
-  const drawDreamTexture = (ctx: CanvasRenderingContext2D) => {
-    if (!textureImg2) return;
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
-    ctx.clip();
-
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 1;
-    drawCover(ctx, textureImg2, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-
-    // Directional bloom: stronger on the left, softer on the right.
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.42;
-    ctx.filter = 'blur(18px) saturate(1.1) brightness(1.08)';
-    drawCover(ctx, textureImg2, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-    ctx.filter = 'none';
-    ctx.globalCompositeOperation = 'destination-in';
-    const leftToRightMask = ctx.createLinearGradient(PANEL_X, PANEL_Y, PANEL_X + PANEL_W, PANEL_Y);
-    leftToRightMask.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    leftToRightMask.addColorStop(0.35, 'rgba(255, 255, 255, 0.82)');
-    leftToRightMask.addColorStop(0.7, 'rgba(255, 255, 255, 0.42)');
-    leftToRightMask.addColorStop(1, 'rgba(255, 255, 255, 0.18)');
-    ctx.fillStyle = leftToRightMask;
-    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-    ctx.restore();
-
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.18;
-    const leftHotspot = ctx.createRadialGradient(
-      PANEL_X + PANEL_W * 0.24,
-      PANEL_Y + PANEL_H * 0.52,
-      PANEL_W * 0.02,
-      PANEL_X + PANEL_W * 0.24,
-      PANEL_Y + PANEL_H * 0.52,
-      PANEL_W * 0.72
-    );
-    leftHotspot.addColorStop(0, 'rgba(220, 255, 250, 0.95)');
-    leftHotspot.addColorStop(0.45, 'rgba(190, 225, 245, 0.34)');
-    leftHotspot.addColorStop(1, 'rgba(190, 225, 245, 0)');
-    ctx.fillStyle = leftHotspot;
-    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-
-    ctx.restore();
-  };
-
-  const drawRainbowLayer = (ctx: CanvasRenderingContext2D) => {
-    if (!textureImg3) return;
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
-    ctx.clip();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 1;
-    ctx.filter = 'blur(4px) saturate(1.06)';
-    drawCover(ctx, textureImg3, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-    ctx.filter = 'none';
-    ctx.restore();
   };
 
   const drawPanel = (ctx: CanvasRenderingContext2D) => {
@@ -683,11 +590,6 @@ export function CardGenerator() {
     offCtx.drawImage(logoImg, sourceX, sourceY, sourceW, sourceH, 0, 0, processedW, processedH);
     const imageData = offCtx.getImageData(0, 0, processedW, processedH);
     const { data } = imageData;
-    let sumR = 0;
-    let sumG = 0;
-    let sumB = 0;
-    let sumWeight = 0;
-
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
@@ -705,11 +607,6 @@ export function CardGenerator() {
       data[i + 2] = 214;
       data[i + 3] = alpha;
 
-      const w = alpha / 255;
-      sumR += data[i] * w;
-      sumG += data[i + 1] * w;
-      sumB += data[i + 2] * w;
-      sumWeight += w;
     }
 
     offCtx.clearRect(0, 0, processedW, processedH);
@@ -764,21 +661,24 @@ export function CardGenerator() {
 
     ctx.beginPath();
     ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-    const outerRingStroke = 'createConicGradient' in ctx
-      ? (() => {
-          const g = ctx.createConicGradient(-Math.PI / 2, cx, cy);
-          // Mostly solid teal/magenta, with only subtle blend at the splice zones.
-          g.addColorStop(0.0, '#32d7d2');
-          g.addColorStop(0.47, '#32d7d2');
-          g.addColorStop(0.5, '#e040a0');
-          g.addColorStop(0.97, '#e040a0');
-          g.addColorStop(1.0, '#32d7d2');
-          return g;
-        })()
-      : ctx.createLinearGradient(cx - ringR, cy, cx + ringR, cy);
-    if (!('createConicGradient' in ctx)) {
-      (outerRingStroke as CanvasGradient).addColorStop(0, '#32d7d2');
-      (outerRingStroke as CanvasGradient).addColorStop(1, '#e040a0');
+    const conicCapableContext = ctx as CanvasRenderingContext2D & {
+      createConicGradient?: (startAngle: number, x: number, y: number) => CanvasGradient;
+    };
+    let outerRingStroke: CanvasGradient;
+    if (typeof conicCapableContext.createConicGradient === 'function') {
+      const gradient = conicCapableContext.createConicGradient(-Math.PI / 2, cx, cy);
+      // Mostly solid teal/magenta, with only subtle blend at the splice zones.
+      gradient.addColorStop(0.0, '#32d7d2');
+      gradient.addColorStop(0.47, '#32d7d2');
+      gradient.addColorStop(0.5, '#e040a0');
+      gradient.addColorStop(0.97, '#e040a0');
+      gradient.addColorStop(1.0, '#32d7d2');
+      outerRingStroke = gradient;
+    } else {
+      const gradient = ctx.createLinearGradient(cx - ringR, cy, cx + ringR, cy);
+      gradient.addColorStop(0, '#32d7d2');
+      gradient.addColorStop(1, '#e040a0');
+      outerRingStroke = gradient;
     }
     ctx.strokeStyle = outerRingStroke;
     ctx.lineWidth = 4;
@@ -1086,7 +986,7 @@ export function CardGenerator() {
     ctx.restore();
   };
 
-  const drawCanvas = useCallback(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1113,11 +1013,10 @@ export function CardGenerator() {
     drawQRCode(ctx);
     drawDescription(ctx);
     drawCardMistBlur(ctx);
-  }, [bgImg, logoImg, textureImg, textureImg2, textureImg3, avatarImg, qrImg, form]);
-
-  useEffect(() => {
-    drawCanvas();
-  }, [drawCanvas]);
+  // The drawing helpers are evaluated in this render pass; we only retrigger
+  // when the source assets/form state change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarImg, bgImg, form, logoImg, qrImg, textureImg]);
 
   const exportPNG = async () => {
     const canvas = document.createElement('canvas');
