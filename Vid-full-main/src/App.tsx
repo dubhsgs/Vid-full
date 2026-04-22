@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Shield, FileCheck, ChevronDown, Lock, KeyRound } from 'lucide-react';
+import { Upload, Shield, FileCheck, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
@@ -118,13 +118,6 @@ function App() {
       setIsCheckingActivationCode(false);
     }
   }, [activationCodeInput]);
-
-  const handleClearActivationCode = useCallback(() => {
-    clearSavedActivationCode();
-    setActivationCodeInput('');
-    setActivationCodeInfo(null);
-    setActivationCodeError('');
-  }, []);
 
   const handleImageChange = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -300,6 +293,15 @@ function App() {
     navigate('/card-generator');
   }, [navigate]);
 
+  const usableActivationRemaining =
+    activationCodeInfo && activationCodeInfo.status === 'active' && activationCodeInfo.remaining_uses > 0
+      ? activationCodeInfo.remaining_uses
+      : 0;
+  const remainingCountForDisplay =
+    remainingCredits === null
+      ? null
+      : (remainingCredits > 0 ? remainingCredits : usableActivationRemaining);
+  const hasRemainingCount = (remainingCountForDisplay ?? 0) > 0;
 
   return (
     <div className="min-h-screen bg-[#171717] text-white relative overflow-hidden">
@@ -405,14 +407,14 @@ function App() {
                   {t('form.title')}
                 </h3>
 
-                {remainingCredits !== null && (
+                {remainingCountForDisplay !== null && (
                   <div className={`mb-6 p-3 rounded-lg border flex items-center justify-between ${
-                    remainingCredits === 0
-                      ? 'bg-red-500/10 border-red-500/30'
-                      : 'bg-green-500/10 border-green-500/30'
+                    hasRemainingCount
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-red-500/10 border-red-500/30'
                   }`}>
-                    <span className={`text-sm font-medium ${remainingCredits === 0 ? 'text-red-400' : 'text-green-400'}`}>
-                      {remainingCredits === 0 ? '免费次数已用完，请输入激活码或购买套餐继续使用' : `剩余免费次数：${remainingCredits} 次`}
+                    <span className={`text-sm font-medium ${hasRemainingCount ? 'text-green-400' : 'text-red-400'}`}>
+                      剩余次数：{remainingCountForDisplay} 次
                     </span>
                     <button
                       onClick={() => setShowPaywall(true)}
@@ -424,18 +426,6 @@ function App() {
                 )}
 
                 <div className="mb-6 p-4 bg-slate-900/70 border border-slate-700 rounded-xl">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-                      <KeyRound className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-white font-semibold">已有激活码？</h4>
-                      <p className="text-sm text-slate-400 leading-relaxed">
-                        输入激活码后，系统会直接从该激活码中扣减次数。浏览器只会帮您记住最近一次使用的激活码。
-                      </p>
-                    </div>
-                  </div>
-
                   <div className="flex flex-col sm:flex-row gap-3">
                     <input
                       type="text"
@@ -456,34 +446,9 @@ function App() {
                       disabled={isCheckingActivationCode || !activationCodeInput.trim()}
                       className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all"
                     >
-                      {isCheckingActivationCode ? '检查中...' : '绑定激活码'}
+                      {isCheckingActivationCode ? '验证中...' : '验证激活码'}
                     </button>
                   </div>
-
-                  {activationCodeInfo && (
-                    <div className={`mt-4 p-3 rounded-lg border ${
-                      activationCodeInfo.status === 'active' && activationCodeInfo.remaining_uses > 0
-                        ? 'bg-blue-500/10 border-blue-500/30'
-                        : 'bg-amber-500/10 border-amber-500/30'
-                    }`}>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="text-sm leading-relaxed">
-                          <p className="text-white font-medium break-all">{activationCodeInfo.code}</p>
-                          <p className="text-slate-400 mt-1">
-                            套餐总次数：{activationCodeInfo.total_uses} 次
-                            {' '}•{' '}
-                            剩余次数：{activationCodeInfo.remaining_uses} 次
-                          </p>
-                        </div>
-                        <button
-                          onClick={handleClearActivationCode}
-                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg transition-colors"
-                        >
-                          清除激活码
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   {activationCodeError && (
                     <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300">
@@ -491,14 +456,6 @@ function App() {
                     </div>
                   )}
                 </div>
-
-                <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-start gap-3">
-                  <Lock className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-slate-300">
-                    <span className="font-semibold text-green-400">{t('form.privacyGuard')}</span> {t('form.privacyText')}
-                  </p>
-                </div>
-
 
                 {!isEditing ? (
                   <>

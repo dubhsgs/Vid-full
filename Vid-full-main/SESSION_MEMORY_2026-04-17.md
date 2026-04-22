@@ -471,3 +471,24 @@
 
 - New successful payments should no longer create/retain `paid` orders without activation codes.
 - Payment success page now keeps activation code visible for user copy/download before leaving.
+
+## Frontend UX simplification pass (2026-04-22, evening)
+
+- User requested further simplification of the activation-code panel on the home form.
+- Applied UI changes in `src/App.tsx`:
+  - removed activation helper description text
+  - removed "清除激活码" action
+  - removed activation code status card under input (no duplicate code/remaining info block)
+  - removed section title/icon block for activation area; now only input + action button remain
+  - renamed action label from "绑定激活码" to "验证激活码" (loading: "验证中...")
+  - removed the privacy info strip ("隐私保护...") from this section per user direction.
+- Unified top counter wording and display rule:
+  - frontend text changed to a single label: `剩余次数：X 次`
+  - no "免费" wording in display
+  - display value rule:
+    - if free credits > 0: show free credits
+    - else show current verified activation code remaining uses
+    - if neither available: show `0`
+  - backend accounting remains separated (free quota vs activation code), frontend is presentation-unified.
+- Validation status:
+  - `npx eslint src/App.tsx` passed after each UI update.
