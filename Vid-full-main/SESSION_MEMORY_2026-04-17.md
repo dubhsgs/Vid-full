@@ -254,3 +254,220 @@
 - Important constraint for next sessions:
   - after testing is done, restore the previous production logic/flow.
   - do not treat these temporary behaviors as final product decisions.
+
+## Progress update (2026-04-20 late night)
+
+- Card texture direction currently confirmed:
+  - using a reference-inspired irregular wave-grid drawn procedurally in `drawTechTexture` (not replacing with an external transparent layer).
+  - current grid opacity set to 50% (`ctx.globalAlpha = 0.5`).
+- QR glow experiment was added then explicitly reverted; current QR block stays on the original non-glow version.
+- Card mist/lighting has been iteratively tuned (left-strong/right-weaker with localized tweaks); keep current values unless user asks otherwise.
+- Important process constraint from user remains active:
+  - routing/refresh convenience changes are temporary for testing and must be restorable to previous logic later.
+- Latest progress checkpoint commit:
+  - `9dab4cc feat(card): tune wave-grid texture and set opacity to 50%`
+
+## Progress update (2026-04-21 card finalization pass)
+
+- Work stayed focused on `src/components/CardGenerator.tsx` visual tuning.
+- Replaced texture assets many times and finalized current workflow as:
+  - single active texture source file: `public/grid_texture.png`
+  - texture drawn in `drawTechTexture`
+  - current texture opacity baseline: `ctx.globalAlpha = 0.2`
+  - texture scale baseline: `1.5x` (centered and clipped to panel)
+- Confirmed layer order for card rendering:
+  - `drawPanel -> drawTechTexture -> logo/avatar/text/QR -> drawCardMistBlur`
+- Page footer copy update (outside canvas card):
+  - changed to `* PROOF OF IDENTITY RECORDED BY VAID`
+- Card bottom description text was restored to the previous longer sentence:
+  - `THIS DOCUMENT PROVIDES VERIFIABLE EVIDENCE OF A UNIQUE DIGITAL IDENTITY RECORDED BY VAID.`
+- Avatar ring area was iterated and finalized to current direction:
+  - outer ring uses teal/magenta split with subtle splice transition
+  - added additional short arc segments for rotational motion feel
+  - added subtle outer-orbit hints outside the main ring
+- Added neon passes to key elements:
+  - top logo neon glow (cyan + magenta screen passes)
+  - avatar outer ring neon bloom
+  - center divider neon overlay
+  - QR neon effect applied only to QR modules (not the outer QR plate border)
+- User preference note:
+  - reduced QR neon by 50% after initial version was too strong
+  - reverted outer ring neon strength to the stronger approved version
+
+## Git checkpoints created today
+
+- `c863b54 feat(card): finalize current card visual snapshot`
+  - includes:
+    - `src/components/CardGenerator.tsx`
+    - `public/grid_texture.png`
+- `64b4599 feat(card): finalize card visuals and neon refinements`
+  - includes:
+    - `src/components/CardGenerator.tsx`
+
+## Ready state for next session
+
+- Card visuals are near-final and in polish mode.
+- If more tuning is needed next time, likely focus points are:
+  - final intensity balance among logo neon / avatar neon / divider neon / QR neon
+  - arc clutter vs. readability around avatar ring
+  - one last pass of overall contrast harmony on the full card
+
+## Full project audit (2026-04-21)
+
+- User requested a full-codebase check to identify unfinished work across frontend, backend, build quality, and docs.
+- Scope covered:
+  - app routes and page flow (`src/main.tsx`, `src/App.tsx`, `src/pages/*`)
+  - card renderer (`src/components/CardGenerator.tsx`)
+  - payment flow (`src/components/PaywallModal.tsx`, `src/pages/PaymentSuccessPage.tsx`, `src/utils/licenseManager.ts`)
+  - verification flow (`src/pages/VerifyPage.tsx`)
+  - Supabase edge functions and SQL migrations (`supabase/functions/*`, `supabase/migrations/*`)
+  - project docs (`README.md`, `ALIPAY_SETUP.md`)
+
+### Must-fix before release
+
+- Static quality gate is not clean:
+  - `npm run typecheck` fails with 4 errors.
+  - `npm run lint` fails with 17 issues (15 errors, 2 warnings).
+  - Main hotspots:
+    - `src/components/CardGenerator.tsx`:
+      - unused functions (`drawCircuitTexture`, `drawDreamTexture`, `drawRainbowLayer`)
+      - `createLinearGradient` fallback typing issue (`never` narrowing path)
+      - multiple unused accumulators in `drawLogo` (`sumR/sumG/sumB/sumWeight`)
+      - hook dependency warnings for `useCallback`
+    - `src/utils/licenseManager.ts`:
+      - eslint hook-rule false positive due to function naming (`useFreeCertificate`, `useActivationCode` called from utility flow)
+      - explicit `any` usage
+    - `src/utils/fingerprint.ts` and `src/vite-env.d.ts`:
+      - explicit `any` typing debt
+    - `supabase/functions/ots-verify/index.ts` and `supabase/functions/quota-check/index.ts`:
+      - `prefer-const` violations
+
+- Payment hardening still needs final safety pass:
+  - `supabase/functions/alipay-create-order/index.ts` accepts client `return_url` and uses it directly without strict allowlist normalization.
+  - `ALIPAY_APP_ID` still has a fallback constant in code.
+  - `supabase/functions/alipay-notify/index.ts` validates signature and trade status, but a second-layer business-field check (`app_id`, amount consistency, seller/merchant identity consistency) is still recommended as an explicit final guardrail.
+
+### Should-complete soon
+
+- Maintenance-mode entry is not wired into actual app boot path:
+  - `src/AppWithRouter.tsx` exists but `src/main.tsx` mounts `App` directly.
+
+- Several components/utilities appear to be legacy or not currently integrated:
+  - `src/components/HashDisplay.tsx`
+  - `src/components/InteractiveVIDCard.tsx`
+  - `src/components/ProgressStage.tsx`
+  - `src/components/TemplateCertificate.tsx`
+  - `src/components/VIDCard.tsx`
+  - `src/utils/htmlToImage.ts`
+  - `src/utils/certificate.ts`
+
+- Brand/text consistency is unfinished (`V-ID` and `VAID` mixed across pages and exported bundle text):
+  - `src/components/CardGenerator.tsx`
+  - `src/pages/VerifyPage.tsx`
+  - `src/pages/PaymentSuccessPage.tsx`
+  - `src/i18n/config.ts`
+
+- Production code still contains many debug logs and one direct `alert` path:
+  - especially in `src/pages/VerifyPage.tsx` and some in `src/App.tsx`.
+
+- Documentation mismatch:
+  - `README.md` is effectively empty.
+  - `ALIPAY_SETUP.md` still describes older package narratives and older quota-centric wording that no longer fully matches current activation-code-first implementation.
+
+### Optional optimizations (not blocking)
+
+- Build passes, but bundle warning remains (`dist/assets/index-*.js` > 500 KB).
+- No automated test suite is configured in `package.json` scripts.
+
+## Payment incident triage and stabilization (2026-04-22)
+
+- User reported payment confirmation page stuck at "waiting for Alipay callback confirmation".
+- Root cause was identified as **schema drift** between code and production DB:
+  - frontend/functions were querying `alipay_orders.license_key`
+  - production `alipay_orders` table did **not** have `license_key` column yet
+  - this caused order-status query failures and blocked success transition.
+- Verified with live checks:
+  - target order `VID_1776786288341_jbwzl469z` was already `status = paid`
+  - but `license_key` column absence caused mismatch handling failures.
+
+### Actions completed
+
+- Deployed new Supabase function:
+  - `alipay-query-order`
+  - purpose: active order query fallback (`alipay.trade.query`) and settlement sync via `mark_alipay_order_paid`.
+- Updated function to support both schemas:
+  - compatible when `license_key` exists
+  - fallback when `license_key` column is absent (legacy structure).
+- Updated frontend/local logic for resilience:
+  - pass `cid` in payment `return_url`
+  - cache `client_id` by `out_trade_no` locally
+  - `getOrderStatus` fallback query path when `license_key` column missing
+  - `PaymentSuccessPage` can treat `status = paid` as success even if `license_key` is null (legacy DB path)
+  - automatic and manual re-check continue to function.
+
+### User decisions (confirmed)
+
+- Chosen release strategy: migrate DB and code to unified latest structure in a controlled sequence.
+- Explicit business decision: **do not backfill activation codes for historical paid orders**.
+- Process rule reaffirmed by user:
+  - no operations without explicit user approval first.
+
+### Migration plan status
+
+- A staged migration checklist (precheck -> apply migration -> verify -> cutover -> rollback points) has been confirmed as the best next step.
+- No database migration SQL was executed yet in this step; this section records planning + incident stabilization only.
+
+## Payment migration execution log (2026-04-22)
+
+- User approved direct execution by CLI (no manual Dashboard SQL copy/paste).
+- Ran remote precheck (A block), confirmed production was on old schema:
+  - `alipay_orders` had no `license_key`
+  - `mark_alipay_order_paid` was old quota-return signature.
+- Executed migration (B block) on linked project:
+  - first attempt failed on function return-type replacement rule
+  - fixed by dropping old `mark_alipay_order_paid(text,text,timestamptz)` before recreate
+  - re-run succeeded.
+- Post-migration verification (C block) passed:
+  - `alipay_orders.license_key` exists
+  - `license_keys` extended fields exist (`total_uses`, `remaining_uses`, `status`, `order_out_trade_no`)
+  - `mark_alipay_order_paid` now returns (`already_processed`, `license_key`, `pack_size`, `status`)
+  - `consume_license_key_use` exists and matches expected signature.
+- Historical policy confirmed:
+  - **do not backfill activation codes for historical paid orders**
+  - check result: `paid_without_license_key = 10` (expected under this policy).
+- Live order probe for stuck order still returned `paid = true`.
+- Final user confirmation:
+  - payment success page can now jump/return normally again.
+
+## Post-migration hardening and UX fix (2026-04-22)
+
+- User approved the "best next-step" sequence:
+  1. remove legacy paid orders without activation codes (test-only environment),
+  2. stop auto-redirect when activation code is present,
+  3. enforce DB invariant to prevent future `paid` rows without `license_key`.
+
+### Step 1: test data cleanup
+
+- Queried legacy rows with `status='paid' AND license_key IS NULL`: `10`.
+- Deleted these legacy test orders.
+- Re-checked count: `0`.
+
+### Step 2: payment success page behavior
+
+- Updated `src/pages/PaymentSuccessPage.tsx`:
+  - when `pageStatus='success'` and activation code exists: **no auto-redirect**
+  - when success without activation code: delayed fallback redirect set to `5000ms`
+  - manual "返回主页" button remains.
+
+### Step 3: DB guardrail constraint
+
+- Added production constraint on `public.alipay_orders`:
+  - `alipay_orders_paid_requires_license_key`
+  - definition: `CHECK (status <> 'paid' OR license_key IS NOT NULL)`.
+- Validation check after apply:
+  - `invalid_paid_rows` (`paid` with `license_key IS NULL`) = `0`.
+
+### Current expected behavior
+
+- New successful payments should no longer create/retain `paid` orders without activation codes.
+- Payment success page now keeps activation code visible for user copy/download before leaving.

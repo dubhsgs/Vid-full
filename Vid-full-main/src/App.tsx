@@ -197,13 +197,15 @@ function App() {
     }
 
     const { freeRemaining } = await refreshAccessDashboard(activeActivationCode?.code || activationCodeInput);
+    const hasUsableActivationCode = !!activeActivationCode
+      && activeActivationCode.status === 'active'
+      && activeActivationCode.remaining_uses > 0;
 
-    if (freeRemaining <= 0 && (!activeActivationCode || activeActivationCode.status !== 'active' || activeActivationCode.remaining_uses <= 0)) {
-      if (!activationCodeInput.trim()) {
-        setShowPaywall(true);
-      } else if (!activeActivationCode) {
+    if (freeRemaining <= 0 && !hasUsableActivationCode) {
+      if (!activeActivationCode && activationCodeInput.trim()) {
         setActivationCodeError('激活码不存在，请检查后重试');
       }
+      setShowPaywall(true);
       return;
     }
 
@@ -266,7 +268,14 @@ function App() {
           } else if (accessResult.activation_code) {
             setActivationCodeInfo(accessResult.activation_code);
             setActivationCodeError('这个激活码已用完或不可用，请更换新的激活码');
-          } else if (refreshedState.freeRemaining <= 0) {
+          }
+
+          const latestActivationCode = accessResult.activation_code ?? refreshedState.savedCodeInfo;
+          const hasUsableLatestActivationCode = !!latestActivationCode
+            && latestActivationCode.status === 'active'
+            && latestActivationCode.remaining_uses > 0;
+
+          if (refreshedState.freeRemaining <= 0 && !hasUsableLatestActivationCode) {
             setShowPaywall(true);
           }
           return;

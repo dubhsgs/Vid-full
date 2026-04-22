@@ -344,15 +344,43 @@ export async function getUserOrders(): Promise<any[]> {
   }
 }
 
-export async function getOrderStatus(outTradeNo: string): Promise<OrderStatusInfo | null> {
+export async function getOrderStatus(
+  outTradeNo: string,
+  clientIdOverride?: string
+): Promise<OrderStatusInfo | null> {
   try {
-    const clientId = await getClientId();
+    const clientId = clientIdOverride || await getClientId();
+    const baseSelect = 'out_trade_no, status, pack_size, amount, paid_at';
+
     const { data, error } = await supabase
       .from('alipay_orders')
-      .select('out_trade_no, status, pack_size, amount, paid_at, license_key')
+      .select(`${baseSelect}, license_key`)
       .eq('out_trade_no', outTradeNo)
       .setHeader('x-client-id', clientId)
       .maybeSingle();
+
+    if (error && (error as { code?: string }).code === '42703') {
+      const fallback = await supabase
+        .from('alipay_orders')
+        .select(baseSelect)
+        .eq('out_trade_no', outTradeNo)
+        .setHeader('x-client-id', clientId)
+        .maybeSingle();
+
+      if (fallback.error) {
+        console.error('Error fetching order status (fallback):', fallback.error);
+        return null;
+      }
+
+      if (!fallback.data) {
+        return null;
+      }
+
+      return {
+        ...(fallback.data as Omit<OrderStatusInfo, 'license_key'>),
+        license_key: null,
+      };
+    }
 
     if (error) {
       console.error('Error fetching order status:', error);

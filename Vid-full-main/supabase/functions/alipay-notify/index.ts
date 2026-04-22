@@ -7,6 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
+function toAmount(value?: string): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
 async function verifySignature(params: Record<string, string>, sign: string, publicKey: string): Promise<boolean> {
   try {
     const sortedParams = Object.keys(params)
@@ -104,12 +111,127 @@ Deno.serve(async (req: Request) => {
       out_trade_no,
       trade_no,
       trade_status,
+      app_id,
+      total_amount,
+      seller_id,
+      seller_email,
     } = params;
+
+    if (!out_trade_no || !trade_no) {
+      console.error('Missing out_trade_no or trade_no in notification');
+      return new Response('fail', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
 
     if (trade_status !== 'TRADE_SUCCESS' && trade_status !== 'TRADE_FINISHED') {
       console.log('Trade not successful yet:', trade_status);
       return new Response('success', {
         status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    const expectedAppId = (Deno.env.get('ALIPAY_APP_ID') || '').trim();
+    const expectedSellerId = (Deno.env.get('ALIPAY_SELLER_ID') || '').trim();
+    const expectedSellerEmail = (Deno.env.get('ALIPAY_SELLER_EMAIL') || '').trim().toLowerCase();
+
+    if (!expectedAppId) {
+      console.error('ALIPAY_APP_ID is not configured — refusing to process order');
+      return new Response('fail', {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (!expectedSellerId && !expectedSellerEmail) {
+      console.error('ALIPAY_SELLER_ID or ALIPAY_SELLER_EMAIL must be configured — refusing to process order');
+      return new Response('fail', {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (!app_id || app_id !== expectedAppId) {
+      console.error('app_id mismatch in notification:', { got: app_id, expected: expectedAppId, out_trade_no });
+      return new Response('fail', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (expectedSellerId && seller_id !== expectedSellerId) {
+      console.error('seller_id mismatch in notification:', { got: seller_id, expected: expectedSellerId, out_trade_no });
+      return new Response('fail', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (expectedSellerEmail) {
+      const normalizedSellerEmail = (seller_email || '').trim().toLowerCase();
+      if (!normalizedSellerEmail || normalizedSellerEmail !== expectedSellerEmail) {
+        console.error('seller_email mismatch in notification:', {
+          got: seller_email,
+          expected: expectedSellerEmail,
+          out_trade_no,
+        });
+        return new Response('fail', {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        });
+      }
+    }
+
+    const paidAmount = toAmount(total_amount);
+    if (paidAmount === null) {
+      console.error('Invalid total_amount in notification:', { total_amount, out_trade_no });
+      return new Response('fail', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    const { data: orderRow, error: orderLookupError } = await supabase
+      .from('alipay_orders')
+      .select('amount')
+      .eq('out_trade_no', out_trade_no)
+      .maybeSingle();
+
+    if (orderLookupError) {
+      console.error('Failed to load order for amount verification:', orderLookupError);
+      return new Response('fail', {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (!orderRow) {
+      console.error('Order not found while verifying amount:', out_trade_no);
+      return new Response('fail', {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    const expectedAmount = Number(orderRow.amount);
+    if (!Number.isFinite(expectedAmount)) {
+      console.error('Order amount is invalid in database:', { out_trade_no, amount: orderRow.amount });
+      return new Response('fail', {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (Math.abs(paidAmount - expectedAmount) > 0.000001) {
+      console.error('total_amount mismatch in notification:', {
+        out_trade_no,
+        got: paidAmount,
+        expected: expectedAmount,
+      });
+      return new Response('fail', {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }

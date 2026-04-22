@@ -13,10 +13,19 @@ interface CreateOrderRequest {
 }
 
 const PACK_PRICES: Record<number, number> = {
-  1: 9.9,
+  1: 0.01,
   5: 39.9,
   10: 69.9,
 };
+
+const DEFAULT_ALLOWED_RETURN_ORIGINS = new Set<string>([
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]);
 
 function getBeijingTimestamp(): string {
   const now = new Date();
@@ -69,6 +78,62 @@ function getDefaultReturnUrl(): string {
   return new URL('/payment-success', siteUrl).toString();
 }
 
+function addOriginIfValid(origins: Set<string>, rawUrl: string, source: string): void {
+  try {
+    origins.add(new URL(rawUrl).origin);
+  } catch {
+    console.warn(`Skipping invalid URL from ${source}`);
+  }
+}
+
+function getAllowedReturnOrigins(): Set<string> {
+  const origins = new Set<string>(DEFAULT_ALLOWED_RETURN_ORIGINS);
+
+  const siteUrl = Deno.env.get('SITE_URL');
+  const publicSiteUrl = Deno.env.get('PUBLIC_SITE_URL');
+  const extraAllowlist = Deno.env.get('ALIPAY_RETURN_URL_ALLOWLIST');
+
+  if (siteUrl) {
+    addOriginIfValid(origins, siteUrl, 'SITE_URL');
+  }
+
+  if (publicSiteUrl) {
+    addOriginIfValid(origins, publicSiteUrl, 'PUBLIC_SITE_URL');
+  }
+
+  if (extraAllowlist) {
+    for (const rawUrl of extraAllowlist.split(',').map(v => v.trim()).filter(Boolean)) {
+      addOriginIfValid(origins, rawUrl, 'ALIPAY_RETURN_URL_ALLOWLIST');
+    }
+  }
+
+  return origins;
+}
+
+function resolveReturnUrl(returnUrl?: string): string {
+  if (!returnUrl) {
+    return getDefaultReturnUrl();
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(returnUrl);
+  } catch {
+    throw new Error('INVALID_RETURN_URL');
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error('INVALID_RETURN_URL_PROTOCOL');
+  }
+
+  const allowedOrigins = getAllowedReturnOrigins();
+  if (!allowedOrigins.has(parsedUrl.origin)) {
+    throw new Error(`RETURN_URL_ORIGIN_NOT_ALLOWED:${parsedUrl.origin}`);
+  }
+
+  return parsedUrl.toString();
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -89,14 +154,32 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const appId = Deno.env.get('ALIPAY_APP_ID') || '2021006140690444';
-    const privateKey = Deno.env.get('ALIPAY_PRIVATE_KEY') || '';
-    const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/alipay-notify`;
-    const actualReturnUrl = return_url || getDefaultReturnUrl();
-
-    if (!privateKey) {
+    let actualReturnUrl = '';
+    try {
+      actualReturnUrl = resolveReturnUrl(return_url);
+    } catch (error) {
       return new Response(
-        JSON.stringify({ error: 'Payment configuration missing' }),
+        JSON.stringify({
+          error: 'Invalid return_url',
+          details: error instanceof Error ? error.message : 'UNKNOWN_RETURN_URL_ERROR',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const appId = (Deno.env.get('ALIPAY_APP_ID') || '').trim();
+    const privateKey = (Deno.env.get('ALIPAY_PRIVATE_KEY') || '').trim();
+    const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/alipay-notify`;
+
+    if (!appId || !privateKey) {
+      return new Response(
+        JSON.stringify({
+          error: 'Payment configuration missing',
+          details: {
+            has_app_id: Boolean(appId),
+            has_private_key: Boolean(privateKey),
+          },
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

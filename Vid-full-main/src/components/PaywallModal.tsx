@@ -19,7 +19,7 @@ interface PaywallModalProps {
 const pricingTiers = [
   {
     name: '1次套餐',
-    price: '¥9.9',
+    price: '¥0.01',
     certificates: 1,
     popular: false,
     packSize: 1,
@@ -63,12 +63,13 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
 
     try {
       const clientId = await getClientId();
+      const returnUrl = `${window.location.origin}/payment-success?cid=${encodeURIComponent(clientId)}`;
 
       const { data, error } = await supabase.functions.invoke('alipay-create-order', {
         body: {
           client_id: clientId,
           pack_size: packSize,
-          return_url: window.location.origin + '/payment-success',
+          return_url: returnUrl,
         },
       });
 
@@ -80,6 +81,11 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
       }
 
       if (data?.payment_url) {
+        localStorage.setItem('alipay_last_client_id', clientId);
+        if (data?.out_trade_no) {
+          localStorage.setItem(`alipay_order_client_id_${data.out_trade_no}`, clientId);
+        }
+
         if (inIframe) {
           setPendingPaymentUrl(data.payment_url);
           window.open(data.payment_url, '_blank', 'noopener,noreferrer');

@@ -1,23 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Clock, Copy, Download, RefreshCw } from 'lucide-react';
-import { getOrderStatus, saveActivationCode, type OrderStatusInfo } from '../utils/licenseManager';
+import { getOrderStatus, saveActivationCode, supabase, type OrderStatusInfo } from '../utils/licenseManager';
 
 type PaymentPageStatus = 'checking' | 'success' | 'pending';
 
-const POLL_INTERVAL_MS = 3000;
-const MAX_ATTEMPTS = 10;
+const POLL_INTERVAL_MS = 2000;
+const MAX_ATTEMPTS = 12;
+const AUTO_REDIRECT_MS_WITHOUT_CODE = 5000;
+
+interface QueryOrderResponse {
+  success?: boolean;
+  paid?: boolean;
+  order?: OrderStatusInfo | null;
+}
 
 export function PaymentSuccessPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const outTradeNo = searchParams.get('out_trade_no');
+  const returnClientId = searchParams.get('cid');
+  const storedClientId = useMemo(() => {
+    if (!outTradeNo) {
+      return null;
+    }
+
+    try {
+      return (
+        localStorage.getItem(`alipay_order_client_id_${outTradeNo}`) ||
+        localStorage.getItem('alipay_last_client_id')
+      );
+    } catch {
+      return null;
+    }
+  }, [outTradeNo]);
 
   const [pageStatus, setPageStatus] = useState<PaymentPageStatus>('checking');
   const [attempts, setAttempts] = useState(0);
   const [orderInfo, setOrderInfo] = useState<OrderStatusInfo | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [copyLabel, setCopyLabel] = useState('复制激活码');
+  const hasAutoRedirectedRef = useRef(false);
 
   const activationCode = orderInfo?.license_key || null;
 
@@ -27,7 +49,10 @@ export function PaymentSuccessPage() {
     }
 
     if (pageStatus === 'success') {
-      return '支付成功，系统已生成激活码。请复制或下载保存，稍后可凭激活码继续生成证书。';
+      if (activationCode) {
+        return '支付成功，系统已生成激活码。请复制或下载保存，稍后可凭激活码继续生成证书。';
+      }
+      return '支付成功，额度已到账，正在为你返回主页。';
     }
 
     if (orderInfo?.status === 'paid') {
@@ -35,7 +60,7 @@ export function PaymentSuccessPage() {
     }
 
     return '正在等待支付宝回调确认到账，请稍候。';
-  }, [orderInfo?.status, outTradeNo, pageStatus]);
+  }, [activationCode, orderInfo?.status, outTradeNo, pageStatus]);
 
   const checkPaymentStatus = useCallback(async (): Promise<boolean> => {
     if (!outTradeNo) {
@@ -43,21 +68,42 @@ export function PaymentSuccessPage() {
       return false;
     }
 
-    const order = await getOrderStatus(outTradeNo);
+    const order = await getOrderStatus(outTradeNo, returnClientId || storedClientId || undefined);
     setOrderInfo(order);
 
-    if (!order) {
+    if (order?.status === 'paid') {
+      if (order.license_key) {
+        saveActivationCode(order.license_key);
+      }
+      setPageStatus('success');
+      return true;
+    }
+
+    const { data, error } = await supabase.functions.invoke('alipay-query-order', {
+      body: { out_trade_no: outTradeNo },
+    });
+
+    if (error) {
+      console.error('alipay-query-order failed:', error);
       return false;
     }
 
-    if (order.status === 'paid' && order.license_key) {
-      saveActivationCode(order.license_key);
+    const payload = (data ?? null) as QueryOrderResponse | null;
+    const syncedOrder = payload?.order ?? null;
+    if (syncedOrder) {
+      setOrderInfo(syncedOrder);
+    }
+
+    if (syncedOrder?.status === 'paid') {
+      if (syncedOrder.license_key) {
+        saveActivationCode(syncedOrder.license_key);
+      }
       setPageStatus('success');
       return true;
     }
 
     return false;
-  }, [outTradeNo]);
+  }, [outTradeNo, returnClientId, storedClientId]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -146,6 +192,40 @@ export function PaymentSuccessPage() {
     URL.revokeObjectURL(url);
   }, [activationCode, orderInfo]);
 
+  const handleGoHome = useCallback(() => {
+    const targetUrl = `${window.location.origin}/`;
+    try {
+      window.location.replace(targetUrl);
+    } catch {
+      try {
+        window.top!.location.href = targetUrl;
+      } catch {
+        window.location.assign(targetUrl);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pageStatus !== 'success' || hasAutoRedirectedRef.current) {
+      return;
+    }
+
+    // When an activation code is present, keep the success page visible
+    // so users can copy/download it manually.
+    if (activationCode) {
+      return;
+    }
+
+    hasAutoRedirectedRef.current = true;
+    const timer = window.setTimeout(() => {
+      handleGoHome();
+    }, AUTO_REDIRECT_MS_WITHOUT_CODE);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [activationCode, handleGoHome, pageStatus]);
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-lg rounded-2xl border border-blue-500/20 bg-slate-950/90 p-8 shadow-2xl">
@@ -233,7 +313,7 @@ export function PaymentSuccessPage() {
             )}
 
             <button
-              onClick={() => navigate('/')}
+              onClick={handleGoHome}
               className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
