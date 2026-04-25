@@ -20,13 +20,16 @@ import {
 } from './utils/licenseManager';
 import './i18n/config';
 
+const HERO_LIGHT_BG_SRC = '/hero_light_bg.png';
+const HERO_FIGURE_SRC = '/hero_figure.png';
+
 function App() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const heroTitleHighlightParts = t('hero.titleHighlight').split(' ');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -45,21 +48,6 @@ function App() {
   const [generationError, setGenerationError] = useState('');
   const [isSubmittingNext, setIsSubmittingNext] = useState(false);
 
-
-  const heroImages = [
-    'https://i.ibb.co/KcybW441/dub777-A-woman-in-a-shiny-latex-suit-full-body-shot-drawn-in-b8ff18fe-dcfa-4d4c-8aff-0063516770c9-0.png',
-    'https://i.ibb.co/Mxwq81q6/dub777-httpss-mj-runw-Si-UDyy-Hsu-M-Hajime-Sorayama-perfect-blue-3fc5ce4c-0dda-4ff6-8303-f9e634b0ac2.png',
-    'https://i.ibb.co/jPX9Ydkq/dub777-A-semi-realistic-digital-painting-in-the-style-of-Roma-1b75eb8d-b0da-4249-b6ca-bec36c42e72d-0.png',
-    'https://i.ibb.co/WpHY70gf/dub777-httpss-mj-run97067-O3t2-PY-She-has-a-hat-on-her-headwhic-2f47bbe7-4022-4db9-8124-400a80a03567-0.png',
-    'https://i.ibb.co/dJzQrD6n/dub777-A-black-cat-with-large-round-eyes-prominent-whiskers-a-3e24cbeb-a661-419b-a11a-8f313be07cd1-1.png',
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [heroImages.length]);
 
   const refreshAccessDashboard = useCallback(async (preferredCode?: string) => {
     const [freeRemaining, savedCodeInfo] = await Promise.all([
@@ -375,7 +363,27 @@ function App() {
   const hasRemainingCount = (remainingCountForDisplay ?? 0) > 0;
 
   return (
-    <div className="min-h-screen bg-[#171717] text-white relative overflow-hidden">
+    <div className="min-h-screen text-white relative overflow-hidden">
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: `
+            linear-gradient(
+              to bottom,
+              rgba(4, 7, 24, 0) 0%,
+              rgba(4, 7, 24, 0.36) 48%,
+              rgba(4, 7, 24, 0.74) 62%,
+              rgba(4, 7, 24, 0.94) 74%,
+              #040718 100%
+            ),
+            url(${HERO_LIGHT_BG_SRC})
+          `,
+          backgroundSize: 'cover, cover',
+          backgroundPosition: 'center, center',
+          backgroundRepeat: 'no-repeat, no-repeat',
+        }}
+        aria-hidden
+      />
       <AnimatedGrid />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -391,51 +399,57 @@ function App() {
         </header>
 
         <section className="py-20 text-center">
-          <div className="mb-32 relative">
-            <div className="relative w-full max-w-6xl mx-auto rounded-2xl overflow-hidden border border-blue-500/30 shadow-2xl" style={{ aspectRatio: '16/9' }}>
-              {heroImages.map((image, index) => (
-                <div
-                  key={index}
-                  className={`absolute inset-0 transition-opacity duration-1000 ${
-                    index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  <img
-                    src={image}
-                    alt={`Virtual identity showcase ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
-                </div>
-              ))}
-
-              <div className="absolute top-6 right-6 z-20">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full" />
-                  <Shield className="w-16 h-16 sm:w-20 sm:h-20 text-white/80 relative z-10 drop-shadow-2xl" strokeWidth={2} />
-                </div>
+          <div className="vaid-hero relative w-full max-w-6xl mx-auto">
+            <div className="vaid-hero-shell" aria-hidden>
+              <div className="vaid-hero-shell-highlight" />
+              <div className="vaid-hero-top-caps">
+                <span />
+                <span />
+                <span />
               </div>
-
-
-              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#171717] to-transparent pointer-events-none" />
+              <div className="vaid-hero-right-rail">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="vaid-hero-shield-chip">
+                <Shield className="w-8 h-8" strokeWidth={2.2} />
+              </div>
+              <div className="vaid-hero-bottom-notch" />
             </div>
-          </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight whitespace-nowrap">
-            {t('hero.title')}
-            {t('hero.titleHighlight')}
-          </h2>
-          <p className="text-xl text-white max-w-3xl mx-auto leading-relaxed mb-8">
-            {t('hero.subtitle')}
-          </p>
-          <button
-            onClick={() => document.getElementById('submission')?.scrollIntoView({ behavior: 'smooth' })}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
-          >
-            {t('hero.cta')}
-            <ChevronDown className="w-5 h-5 animate-bounce" />
-          </button>
+            <div className="vaid-hero-copy-panel">
+              <p className="vaid-hero-kicker">VAID // IDENTITY PROTOCOL</p>
+              <h2 className="vaid-hero-title">
+                <span>{t('hero.title')}</span>
+                {heroTitleHighlightParts.length > 1 ? (
+                  <>
+                    <span>{heroTitleHighlightParts[0]}</span>
+                    <span>{heroTitleHighlightParts.slice(1).join(' ')}</span>
+                  </>
+                ) : (
+                  <span>{t('hero.titleHighlight')}</span>
+                )}
+              </h2>
+              <p className="vaid-hero-subtitle">
+                {t('hero.subtitle')}
+              </p>
+              <button
+                onClick={() => document.getElementById('submission')?.scrollIntoView({ behavior: 'smooth' })}
+                className="vaid-hero-cta"
+              >
+                {t('hero.cta')}
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+
+            <img
+              src={HERO_FIGURE_SRC}
+              alt="Cyber character portrait"
+              className="vaid-hero-figure"
+              loading="eager"
+            />
+          </div>
         </section>
 
         <section className="py-16">

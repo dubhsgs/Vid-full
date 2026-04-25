@@ -1,9 +1,8 @@
 export function AnimatedGrid() {
   return (
     <div className="fixed inset-0 pointer-events-none z-0">
-      <div className="absolute inset-0 bg-[#171717]" />
       <div
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-15"
         style={{
           backgroundImage: `
             linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
