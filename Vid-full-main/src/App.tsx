@@ -415,8 +415,8 @@ function App() {
               <div className="vaid-hero-shield-chip">
                 <Shield className="w-8 h-8" strokeWidth={2.2} />
               </div>
-              <div className="vaid-hero-bottom-notch" />
             </div>
+            <div className="vaid-hero-bottom-notch" aria-hidden />
 
             <div className="vaid-hero-copy-panel">
               <p className="vaid-hero-kicker">VAID // IDENTITY PROTOCOL</p>

@@ -18,16 +18,21 @@
 
 .vaid-hero {
   min-height: clamp(500px, 48vw, 650px);
+  --corner-cut: 26px;
+  --inner-notch-top: 232px;
+  --inner-notch-slope: 44px;
+  --inner-notch-rise: 18px;
+  --inner-notch-inset: 13px;
+  --shell-top: 7%;
+  --shell-side: 3%;
+  --shell-bottom: 14%;
 }
 
 .vaid-hero-shell {
-  --corner-cut: 18px;
-  --notch-side: 122px;
-  --notch-depth: 20px;
   position: absolute;
-  inset: 7% 3% 13% 3%;
+  inset: var(--shell-top) var(--shell-side) var(--shell-bottom) var(--shell-side);
   z-index: 1;
-  border: 1px solid rgba(116, 234, 255, 0.56);
+  border: 1.2px solid rgba(116, 234, 255, 0.6);
   border-radius: 0;
   background: transparent;
   clip-path: polygon(
@@ -36,16 +41,12 @@
     100% var(--corner-cut),
     100% calc(100% - var(--corner-cut)),
     calc(100% - var(--corner-cut)) 100%,
-    calc(50% + var(--notch-side)) 100%,
-    calc(50% + var(--notch-side) - 17px) calc(100% - var(--notch-depth)),
-    calc(50% - var(--notch-side) + 17px) calc(100% - var(--notch-depth)),
-    calc(50% - var(--notch-side)) 100%,
     var(--corner-cut) 100%,
     0 calc(100% - var(--corner-cut)),
     0 var(--corner-cut)
   );
   box-shadow:
-    0 0 14px rgba(84, 216, 255, 0.1);
+    0 0 16px rgba(84, 216, 255, 0.14);
   overflow: hidden;
   pointer-events: none;
 }
@@ -79,8 +80,12 @@
 
 .vaid-hero-shell::after {
   inset: 0;
-  background: none;
-  opacity: 0;
+  background:
+    linear-gradient(135deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) left top / 42px 42px no-repeat,
+    linear-gradient(225deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) right top / 42px 42px no-repeat,
+    linear-gradient(45deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) left bottom / 42px 42px no-repeat,
+    linear-gradient(-45deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) right bottom / 42px 42px no-repeat;
+  opacity: 0.82;
 }
 
 .vaid-hero-shell-highlight {
@@ -182,15 +187,37 @@
 .vaid-hero-bottom-notch {
   position: absolute;
   left: 50%;
-  bottom: 0;
-  width: 242px;
-  height: 20px;
+  bottom: calc(var(--shell-bottom) + var(--inner-notch-inset) + var(--inner-notch-rise));
+  width: var(--inner-notch-top);
+  height: 1.2px;
   transform: translateX(-50%);
-  background:
-    linear-gradient(135deg, transparent 0 14px, rgba(114, 233, 255, 0.86) 14px 16px, transparent 16px) left top / 30px 20px no-repeat,
-    linear-gradient(225deg, transparent 0 14px, rgba(114, 233, 255, 0.86) 14px 16px, transparent 16px) right top / 30px 20px no-repeat,
-    linear-gradient(90deg, rgba(114, 233, 255, 0.74), rgba(114, 233, 255, 0.28), rgba(114, 233, 255, 0.74)) center top / calc(100% - 58px) 2px no-repeat;
+  background: rgba(148, 242, 255, 0.82);
+  filter: drop-shadow(0 0 10px rgba(92, 220, 255, 0.34));
+  pointer-events: none;
   z-index: 2;
+}
+
+.vaid-hero-bottom-notch::before,
+.vaid-hero-bottom-notch::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: var(--inner-notch-slope);
+  height: 1.2px;
+  background: rgba(148, 242, 255, 0.82);
+  box-shadow: 0 0 10px rgba(92, 220, 255, 0.34);
+}
+
+.vaid-hero-bottom-notch::before {
+  right: 100%;
+  transform-origin: right top;
+  transform: rotate(12deg);
+}
+
+.vaid-hero-bottom-notch::after {
+  left: 100%;
+  transform-origin: left top;
+  transform: rotate(-12deg);
 }
 
 .vaid-hero-copy-panel {
@@ -324,13 +351,14 @@
 @media (max-width: 1024px) {
   .vaid-hero {
     min-height: 480px;
-  }
-
-  .vaid-hero-shell {
-    --corner-cut: 15px;
-    --notch-side: 94px;
-    --notch-depth: 16px;
-    inset: 8% 2.5% 14% 2.5%;
+    --corner-cut: 20px;
+    --inner-notch-top: 188px;
+    --inner-notch-slope: 36px;
+    --inner-notch-rise: 14px;
+    --inner-notch-inset: 11px;
+    --shell-top: 8%;
+    --shell-side: 2.5%;
+    --shell-bottom: 14%;
   }
 
   .vaid-hero-top-caps span:nth-child(2) {
@@ -383,13 +411,14 @@
 @media (max-width: 768px) {
   .vaid-hero {
     min-height: 620px;
-  }
-
-  .vaid-hero-shell {
     --corner-cut: 13px;
-    --notch-side: 54px;
-    --notch-depth: 12px;
-    inset: 7% 0 26% 0;
+    --inner-notch-top: 118px;
+    --inner-notch-slope: 22px;
+    --inner-notch-rise: 10px;
+    --inner-notch-inset: 8px;
+    --shell-top: 7%;
+    --shell-side: 0%;
+    --shell-bottom: 26%;
   }
 
   .vaid-hero-top-caps span:nth-child(2) {
