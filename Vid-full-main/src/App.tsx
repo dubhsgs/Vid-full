@@ -23,6 +23,84 @@ import './i18n/config';
 const HERO_LIGHT_BG_SRC = '/hero_light_bg.png';
 const HERO_FIGURE_SRC = '/hero_figure.png';
 
+function HeroHudFrame() {
+  const innerContainerFillPath =
+    'M46,34 H330 L346,50 H654 L670,34 H954 Q966,34 966,46 V376 Q966,388 954,388 H46 Q34,388 34,376 V46 Q34,34 46,34 Z';
+  const innerContainerStrokePath =
+    'M46,34 H330 L346,50 H654 L670,34 H954 Q966,34 966,46 V376 Q966,388 954,388 H660 M340,388 H46 Q34,388 34,376 V46 Q34,34 46,34';
+
+  return (
+    <svg
+      width="100%"
+      viewBox="0 0 1000 460"
+      role="img"
+      aria-hidden="true"
+      focusable="false"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id="hero-gbg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1e3048" stopOpacity="0.94" />
+          <stop offset="100%" stopColor="#0e1e30" stopOpacity="0.97" />
+        </linearGradient>
+        <linearGradient id="hero-gshine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5af0ff" stopOpacity="0.04" />
+          <stop offset="40%" stopColor="#5af0ff" stopOpacity="0.01" />
+          <stop offset="100%" stopColor="#5af0ff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      <line x1="20" y1="32" x2="32" y2="20" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="32" y1="20" x2="968" y2="20" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="968" y1="20" x2="980" y2="32" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="980" y1="32" x2="980" y2="390" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="980" y1="390" x2="968" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="968" y1="402" x2="660" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="660" y1="402" x2="642" y2="384" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="642" y1="384" x2="358" y2="384" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="358" y1="384" x2="340" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="340" y1="402" x2="32" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="32" y1="402" x2="20" y2="390" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="20" y1="32" x2="20" y2="390" stroke="#2ae8f8" strokeWidth="1.3" />
+
+      <path
+        d={innerContainerFillPath}
+        fill="url(#hero-gbg)"
+      />
+      <path
+        d={innerContainerFillPath}
+        fill="url(#hero-gshine)"
+      />
+      <path
+        d={innerContainerStrokePath}
+        fill="none"
+        stroke="#2ae8f8"
+        strokeWidth="1"
+      />
+      <g stroke="#2ae8f8" strokeWidth="1.3" fill="none">
+        <line x1="660" y1="402" x2="642" y2="384" />
+        <line x1="642" y1="384" x2="358" y2="384" />
+        <line x1="358" y1="384" x2="340" y2="402" />
+      </g>
+
+      <g fill="#2ae8f8" opacity="0.82">
+        <polygon points="258,34 270,34 286,50 274,50" />
+        <polygon points="272,34 284,34 300,50 288,50" />
+        <polygon points="286,34 298,34 314,50 302,50" />
+        <polygon points="300,34 312,34 328,50 318,50" opacity="0.5" />
+      </g>
+
+      <g fill="#2ae8f8" opacity="0.82">
+        <polygon points="688,34 696,34 680,50 672,50" opacity="0.5" />
+        <polygon points="700,34 712,34 696,50 684,50" />
+        <polygon points="714,34 726,34 710,50 698,50" />
+        <polygon points="728,34 740,34 724,50 712,50" />
+      </g>
+    </svg>
+  );
+}
+
 function App() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -401,22 +479,8 @@ function App() {
         <section className="py-20 text-center">
           <div className="vaid-hero relative w-full max-w-6xl mx-auto">
             <div className="vaid-hero-shell" aria-hidden>
-              <div className="vaid-hero-shell-highlight" />
-              <div className="vaid-hero-top-caps">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="vaid-hero-right-rail">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="vaid-hero-shield-chip">
-                <Shield className="w-8 h-8" strokeWidth={2.2} />
-              </div>
+              <HeroHudFrame />
             </div>
-            <div className="vaid-hero-bottom-notch" aria-hidden />
 
             <div className="vaid-hero-copy-panel">
               <p className="vaid-hero-kicker">VAID // IDENTITY PROTOCOL</p>

@@ -18,214 +18,34 @@
 
 .vaid-hero {
   min-height: clamp(500px, 48vw, 650px);
-  --corner-cut: 26px;
-  --inner-notch-top: 232px;
-  --inner-notch-slope: 44px;
-  --inner-notch-rise: 18px;
-  --inner-notch-inset: 13px;
-  --shell-top: 7%;
-  --shell-side: 3%;
-  --shell-bottom: 14%;
+  --shell-top: 7.5%;
+  --shell-side: -1.5%;
+  --shell-bottom: 10.5%;
 }
 
 .vaid-hero-shell {
   position: absolute;
   inset: var(--shell-top) var(--shell-side) var(--shell-bottom) var(--shell-side);
   z-index: 1;
-  border: 1.2px solid rgba(116, 234, 255, 0.6);
-  border-radius: 0;
-  background: transparent;
-  clip-path: polygon(
-    var(--corner-cut) 0,
-    calc(100% - var(--corner-cut)) 0,
-    100% var(--corner-cut),
-    100% calc(100% - var(--corner-cut)),
-    calc(100% - var(--corner-cut)) 100%,
-    var(--corner-cut) 100%,
-    0 calc(100% - var(--corner-cut)),
-    0 var(--corner-cut)
-  );
-  box-shadow:
-    0 0 16px rgba(84, 216, 255, 0.14);
-  overflow: hidden;
   pointer-events: none;
 }
 
-.vaid-hero-shell::before,
-.vaid-hero-shell::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-}
-
-.vaid-hero-shell::before {
-  inset: 14px;
-  border: 1px solid rgba(117, 224, 255, 0.28);
-  border-radius: 18px;
-  background:
-    linear-gradient(
-      122deg,
-      rgba(6, 14, 30, 0.67) 0%,
-      rgba(9, 21, 44, 0.54) 42%,
-      rgba(6, 13, 28, 0.64) 100%
-    );
-  -webkit-backdrop-filter: blur(14.5px) saturate(190%);
-  backdrop-filter: blur(14.5px) saturate(190%);
-  box-shadow:
-    inset 0 0 0 1px rgba(138, 231, 255, 0.17),
-    inset 0 18px 44px rgba(82, 173, 255, 0.13);
-  clip-path: none;
-  opacity: 1;
-}
-
-.vaid-hero-shell::after {
-  inset: 0;
-  background:
-    linear-gradient(135deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) left top / 42px 42px no-repeat,
-    linear-gradient(225deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) right top / 42px 42px no-repeat,
-    linear-gradient(45deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) left bottom / 42px 42px no-repeat,
-    linear-gradient(-45deg, transparent 0 18px, rgba(126, 236, 255, 0.9) 18px 20px, transparent 20px) right bottom / 42px 42px no-repeat;
-  opacity: 0.82;
-}
-
-.vaid-hero-shell-highlight {
-  position: absolute;
-  inset: 1px;
-  z-index: 0;
-  background:
-    linear-gradient(
-      102deg,
-      rgba(172, 238, 255, 0.11) 0%,
-      rgba(172, 238, 255, 0) 24%,
-      rgba(172, 238, 255, 0) 74%,
-      rgba(172, 238, 255, 0.08) 100%
-    );
-  clip-path: inherit;
-  pointer-events: none;
-}
-
-.vaid-hero-top-caps {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  z-index: 2;
-}
-
-.vaid-hero-top-caps span {
+.vaid-hero-shell svg {
   display: block;
-  height: 8px;
-}
-
-.vaid-hero-top-caps span:nth-child(1),
-.vaid-hero-top-caps span:nth-child(3) {
-  width: 40px;
-  background:
-    repeating-linear-gradient(90deg, rgba(144, 222, 255, 0.82) 0 6px, transparent 6px 10px);
-  transform: skewX(30deg);
-  opacity: 0.8;
-}
-
-.vaid-hero-top-caps span:nth-child(2) {
-  width: 236px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(112, 232, 255, 0.92) 15%, rgba(112, 232, 255, 0.92) 85%, transparent 100%);
-  box-shadow: 0 0 10px rgba(112, 232, 255, 0.35);
-}
-
-.vaid-hero-right-rail {
-  position: absolute;
-  right: 4.4%;
-  top: 35%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  z-index: 2;
-}
-
-.vaid-hero-right-rail span {
-  width: 4px;
-  border-radius: 999px;
-  background: rgba(148, 190, 236, 0.2);
-}
-
-.vaid-hero-right-rail span:nth-child(1) {
-  height: 98px;
-  background:
-    linear-gradient(180deg, rgba(125, 162, 233, 0) 0%, rgba(125, 162, 233, 0.36) 18%, rgba(116, 232, 255, 0.88) 72%, rgba(116, 232, 255, 0.08) 100%);
-  box-shadow: 0 0 10px rgba(116, 232, 255, 0.34);
-}
-
-.vaid-hero-right-rail span:nth-child(2) {
-  height: 22px;
-  background: linear-gradient(180deg, rgba(212, 125, 179, 0.75), rgba(162, 86, 132, 0.12));
-}
-
-.vaid-hero-right-rail span:nth-child(3) {
-  height: 72px;
-}
-
-.vaid-hero-shield-chip {
-  position: absolute;
-  top: 1.8rem;
-  right: 3rem;
-  display: grid;
-  place-items: center;
-  color: #8fe8ff;
-  filter: drop-shadow(0 0 12px rgba(95, 219, 255, 0.42));
-  z-index: 2;
-}
-
-.vaid-hero-shield-chip svg {
-  width: 42px;
-  height: 42px;
-}
-
-.vaid-hero-bottom-notch {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--shell-bottom) + var(--inner-notch-inset) + var(--inner-notch-rise));
-  width: var(--inner-notch-top);
-  height: 1.2px;
-  transform: translateX(-50%);
-  background: rgba(148, 242, 255, 0.82);
-  filter: drop-shadow(0 0 10px rgba(92, 220, 255, 0.34));
-  pointer-events: none;
-  z-index: 2;
-}
-
-.vaid-hero-bottom-notch::before,
-.vaid-hero-bottom-notch::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: var(--inner-notch-slope);
-  height: 1.2px;
-  background: rgba(148, 242, 255, 0.82);
-  box-shadow: 0 0 10px rgba(92, 220, 255, 0.34);
-}
-
-.vaid-hero-bottom-notch::before {
-  right: 100%;
-  transform-origin: right top;
-  transform: rotate(12deg);
-}
-
-.vaid-hero-bottom-notch::after {
-  left: 100%;
-  transform-origin: left top;
-  transform: rotate(-12deg);
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 18px rgba(84, 216, 255, 0.12))
+    drop-shadow(0 0 28px rgba(74, 232, 255, 0.08));
 }
 
 .vaid-hero-copy-panel {
   position: absolute;
-  left: 7.6%;
-  top: 17.5%;
+  left: 8%;
+  top: 18%;
   z-index: 3;
-  width: min(44%, 560px);
+  width: min(39%, 500px);
   text-align: left;
   background: transparent;
   border: 0;
@@ -330,8 +150,8 @@
   }
 
   .vaid-hero-copy-panel {
-    width: min(46%, 500px);
-    top: 17%;
+    width: min(40%, 460px);
+    top: 18%;
   }
 
   .vaid-hero-title {
@@ -351,24 +171,15 @@
 @media (max-width: 1024px) {
   .vaid-hero {
     min-height: 480px;
-    --corner-cut: 20px;
-    --inner-notch-top: 188px;
-    --inner-notch-slope: 36px;
-    --inner-notch-rise: 14px;
-    --inner-notch-inset: 11px;
-    --shell-top: 8%;
-    --shell-side: 2.5%;
-    --shell-bottom: 14%;
-  }
-
-  .vaid-hero-top-caps span:nth-child(2) {
-    width: 182px;
+    --shell-top: 8.5%;
+    --shell-side: -1%;
+    --shell-bottom: 12%;
   }
 
   .vaid-hero-copy-panel {
-    left: 6.7%;
-    top: 16%;
-    width: min(47%, 430px);
+    left: 8%;
+    top: 18%;
+    width: min(41%, 390px);
   }
 
   .vaid-hero-kicker {
@@ -391,16 +202,6 @@
     font-size: 0.9rem;
   }
 
-  .vaid-hero-shield-chip {
-    top: 1.4rem;
-    right: 2.4rem;
-  }
-
-  .vaid-hero-shield-chip svg {
-    width: 36px;
-    height: 36px;
-  }
-
   .vaid-hero-figure {
     width: min(43.5%, 450px);
     right: 2.8%;
@@ -411,24 +212,9 @@
 @media (max-width: 768px) {
   .vaid-hero {
     min-height: 620px;
-    --corner-cut: 13px;
-    --inner-notch-top: 118px;
-    --inner-notch-slope: 22px;
-    --inner-notch-rise: 10px;
-    --inner-notch-inset: 8px;
-    --shell-top: 7%;
+    --shell-top: 12%;
     --shell-side: 0%;
-    --shell-bottom: 26%;
-  }
-
-  .vaid-hero-top-caps span:nth-child(2) {
-    width: 112px;
-  }
-
-  .vaid-hero-right-rail,
-  .vaid-hero-shield-chip,
-  .vaid-hero-bottom-notch {
-    display: none;
+    --shell-bottom: 31%;
   }
 
   .vaid-hero-copy-panel {
