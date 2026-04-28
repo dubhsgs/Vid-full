@@ -557,7 +557,7 @@ function App() {
           <div className="flex items-center gap-3">
             <img
               src="/000.png"
-              alt="V-ID Logo"
+              alt="VAID Logo"
               className="h-16 w-auto"
             />
           </div>
