@@ -25,9 +25,9 @@ const HERO_FIGURE_SRC = '/hero_figure.png';
 
 function HeroHudFrame() {
   const innerContainerFillPath =
-    'M46,34 H330 L346,50 H654 L670,34 H954 Q966,34 966,46 V376 Q966,388 954,388 H46 Q34,388 34,376 V46 Q34,34 46,34 Z';
+    'M46,34 H330 L346,47 H654 L670,34 H954 Q966,34 966,46 V376 Q966,388 954,388 H46 Q34,388 34,376 V46 Q34,34 46,34 Z';
   const innerContainerStrokePath =
-    'M46,34 H330 L346,50 H654 L670,34 H954 Q966,34 966,46 V376 Q966,388 954,388 H660 M340,388 H46 Q34,388 34,376 V46 Q34,34 46,34';
+    'M46,34 H330 L346,47 H654 L670,34 H954 Q966,34 966,46 V376 Q966,388 954,388 H660 M340,388 H46 Q34,388 34,376 V46 Q34,34 46,34';
 
   return (
     <svg
@@ -37,33 +37,103 @@ function HeroHudFrame() {
       aria-hidden="true"
       focusable="false"
       xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid meet"
     >
       <defs>
+        <linearGradient id="hero-gdepth" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1a2b53" stopOpacity="0.0288" />
+          <stop offset="58%" stopColor="#121f43" stopOpacity="0.0461" />
+          <stop offset="100%" stopColor="#0b1430" stopOpacity="0.0576" />
+        </linearGradient>
         <linearGradient id="hero-gbg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1e3048" stopOpacity="0.94" />
-          <stop offset="100%" stopColor="#0e1e30" stopOpacity="0.97" />
+          <stop offset="0%" stopColor="#f1fbff" stopOpacity="0.0634" />
+          <stop offset="52%" stopColor="#d2e3ff" stopOpacity="0.049" />
+          <stop offset="100%" stopColor="#9db4e7" stopOpacity="0.0346" />
         </linearGradient>
         <linearGradient id="hero-gshine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#5af0ff" stopOpacity="0.04" />
-          <stop offset="40%" stopColor="#5af0ff" stopOpacity="0.01" />
-          <stop offset="100%" stopColor="#5af0ff" stopOpacity="0" />
+          <stop offset="0%" stopColor="#fbfeff" stopOpacity="0.0346" />
+          <stop offset="38%" stopColor="#e2f0ff" stopOpacity="0.0187" />
+          <stop offset="100%" stopColor="#9fb8e8" stopOpacity="0" />
         </linearGradient>
+        <linearGradient id="hero-top-left-neon" x1="32" y1="20" x2="186" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#52f4ff" stopOpacity="0" />
+          <stop offset="28%" stopColor="#5cf7ff" stopOpacity="0.9" />
+          <stop offset="64%" stopColor="#39baff" stopOpacity="0.72" />
+          <stop offset="100%" stopColor="#685dff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="hero-bottom-notch-neon" x1="360" y1="384" x2="636" y2="384" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#52f4ff" stopOpacity="0" />
+          <stop offset="16%" stopColor="#4275ff" stopOpacity="0.36" />
+          <stop offset="34%" stopColor="#72f8ff" stopOpacity="0.76" />
+          <stop offset="50%" stopColor="#e1fdff" stopOpacity="0.96" />
+          <stop offset="66%" stopColor="#72f8ff" stopOpacity="0.76" />
+          <stop offset="84%" stopColor="#4275ff" stopOpacity="0.36" />
+          <stop offset="100%" stopColor="#52f4ff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="hero-inner-notch-neon" x1="398" y1="47" x2="626" y2="47" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#52f4ff" stopOpacity="0" />
+          <stop offset="15%" stopColor="#4275ff" stopOpacity="0.28" />
+          <stop offset="32%" stopColor="#72f8ff" stopOpacity="0.72" />
+          <stop offset="50%" stopColor="#e1fdff" stopOpacity="0.95" />
+          <stop offset="68%" stopColor="#72f8ff" stopOpacity="0.72" />
+          <stop offset="85%" stopColor="#4275ff" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#52f4ff" stopOpacity="0" />
+        </linearGradient>
+        <filter id="hero-corner-neon" x="-120%" y="-120%" width="340%" height="340%">
+          <feGaussianBlur stdDeviation="2.4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="hero-notch-neon" x="-40%" y="-700%" width="180%" height="1500%">
+          <feGaussianBlur stdDeviation="3.2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
 
-      <line x1="20" y1="32" x2="32" y2="20" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="32" y1="20" x2="968" y2="20" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="968" y1="20" x2="980" y2="32" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="980" y1="32" x2="980" y2="390" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="980" y1="390" x2="968" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="968" y1="402" x2="660" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="660" y1="402" x2="642" y2="384" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="642" y1="384" x2="358" y2="384" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="358" y1="384" x2="340" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="340" y1="402" x2="32" y2="402" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="32" y1="402" x2="20" y2="390" stroke="#2ae8f8" strokeWidth="1.3" />
-      <line x1="20" y1="32" x2="20" y2="390" stroke="#2ae8f8" strokeWidth="1.3" />
+      <line x1="20" y1="32" x2="32" y2="20" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="32" y1="20" x2="968" y2="20" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="968" y1="20" x2="980" y2="32" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="980" y1="32" x2="980" y2="390" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="980" y1="390" x2="968" y2="402" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="968" y1="402" x2="660" y2="402" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="660" y1="402" x2="642" y2="384" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="642" y1="384" x2="358" y2="384" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="358" y1="384" x2="340" y2="402" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="340" y1="402" x2="32" y2="402" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="32" y1="402" x2="20" y2="390" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
+      <line x1="20" y1="32" x2="20" y2="390" stroke="#7f8796" strokeWidth="1.3" opacity={0.46} />
 
+      <g strokeLinecap="round" fill="none">
+        <g stroke="#54f4ff" strokeWidth="5.2" opacity={0.22} filter="url(#hero-corner-neon)">
+          <line x1="20" y1="32" x2="32" y2="20" />
+          <line x1="968" y1="20" x2="980" y2="32" />
+          <line x1="980" y1="390" x2="968" y2="402" />
+          <line x1="32" y1="402" x2="20" y2="390" />
+        </g>
+        <g stroke="#8ff8ff" strokeWidth="2.15" opacity={0.88}>
+          <line x1="20" y1="32" x2="32" y2="20" />
+          <line x1="968" y1="20" x2="980" y2="32" />
+          <line x1="980" y1="390" x2="968" y2="402" />
+          <line x1="32" y1="402" x2="20" y2="390" />
+        </g>
+      </g>
+
+      <g strokeLinecap="round" fill="none">
+        <g filter="url(#hero-corner-neon)">
+          <line x1="32" y1="20" x2="186" y2="20" stroke="url(#hero-top-left-neon)" strokeWidth="6" opacity={0.32} />
+        </g>
+        <line x1="32" y1="20" x2="186" y2="20" stroke="url(#hero-top-left-neon)" strokeWidth="2.25" opacity={0.88} />
+      </g>
+
+      <path
+        d={innerContainerFillPath}
+        fill="url(#hero-gdepth)"
+      />
       <path
         d={innerContainerFillPath}
         fill="url(#hero-gbg)"
@@ -75,27 +145,39 @@ function HeroHudFrame() {
       <path
         d={innerContainerStrokePath}
         fill="none"
-        stroke="#2ae8f8"
+        stroke="#b5edff"
         strokeWidth="1"
+        opacity={0.3}
       />
-      <g stroke="#2ae8f8" strokeWidth="1.3" fill="none">
+      <g stroke="#7f8796" strokeWidth="1.3" fill="none" opacity={0.46}>
         <line x1="660" y1="402" x2="642" y2="384" />
         <line x1="642" y1="384" x2="358" y2="384" />
         <line x1="358" y1="384" x2="340" y2="402" />
       </g>
 
-      <g fill="#2ae8f8" opacity="0.82">
-        <polygon points="258,34 270,34 286,50 274,50" />
-        <polygon points="272,34 284,34 300,50 288,50" />
-        <polygon points="286,34 298,34 314,50 302,50" />
-        <polygon points="300,34 312,34 328,50 318,50" opacity="0.5" />
+      <g strokeLinecap="round" fill="none">
+        <g filter="url(#hero-notch-neon)">
+          <line x1="398" y1="47" x2="626" y2="47" stroke="url(#hero-inner-notch-neon)" strokeWidth="7.2" opacity={0.34} />
+          <line x1="360" y1="384" x2="636" y2="384" stroke="url(#hero-bottom-notch-neon)" strokeWidth="7.6" opacity={0.38} />
+        </g>
+        <line x1="398" y1="47" x2="626" y2="47" stroke="url(#hero-inner-notch-neon)" strokeWidth="2.15" opacity={0.82} />
+        <line x1="442" y1="47" x2="582" y2="47" stroke="url(#hero-inner-notch-neon)" strokeWidth="1.15" opacity={0.95} />
+        <line x1="360" y1="384" x2="636" y2="384" stroke="url(#hero-bottom-notch-neon)" strokeWidth="2.35" opacity={0.86} />
+        <line x1="388" y1="384" x2="606" y2="384" stroke="url(#hero-bottom-notch-neon)" strokeWidth="1.15" opacity={0.95} />
       </g>
 
-      <g fill="#2ae8f8" opacity="0.82">
-        <polygon points="688,34 696,34 680,50 672,50" opacity="0.5" />
-        <polygon points="700,34 712,34 696,50 684,50" />
-        <polygon points="714,34 726,34 710,50 698,50" />
-        <polygon points="728,34 740,34 724,50 712,50" />
+      <g fill="#5877a4" opacity="0.58">
+        <polygon points="272,34 284,34 297,47 285,47" />
+        <polygon points="286,34 298,34 311,47 299,47" />
+        <polygon points="300,34 312,34 325,47 313,47" />
+        <polygon points="314,34 326,34 339,47 327,47" opacity="0.5" />
+      </g>
+
+      <g fill="#5877a4" opacity="0.58">
+        <polygon points="674,34 682,34 669,47 661,47" opacity="0.5" />
+        <polygon points="686,34 698,34 685,47 673,47" />
+        <polygon points="700,34 712,34 699,47 687,47" />
+        <polygon points="714,34 726,34 713,47 701,47" />
       </g>
     </svg>
   );
@@ -448,6 +530,12 @@ function App() {
           backgroundImage: `
             linear-gradient(
               to bottom,
+              rgba(35, 70, 150, 0.09) 0%,
+              rgba(35, 70, 150, 0.11) 48%,
+              rgba(24, 58, 132, 0.1) 100%
+            ),
+            linear-gradient(
+              to bottom,
               rgba(4, 7, 24, 0) 0%,
               rgba(4, 7, 24, 0.36) 48%,
               rgba(4, 7, 24, 0.74) 62%,
@@ -456,9 +544,9 @@ function App() {
             ),
             url(${HERO_LIGHT_BG_SRC})
           `,
-          backgroundSize: 'cover, cover',
-          backgroundPosition: 'center, center',
-          backgroundRepeat: 'no-repeat, no-repeat',
+          backgroundSize: 'cover, cover, cover',
+          backgroundPosition: 'center, center, center',
+          backgroundRepeat: 'no-repeat, no-repeat, no-repeat',
         }}
         aria-hidden
       />
