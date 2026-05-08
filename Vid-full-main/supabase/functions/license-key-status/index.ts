@@ -1,5 +1,5 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { normalizeActivationCode } from '../_shared/activationCode.ts';
+import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,10 +20,28 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'AUTH_REQUIRED' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (!isEmailConfirmed(user)) {
+      return new Response(
+        JSON.stringify({ error: 'EMAIL_NOT_CONFIRMED' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const supabase = createServiceClient();
 
     const { code }: LicenseKeyStatusRequest = await req.json();
     const normalizedCode = normalizeActivationCode(code || '');

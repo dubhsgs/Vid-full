@@ -15,7 +15,6 @@ export interface OrderStatusInfo {
   pack_size: number;
   amount: number;
   paid_at: string | null;
-  license_key: string | null;
 }
 
 export interface ActivationCodeInfo {
@@ -143,27 +142,8 @@ export async function getRemainingFreeCertificates(): Promise<number> {
 }
 
 export async function consumeFreeCertificate(): Promise<boolean> {
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  const clientId = await getClientId();
-
-  try {
-    const { data, error } = await supabase.functions.invoke('quota-use', {
-      body: { client_id: clientId, amount: 1 },
-    });
-
-    if (error) {
-      console.error('Error using certificate:', error);
-      return false;
-    }
-
-    return data?.success || false;
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return false;
-  }
+  // Credit consumption is now atomic inside v-id-register/register_v_id.
+  return isDevelopmentMode();
 }
 
 export async function getClientQuotaInfo(): Promise<{
@@ -171,26 +151,24 @@ export async function getClientQuotaInfo(): Promise<{
   total_used: number;
   client_id: string;
 }> {
-  const clientId = await getClientId();
-
   try {
     const { data, error } = await supabase.functions.invoke('quota-check', {
-      body: { client_id: clientId },
+      body: {},
     });
 
     if (error) {
       console.error('Error fetching quota info:', error);
-      return { remaining_credits: 0, total_used: 0, client_id: clientId };
+      return { remaining_credits: 0, total_used: 0, client_id: '' };
     }
 
     return {
       remaining_credits: data?.remaining_credits || 0,
       total_used: data?.total_used || 0,
-      client_id: clientId,
+      client_id: data?.client_id || '',
     };
   } catch (error) {
     console.error('Unexpected error:', error);
-    return { remaining_credits: 0, total_used: 0, client_id: clientId };
+    return { remaining_credits: 0, total_used: 0, client_id: '' };
   }
 }
 
@@ -280,22 +258,19 @@ export async function consumeActivationCode(rawCode?: string): Promise<{
       };
     }
 
-    const activationCodeInfo = mapActivationCodeInfo(data);
     if (!data?.success) {
       return {
         success: false,
-        activation_code: activationCodeInfo,
+        activation_code: null,
         error: data?.error || 'ACTIVATION_CODE_UNAVAILABLE',
       };
     }
 
-    if (activationCodeInfo?.code) {
-      saveActivationCode(activationCodeInfo.code);
-    }
+    clearSavedActivationCode();
 
     return {
       success: true,
-      activation_code: activationCodeInfo,
+      activation_code: null,
     };
   } catch (error) {
     console.error('Unexpected error consuming activation code:', error);
@@ -320,15 +295,11 @@ export async function consumeGenerationAccess(rawCode?: string): Promise<Generat
   const quotaInfo = await getClientQuotaInfo();
 
   if (quotaInfo.remaining_credits > 0) {
-    const success = await consumeFreeCertificate();
-    const updatedQuota = success ? await getClientQuotaInfo() : quotaInfo;
-
     return {
-      success,
-      source: success ? 'free' : 'none',
-      free_remaining: updatedQuota.remaining_credits,
+      success: true,
+      source: 'free',
+      free_remaining: quotaInfo.remaining_credits,
       activation_code: null,
-      error: success ? undefined : 'FREE_QUOTA_CONSUME_FAILED',
     };
   }
 
@@ -345,13 +316,10 @@ export async function consumeGenerationAccess(rawCode?: string): Promise<Generat
 
 export async function getUserOrders(): Promise<UserOrderRecord[]> {
   try {
-    const clientId = await getClientId();
     const { data, error } = await supabase
       .from('alipay_orders')
       .select('*')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false })
-      .setHeader('x-client-id', clientId);
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -366,42 +334,16 @@ export async function getUserOrders(): Promise<UserOrderRecord[]> {
 }
 
 export async function getOrderStatus(
-  outTradeNo: string,
-  clientIdOverride?: string
+  outTradeNo: string
 ): Promise<OrderStatusInfo | null> {
   try {
-    const clientId = clientIdOverride || await getClientId();
     const baseSelect = 'out_trade_no, status, pack_size, amount, paid_at';
 
     const { data, error } = await supabase
       .from('alipay_orders')
-      .select(`${baseSelect}, license_key`)
+      .select(baseSelect)
       .eq('out_trade_no', outTradeNo)
-      .setHeader('x-client-id', clientId)
       .maybeSingle();
-
-    if (error && (error as { code?: string }).code === '42703') {
-      const fallback = await supabase
-        .from('alipay_orders')
-        .select(baseSelect)
-        .eq('out_trade_no', outTradeNo)
-        .setHeader('x-client-id', clientId)
-        .maybeSingle();
-
-      if (fallback.error) {
-        console.error('Error fetching order status (fallback):', fallback.error);
-        return null;
-      }
-
-      if (!fallback.data) {
-        return null;
-      }
-
-      return {
-        ...(fallback.data as Omit<OrderStatusInfo, 'license_key'>),
-        license_key: null,
-      };
-    }
 
     if (error) {
       console.error('Error fetching order status:', error);

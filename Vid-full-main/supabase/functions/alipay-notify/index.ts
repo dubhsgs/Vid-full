@@ -236,7 +236,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data: markResult, error: markError } = await supabase.rpc('mark_alipay_order_paid', {
+    const { data: markResult, error: markError } = await supabase.rpc('mark_alipay_order_paid_to_credits', {
       p_out_trade_no: out_trade_no,
       p_trade_no: trade_no,
       p_paid_at: new Date().toISOString(),
@@ -253,14 +253,6 @@ Deno.serve(async (req: Request) => {
     const result = Array.isArray(markResult) ? markResult[0] : null;
     if (!result) {
       console.error('Order processing returned no result:', out_trade_no);
-      return new Response('fail', {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
-      });
-    }
-
-    if (!result.license_key) {
-      console.error('Order processed without issuing activation code:', out_trade_no, result);
       return new Response('fail', {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },

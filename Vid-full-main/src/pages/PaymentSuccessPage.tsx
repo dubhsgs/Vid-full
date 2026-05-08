@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Clock, Copy, Download, RefreshCw } from 'lucide-react';
-import { getOrderStatus, saveActivationCode, supabase, type OrderStatusInfo } from '../utils/licenseManager';
+import { ArrowLeft, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { getOrderStatus, supabase, type OrderStatusInfo } from '../utils/licenseManager';
 
 type PaymentPageStatus = 'checking' | 'success' | 'pending';
 
@@ -13,35 +13,19 @@ interface QueryOrderResponse {
   success?: boolean;
   paid?: boolean;
   order?: OrderStatusInfo | null;
+  added_credits?: number;
+  paid_credits?: number;
 }
 
 export function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
   const outTradeNo = searchParams.get('out_trade_no');
-  const returnClientId = searchParams.get('cid');
-  const storedClientId = useMemo(() => {
-    if (!outTradeNo) {
-      return null;
-    }
-
-    try {
-      return (
-        localStorage.getItem(`alipay_order_client_id_${outTradeNo}`) ||
-        localStorage.getItem('alipay_last_client_id')
-      );
-    } catch {
-      return null;
-    }
-  }, [outTradeNo]);
-
   const [pageStatus, setPageStatus] = useState<PaymentPageStatus>('checking');
   const [attempts, setAttempts] = useState(0);
   const [orderInfo, setOrderInfo] = useState<OrderStatusInfo | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [copyLabel, setCopyLabel] = useState('复制激活码');
+  const [paidCredits, setPaidCredits] = useState<number | null>(null);
   const hasAutoRedirectedRef = useRef(false);
-
-  const activationCode = orderInfo?.license_key || null;
 
   const statusLabel = useMemo(() => {
     if (!outTradeNo) {
@@ -49,18 +33,15 @@ export function PaymentSuccessPage() {
     }
 
     if (pageStatus === 'success') {
-      if (activationCode) {
-        return '支付成功，系统已生成激活码。请复制或下载保存，稍后可凭激活码继续生成证书。';
-      }
-      return '支付成功，额度已到账，正在为你返回主页。';
+      return '支付成功，额度已充入您的 VAID 账户，正在为你返回主页。';
     }
 
     if (orderInfo?.status === 'paid') {
-      return '支付已完成，正在为您生成激活码，请稍候。';
+      return '支付已完成，正在同步账户额度，请稍候。';
     }
 
     return '正在等待支付宝回调确认到账，请稍候。';
-  }, [activationCode, orderInfo?.status, outTradeNo, pageStatus]);
+  }, [orderInfo?.status, outTradeNo, pageStatus]);
 
   const checkPaymentStatus = useCallback(async (): Promise<boolean> => {
     if (!outTradeNo) {
@@ -68,13 +49,10 @@ export function PaymentSuccessPage() {
       return false;
     }
 
-    const order = await getOrderStatus(outTradeNo, returnClientId || storedClientId || undefined);
+    const order = await getOrderStatus(outTradeNo);
     setOrderInfo(order);
 
     if (order?.status === 'paid') {
-      if (order.license_key) {
-        saveActivationCode(order.license_key);
-      }
       setPageStatus('success');
       return true;
     }
@@ -95,15 +73,15 @@ export function PaymentSuccessPage() {
     }
 
     if (syncedOrder?.status === 'paid') {
-      if (syncedOrder.license_key) {
-        saveActivationCode(syncedOrder.license_key);
+      if (typeof payload?.paid_credits === 'number') {
+        setPaidCredits(payload.paid_credits);
       }
       setPageStatus('success');
       return true;
     }
 
     return false;
-  }, [outTradeNo, returnClientId, storedClientId]);
+  }, [outTradeNo]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -143,55 +121,6 @@ export function PaymentSuccessPage() {
     };
   }, [checkPaymentStatus, reloadToken]);
 
-  const handleCopyActivationCode = useCallback(async () => {
-    if (!activationCode) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(activationCode);
-      setCopyLabel('已复制');
-      window.setTimeout(() => setCopyLabel('复制激活码'), 1600);
-    } catch (error) {
-      console.error('Failed to copy activation code:', error);
-      setCopyLabel('复制失败');
-      window.setTimeout(() => setCopyLabel('复制激活码'), 1600);
-    }
-  }, [activationCode]);
-
-  const handleDownloadActivationCode = useCallback(() => {
-    if (!activationCode || !orderInfo) {
-      return;
-    }
-
-    const textContent = [
-      'V-ID 激活码凭证',
-      '',
-      `订单号：${orderInfo.out_trade_no}`,
-      `套餐次数：${orderInfo.pack_size} 次`,
-      `支付金额：¥${Number(orderInfo.amount).toFixed(2)}`,
-      '',
-      `激活码：${activationCode}`,
-      '',
-      '使用说明：',
-      '1. 返回 V-ID 首页。',
-      '2. 在生成证书区域输入此激活码。',
-      '3. 每生成一次证书，将从该激活码中扣减 1 次。',
-      '',
-      '请妥善保存本文件。如更换浏览器、设备或清理缓存，可重新输入激活码继续使用。',
-    ].join('\n');
-
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `V-ID_激活码_${orderInfo.out_trade_no}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [activationCode, orderInfo]);
-
   const handleGoHome = useCallback(() => {
     const targetUrl = `${window.location.origin}/`;
     try {
@@ -210,12 +139,6 @@ export function PaymentSuccessPage() {
       return;
     }
 
-    // When an activation code is present, keep the success page visible
-    // so users can copy/download it manually.
-    if (activationCode) {
-      return;
-    }
-
     hasAutoRedirectedRef.current = true;
     const timer = window.setTimeout(() => {
       handleGoHome();
@@ -224,7 +147,7 @@ export function PaymentSuccessPage() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [activationCode, handleGoHome, pageStatus]);
+  }, [handleGoHome, pageStatus]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
@@ -259,6 +182,7 @@ export function PaymentSuccessPage() {
             <div className="mt-4 text-sm text-slate-300 space-y-1">
               <p>套餐次数：{orderInfo.pack_size} 次</p>
               <p>订单状态：{orderInfo.status === 'paid' ? '已支付' : '待支付'}</p>
+              {paidCredits !== null && <p>当前付费额度：{paidCredits} 次</p>}
             </div>
           )}
 
@@ -272,33 +196,6 @@ export function PaymentSuccessPage() {
                 />
               </div>
             </>
-          )}
-
-          {pageStatus === 'success' && activationCode && (
-            <div className="mt-6 text-left p-4 rounded-xl border border-green-500/30 bg-green-500/10">
-              <p className="text-xs uppercase tracking-[0.2em] text-green-300 mb-2">Activation Code</p>
-              <p className="text-xl md:text-2xl font-bold text-white break-all">{activationCode}</p>
-              <p className="mt-3 text-sm text-green-200 leading-relaxed">
-                激活码也已暂存到当前浏览器。清缓存前，请先复制或下载备份。
-              </p>
-
-              <div className="mt-4 grid sm:grid-cols-2 gap-3">
-                <button
-                  onClick={handleCopyActivationCode}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-colors"
-                >
-                  <Copy className="w-4 h-4" />
-                  {copyLabel}
-                </button>
-                <button
-                  onClick={handleDownloadActivationCode}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  下载激活码 TXT
-                </button>
-              </div>
-            </div>
           )}
 
           <div className="mt-8 flex flex-col gap-3">

@@ -1,26 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
+import JSZip from 'jszip';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
 import { uploadImageToStorage } from '../utils/imageUpload';
 import { consumeGenerationReady } from '../utils/licenseManager';
-
-async function triggerOTSStamp(friendlyId: string, sha256Hash: string): Promise<void> {
-  try {
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ots-stamp`;
-    await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ friendly_id: friendlyId, sha256_hash: sha256Hash }),
-    });
-  } catch (err) {
-    console.error('[OTS] Stamp request failed (non-critical):', err);
-  }
-}
 
 // --- 高清渲染基准 ---
 const CANVAS_W = 1024;
@@ -180,72 +165,38 @@ export function CardGenerator() {
             setSha256Hash(hashValue);
           }
 
-          const { data, error } = await supabase
-            .from('v_ids')
-            .insert({
+          const { data, error } = await supabase.functions.invoke('v-id-register', {
+            body: {
               character_name: savedName,
               creator_name: creatorName,
               sha256_hash: hashValue,
-              original_file_hash: originalFileHash || hashValue,
               image_url: imageUrl,
-              friendly_id: serialId,
-              ots_status: 'pending',
-            })
-            .select('friendly_id')
-            .maybeSingle();
+            },
+          });
 
           if (error) {
-            if (error.code === '23505' && error.message?.includes('sha256_hash')) {
-                  const { data: existing } = await supabase
-                    .from('v_ids')
-                    .select('friendly_id')
-                    .eq('sha256_hash', hashValue)
-                    .maybeSingle();
-                  if (existing?.friendly_id) {
-                    setCitizenId(existing.friendly_id);
-                    setForm(prev => ({
-                      ...prev,
-                      serialId: existing.friendly_id,
-                      qrContent: `${siteOrigin}/verify/${existing.friendly_id}`,
-                    }));
-                    localStorage.removeItem('vid_original_file_hash');
-                    return;
-                  }
-                }
-            console.error('Error saving to database:', error);
-            setCitizenId(serialId);
+            console.error('Error registering V-ID:', error);
+            setAccessError('证书注册失败，请返回首页重试。若问题持续，请检查登录状态和剩余额度。');
+            return;
+          }
+
+          if (data?.success && data?.friendly_id) {
+            console.log('Successfully registered V-ID, friendly_id:', data.friendly_id);
+            const friendlyId = data.friendly_id;
+            setCitizenId(friendlyId);
             setForm(prev => ({
               ...prev,
-              serialId: serialId,
-              qrContent: `${siteOrigin}/verify/${serialId}`,
+              serialId: friendlyId,
+              qrContent: `${siteOrigin}/verify/${friendlyId}`,
             }));
-          } else if (data) {
-            console.log('Successfully saved to database, friendly_id:', data.friendly_id);
-            setCitizenId(data.friendly_id);
-            setForm(prev => ({
-              ...prev,
-              serialId: data.friendly_id,
-              qrContent: `${siteOrigin}/verify/${data.friendly_id}`,
-            }));
-            triggerOTSStamp(data.friendly_id, hashValue);
             localStorage.removeItem('vid_original_file_hash');
           } else {
-            console.log('No data returned, using generated serialId');
-            setCitizenId(serialId);
-            setForm(prev => ({
-              ...prev,
-              serialId: serialId,
-              qrContent: `${window.location.origin}/verify/${serialId}`,
-            }));
+            console.error('V-ID registration returned no friendly_id:', data);
+            setAccessError('证书注册没有返回有效编号，请返回首页重试。');
           }
         } catch (err) {
           console.error('Unexpected error:', err);
-          setCitizenId(serialId);
-          setForm(prev => ({
-            ...prev,
-            serialId: serialId,
-            qrContent: `${siteOrigin}/verify/${serialId}`,
-          }));
+          setAccessError('证书注册过程中发生异常，请返回首页重试。');
         }
       })();
     };
@@ -1092,7 +1043,6 @@ visit our website or contact support.
 © V-ID Protocol - Decentralized Identity Verification
 `;
 
-    const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
     const zip = new JSZip();
 
     const imageBlob = await (await fetch(imageDataUrl)).blob();

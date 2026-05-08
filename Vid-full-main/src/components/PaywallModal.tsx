@@ -1,7 +1,7 @@
 import { X, Check, ShoppingCart, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../utils/licenseManager';
-import { getClientId } from '../utils/fingerprint';
 
 function isInIframe(): boolean {
   try {
@@ -18,21 +18,21 @@ interface PaywallModalProps {
 
 const pricingTiers = [
   {
-    name: '1次套餐',
+    nameKey: 'paywall.pack1',
     price: '¥0.01',
     certificates: 1,
     popular: false,
     packSize: 1,
   },
   {
-    name: '5次套餐',
+    nameKey: 'paywall.pack5',
     price: '¥39.9',
     certificates: 5,
     popular: true,
     packSize: 5,
   },
   {
-    name: '10次套餐',
+    nameKey: 'paywall.pack10',
     price: '¥69.9',
     certificates: 10,
     popular: false,
@@ -41,6 +41,7 @@ const pricingTiers = [
 ];
 
 export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
+  const { t } = useTranslation();
   const [purchasingPackSize, setPurchasingPackSize] = useState<number | null>(null);
   const [purchaseError, setPurchaseError] = useState('');
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null);
@@ -62,12 +63,10 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
     setPurchaseError('');
 
     try {
-      const clientId = await getClientId();
-      const returnUrl = `${window.location.origin}/payment-success?cid=${encodeURIComponent(clientId)}`;
+      const returnUrl = `${window.location.origin}/payment-success`;
 
       const { data, error } = await supabase.functions.invoke('alipay-create-order', {
         body: {
-          client_id: clientId,
           pack_size: packSize,
           return_url: returnUrl,
         },
@@ -75,17 +74,12 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
 
       if (error) {
         console.error('Error creating order:', error);
-        setPurchaseError('创建订单失败，请稍后重试');
+        setPurchaseError(t('paywall.createOrderFailed'));
         setPurchasingPackSize(null);
         return;
       }
 
       if (data?.payment_url) {
-        localStorage.setItem('alipay_last_client_id', clientId);
-        if (data?.out_trade_no) {
-          localStorage.setItem(`alipay_order_client_id_${data.out_trade_no}`, clientId);
-        }
-
         if (inIframe) {
           setPendingPaymentUrl(data.payment_url);
           window.open(data.payment_url, '_blank', 'noopener,noreferrer');
@@ -97,48 +91,48 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
           }
         }
       } else {
-        setPurchaseError('获取支付链接失败');
+        setPurchaseError(t('paywall.paymentUrlFailed'));
       }
       setPurchasingPackSize(null);
     } catch (err) {
       console.error('Unexpected error:', err);
-      setPurchaseError('网络错误，请检查连接');
+      setPurchaseError(t('paywall.networkError'));
       setPurchasingPackSize(null);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-[#0a0a0a] border border-blue-500/30 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative my-auto w-full max-w-4xl max-h-[calc(100svh-1.5rem)] overflow-hidden rounded-xl border border-blue-500/30 bg-[#0a0a0a] shadow-2xl sm:max-h-[min(90vh,52rem)] sm:rounded-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-green-500/5" />
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10"
+          className="absolute right-3 top-3 z-10 text-slate-400 transition-colors hover:text-white sm:right-4 sm:top-4"
         >
-          <X className="w-6 h-6" />
+          <X className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
 
-        <div className="relative p-8">
+        <div className="relative max-h-[calc(100svh-1.5rem)] overflow-y-auto overscroll-contain p-4 sm:max-h-[min(90vh,52rem)] sm:p-8">
           {inIframe && (
-            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/40 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-amber-300 text-sm leading-relaxed">
-                当前处于预览环境，支付宝无法在内嵌窗口中打开。点击购买后，支付页面会在新标签页中打开，支付成功后会返回激活码页面。
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 sm:mb-6 sm:rounded-xl sm:p-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+              <p className="text-sm leading-relaxed text-amber-300">
+                {t('paywall.iframeNotice')}
               </p>
             </div>
           )}
 
-          <h2 className="text-3xl font-bold text-white text-center mb-2">
-            解锁更多证书生成次数
+          <h2 className="mb-2 text-center text-2xl font-bold text-white sm:text-3xl">
+            {t('paywall.title')}
           </h2>
-          <p className="text-slate-400 text-center mb-8">
-            选择适合您的套餐，支付宝安全支付
+          <p className="mx-auto mb-5 max-w-[18rem] text-center text-sm text-slate-400 sm:mb-8 sm:max-w-none sm:text-base">
+            {t('paywall.subtitle')}
           </p>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:mb-8 sm:gap-6 md:grid-cols-3">
             {pricingTiers.map((tier) => {
               const isThisPurchasing = purchasingPackSize === tier.packSize;
               const isAnyPurchasing = purchasingPackSize !== null;
@@ -146,32 +140,32 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
               return (
                 <div
                   key={tier.packSize}
-                  className={`relative p-6 rounded-xl border transition-all ${
+                  className={`relative rounded-lg border p-4 transition-all sm:rounded-xl sm:p-6 ${
                     tier.popular
-                      ? 'border-blue-500 bg-blue-500/5 scale-105'
+                      ? 'border-blue-500 bg-blue-500/5 md:scale-105'
                       : 'border-slate-700 bg-slate-900/50 hover:border-blue-500/50'
                   }`}
                 >
                   {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                      最划算
+                    <div className="absolute left-1/2 -top-2.5 -translate-x-1/2 rounded-full bg-blue-500 px-3 py-1 text-[11px] font-bold text-white sm:-top-3 sm:text-xs">
+                      {t('paywall.bestValue')}
                     </div>
                   )}
 
                   <div className="text-center">
-                    <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
-                    <div className="text-3xl font-bold text-blue-400 mb-4">{tier.price}</div>
-                    <div className="flex items-center justify-center gap-2 text-slate-300 mb-6">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>{tier.certificates} 次证书生成</span>
+                    <h3 className="mb-2 text-lg font-bold text-white sm:text-xl">{t(tier.nameKey)}</h3>
+                    <div className="mb-3 text-[2.25rem] font-bold leading-none text-blue-400 sm:mb-4 sm:text-3xl">{tier.price}</div>
+                    <div className="mb-5 flex items-center justify-center gap-2 text-sm text-slate-300 sm:mb-6 sm:text-base">
+                      <Check className="h-5 w-5 text-green-400" />
+                      <span>{t('paywall.certificates', { count: tier.certificates })}</span>
                     </div>
                     <button
                       onClick={() => handlePurchase(tier.packSize)}
                       disabled={isAnyPurchasing}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-2"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <ShoppingCart className="w-4 h-4" />
-                      {isThisPurchasing ? '处理中...' : '立即购买'}
+                      <ShoppingCart className="h-4 w-4" />
+                      {isThisPurchasing ? t('form.processing') : t('paywall.buyNow')}
                     </button>
                   </div>
                 </div>
@@ -180,31 +174,31 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
           </div>
 
           {pendingPaymentUrl && (
-            <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-              <p className="text-blue-300 text-sm text-center mb-3">
-                如果支付宝页面没有自动打开，请点击下面的按钮。
+            <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 sm:rounded-xl sm:p-4">
+              <p className="mb-3 text-center text-sm text-blue-300">
+                {t('paywall.pendingPayment')}
               </p>
               <a
                 href={pendingPaymentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700"
               >
-                <ExternalLink className="w-4 h-4" />
-                在新标签页打开支付宝
+                <ExternalLink className="h-4 w-4" />
+                {t('paywall.openAlipay')}
               </a>
             </div>
           )}
 
           {purchaseError && (
-            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
               <p className="text-red-400 text-center">{purchaseError}</p>
             </div>
           )}
 
-          <div className="border-t border-slate-700 pt-6 mt-6">
-            <p className="text-slate-500 text-xs text-center">
-              支付由支付宝提供安全保障 • 支付成功后将自动生成可重复使用的激活码
+          <div className="mt-4 border-t border-slate-700 pt-4 sm:mt-6 sm:pt-6">
+            <p className="text-center text-xs text-slate-500">
+              {t('paywall.securityNote')}
             </p>
           </div>
         </div>

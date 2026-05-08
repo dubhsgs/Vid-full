@@ -1,5 +1,5 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { normalizeActivationCode } from '../_shared/activationCode.ts';
+import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,10 +20,28 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'AUTH_REQUIRED' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (!isEmailConfirmed(user)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'EMAIL_NOT_CONFIRMED' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const supabase = createServiceClient();
 
     const { code }: LicenseKeyUseRequest = await req.json();
     const normalizedCode = normalizeActivationCode(code || '');
@@ -38,8 +56,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: resultRows, error } = await supabase.rpc('consume_license_key_use', {
+    const { data: resultRows, error } = await supabase.rpc('redeem_license_key_to_credits', {
       p_key: normalizedCode,
+      p_user_id: user.id,
     });
 
     if (error) {
@@ -64,16 +83,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (!result.consumed) {
+    if (!result.redeemed) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: result.status === 'revoked' ? 'Activation code revoked' : 'Activation code exhausted',
-          code: result.key,
-          pack_size: result.pack_size,
-          total_uses: result.total_uses,
-          remaining_uses: result.remaining_uses,
-          status: result.status,
+          error: result.key_status === 'revoked' ? 'Activation code revoked' : 'Activation code unavailable',
+          status: result.key_status,
+          added_credits: 0,
+          paid_credits: result.paid_credits || 0,
         }),
         {
           status: 409,
@@ -85,11 +102,9 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        code: result.key,
-        pack_size: result.pack_size,
-        total_uses: result.total_uses,
-        remaining_uses: result.remaining_uses,
-        status: result.status,
+        status: result.key_status,
+        added_credits: result.added_credits,
+        paid_credits: result.paid_credits,
       }),
       {
         status: 200,

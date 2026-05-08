@@ -1,103 +1,80 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
-interface QuotaCheckRequest {
-  client_id: string;
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    const { client_id }: QuotaCheckRequest = await req.json();
-
-    if (!client_id) {
-      return new Response(
-        JSON.stringify({ error: 'client_id is required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return jsonResponse({ success: false, error: 'AUTH_REQUIRED' }, 401);
     }
 
-    const { data: initialQuota, error } = await supabase
-      .from('user_quotas')
-      .select('*')
-      .eq('client_id', client_id)
+    if (!isEmailConfirmed(user)) {
+      return jsonResponse({ success: false, error: 'EMAIL_NOT_CONFIRMED' }, 403);
+    }
+
+    const supabase = createServiceClient();
+
+    const { data: existingCredits, error: readError } = await supabase
+      .from('user_credits')
+      .select('free_credits, paid_credits, total_used')
+      .eq('user_id', user.id)
       .maybeSingle();
-    let quota = initialQuota;
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching quota:', error);
-      return new Response(
-        JSON.stringify({ error: 'Database error' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (readError) {
+      console.error('[quota-check] Error fetching credits:', readError);
+      return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
     }
 
-    if (!quota) {
-      const { data: newQuota, error: insertError } = await supabase
-        .from('user_quotas')
+    let credits = existingCredits;
+    if (!credits) {
+      const { data: insertedCredits, error: insertError } = await supabase
+        .from('user_credits')
         .insert({
-          client_id,
-          remaining_credits: 3,
+          user_id: user.id,
+          free_credits: 3,
+          paid_credits: 0,
           total_used: 0,
         })
-        .select()
+        .select('free_credits, paid_credits, total_used')
         .single();
 
       if (insertError) {
-        console.error('Error creating quota:', insertError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create quota' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+        console.error('[quota-check] Error initializing credits:', insertError);
+        return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
       }
 
-      quota = newQuota;
+      credits = insertedCredits;
     }
 
-    return new Response(
-      JSON.stringify({
-        client_id: quota.client_id,
-        remaining_credits: quota.remaining_credits,
-        total_used: quota.total_used,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    const freeCredits = Number(credits?.free_credits || 0);
+    const paidCredits = Number(credits?.paid_credits || 0);
+
+    return jsonResponse({
+      success: true,
+      client_id: user.id,
+      remaining_credits: freeCredits + paidCredits,
+      free_credits: freeCredits,
+      paid_credits: paidCredits,
+      total_used: Number(credits?.total_used || 0),
+    });
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error('[quota-check] Unexpected error:', error);
+    return jsonResponse({ success: false, error: 'INTERNAL_SERVER_ERROR' }, 500);
   }
 });

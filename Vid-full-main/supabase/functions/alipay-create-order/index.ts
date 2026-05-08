@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 interface CreateOrderRequest {
-  client_id: string;
   pack_size: number;
   return_url?: string;
 }
@@ -140,14 +139,33 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const { client_id, pack_size, return_url }: CreateOrderRequest = await req.json();
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'AUTH_REQUIRED' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (!client_id || !pack_size || !PACK_PRICES[pack_size]) {
+    if (!isEmailConfirmed(user)) {
+      return new Response(
+        JSON.stringify({ error: 'EMAIL_NOT_CONFIRMED' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createServiceClient();
+
+    const { pack_size, return_url }: CreateOrderRequest = await req.json();
+
+    if (!pack_size || !PACK_PRICES[pack_size]) {
       return new Response(
         JSON.stringify({ error: 'Invalid request parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -189,7 +207,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: order, error: orderError } = await supabase
       .from('alipay_orders')
-      .insert({ out_trade_no: outTradeNo, client_id, pack_size, amount, status: 'pending' })
+      .insert({
+        out_trade_no: outTradeNo,
+        user_id: user.id,
+        client_id: user.id,
+        pack_size,
+        amount,
+        status: 'pending',
+      })
       .select()
       .single();
 

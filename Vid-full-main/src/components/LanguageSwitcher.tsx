@@ -7,11 +7,9 @@ export function LanguageSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
 
   const languages = [
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'zh', name: '简体中文', flag: '🇨🇳' },
-    { code: 'ja', name: '日本語', flag: '🇯🇵' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' }
+    { code: 'en', name: 'English' },
+    { code: 'zh', name: '简体中文' },
+    { code: 'ja', name: '日本語' }
   ];
 
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
@@ -23,7 +21,7 @@ export function LanguageSwitcher() {
         className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-blue-500/50 transition-colors"
       >
         <Globe className="w-4 h-4 text-blue-400" />
-        <span className="text-sm text-slate-300">{currentLanguage.flag} {currentLanguage.name}</span>
+        <span className="text-sm text-slate-300">{currentLanguage.name}</span>
       </button>
 
       {isOpen && (
@@ -41,7 +39,6 @@ export function LanguageSwitcher() {
                   i18n.language === lang.code ? 'bg-blue-500/10 text-blue-400' : 'text-slate-300'
                 }`}
               >
-                <span className="text-xl">{lang.flag}</span>
                 <span className="text-sm font-medium">{lang.name}</span>
               </button>
             ))}

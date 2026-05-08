@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +16,7 @@ interface OrderStatusInfo {
   pack_size: number;
   amount: number;
   paid_at: string | null;
-  license_key: string | null;
+  user_id: string | null;
 }
 
 interface AlipayTradeQueryResponse {
@@ -75,45 +75,31 @@ function jsonResponse(payload: Record<string, unknown>, status = 200): Response 
 }
 
 async function fetchOrderCompat(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createServiceClient>,
   outTradeNo: string
 ): Promise<{ order: OrderStatusInfo | null; error: { message?: string } | null }> {
-  const baseSelect = 'out_trade_no, status, pack_size, amount, paid_at';
-  const withLicense = await supabase
+  const baseSelect = 'out_trade_no, status, pack_size, amount, paid_at, user_id';
+  const result = await supabase
     .from('alipay_orders')
-    .select(`${baseSelect}, license_key`)
+    .select(baseSelect)
     .eq('out_trade_no', outTradeNo)
     .maybeSingle();
 
-  if (withLicense.error && (withLicense.error as { code?: string }).code === '42703') {
-    const fallback = await supabase
-      .from('alipay_orders')
-      .select(baseSelect)
-      .eq('out_trade_no', outTradeNo)
-      .maybeSingle();
-
-    if (fallback.error) {
-      return { order: null, error: fallback.error as { message?: string } };
-    }
-
-    if (!fallback.data) {
-      return { order: null, error: null };
-    }
-
-    return {
-      order: {
-        ...(fallback.data as Omit<OrderStatusInfo, 'license_key'>),
-        license_key: null,
-      },
-      error: null,
-    };
+  if (result.error) {
+    return { order: null, error: result.error as { message?: string } };
   }
 
-  if (withLicense.error) {
-    return { order: null, error: withLicense.error as { message?: string } };
-  }
+  return { order: (result.data as OrderStatusInfo | null) ?? null, error: null };
+}
 
-  return { order: (withLicense.data as OrderStatusInfo | null) ?? null, error: null };
+function publicOrder(order: OrderStatusInfo) {
+  return {
+    out_trade_no: order.out_trade_no,
+    status: order.status,
+    pack_size: order.pack_size,
+    amount: order.amount,
+    paid_at: order.paid_at,
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -122,10 +108,20 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    if (req.method !== 'POST') {
+      return jsonResponse({ success: false, error: 'METHOD_NOT_ALLOWED' }, 405);
+    }
+
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return jsonResponse({ success: false, error: 'AUTH_REQUIRED' }, 401);
+    }
+
+    if (!isEmailConfirmed(user)) {
+      return jsonResponse({ success: false, error: 'EMAIL_NOT_CONFIRMED' }, 403);
+    }
+
+    const supabase = createServiceClient();
 
     const body = await req.json() as QueryOrderRequest;
     const outTradeNo = body?.out_trade_no?.trim();
@@ -152,12 +148,16 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'ORDER_NOT_FOUND' }, 404);
     }
 
+    if (existingOrder.user_id !== user.id) {
+      return jsonResponse({ success: false, error: 'ORDER_FORBIDDEN' }, 403);
+    }
+
     if (existingOrder.status === 'paid') {
       return jsonResponse({
         success: true,
         paid: true,
         source: 'database',
-        order: existingOrder,
+        order: publicOrder(existingOrder),
       });
     }
 
@@ -211,7 +211,7 @@ Deno.serve(async (req: Request) => {
         trade_status: queryResp.trade_status || null,
         alipay_code: queryResp.code || null,
         alipay_msg: queryResp.sub_msg || queryResp.msg || null,
-        order: existingOrder,
+        order: publicOrder(existingOrder),
       });
     }
 
@@ -227,7 +227,7 @@ Deno.serve(async (req: Request) => {
         paid: false,
         source: 'alipay',
         trade_status: tradeStatus,
-        order: existingOrder,
+        order: publicOrder(existingOrder),
       });
     }
 
@@ -256,7 +256,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'MISSING_TRADE_NO' }, 400);
     }
 
-    const { data: markResult, error: markError } = await supabase.rpc('mark_alipay_order_paid', {
+    const { data: markResult, error: markError } = await supabase.rpc('mark_alipay_order_paid_to_credits', {
       p_out_trade_no: outTradeNo,
       p_trade_no: tradeNo,
       p_paid_at: new Date().toISOString(),
@@ -281,7 +281,9 @@ Deno.serve(async (req: Request) => {
       paid: refreshedOrder.status === 'paid',
       source: 'alipay_query_settlement',
       already_processed: Boolean(markRow?.already_processed),
-      order: refreshedOrder as OrderStatusInfo,
+      order: publicOrder(refreshedOrder as OrderStatusInfo),
+      added_credits: Number(markRow?.added_credits || 0),
+      paid_credits: Number(markRow?.paid_credits || 0),
       trade_status: tradeStatus,
     });
   } catch (error) {

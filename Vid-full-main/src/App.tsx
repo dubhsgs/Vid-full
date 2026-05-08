@@ -7,21 +7,26 @@ import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
 import { PaywallModal } from './components/PaywallModal';
+import { AuthControl, type AuthSessionState } from './components/AuthControl';
 import {
   clearSavedActivationCode,
-  consumeGenerationAccess,
+  consumeActivationCode,
   getActivationCodeInfo,
   getSavedActivationCode,
   markGenerationReady,
   getRemainingFreeCertificates,
   normalizeActivationCode,
-  saveActivationCode,
+  supabase,
   type ActivationCodeInfo,
 } from './utils/licenseManager';
 import './i18n/config';
 
 const HERO_LIGHT_BG_SRC = '/hero_light_bg.png';
 const HERO_FIGURE_SRC = '/hero_figure.png';
+const HERO_BACKGROUND_VIDEO_SRC = '/hero-background-video.mp4';
+const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 function HeroHudFrame() {
   const innerContainerFillPath =
@@ -57,8 +62,8 @@ function HeroHudFrame() {
         </linearGradient>
         <linearGradient id="hero-top-left-neon" x1="32" y1="20" x2="186" y2="20" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#52f4ff" stopOpacity="0" />
-          <stop offset="28%" stopColor="#5cf7ff" stopOpacity="0.9" />
-          <stop offset="64%" stopColor="#39baff" stopOpacity="0.72" />
+          <stop offset="22%" stopColor="#5cf7ff" stopOpacity="1" />
+          <stop offset="58%" stopColor="#39baff" stopOpacity="0.92" />
           <stop offset="100%" stopColor="#685dff" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="hero-bottom-notch-neon" x1="360" y1="384" x2="636" y2="384" gradientUnits="userSpaceOnUse">
@@ -125,9 +130,9 @@ function HeroHudFrame() {
 
       <g strokeLinecap="round" fill="none">
         <g filter="url(#hero-corner-neon)">
-          <line x1="32" y1="20" x2="186" y2="20" stroke="url(#hero-top-left-neon)" strokeWidth="6" opacity={0.32} />
+          <line x1="32" y1="20" x2="186" y2="20" stroke="url(#hero-top-left-neon)" strokeWidth="7.4" opacity={0.48} />
         </g>
-        <line x1="32" y1="20" x2="186" y2="20" stroke="url(#hero-top-left-neon)" strokeWidth="2.25" opacity={0.88} />
+        <line x1="32" y1="20" x2="186" y2="20" stroke="url(#hero-top-left-neon)" strokeWidth="2.65" opacity={0.96} />
       </g>
 
       <path
@@ -166,14 +171,14 @@ function HeroHudFrame() {
         <line x1="388" y1="384" x2="606" y2="384" stroke="url(#hero-bottom-notch-neon)" strokeWidth="1.15" opacity={0.95} />
       </g>
 
-      <g fill="#5877a4" opacity="0.58">
+      <g fill="#2f4774" opacity="0.74">
         <polygon points="272,34 284,34 297,47 285,47" />
         <polygon points="286,34 298,34 311,47 299,47" />
         <polygon points="300,34 312,34 325,47 313,47" />
         <polygon points="314,34 326,34 339,47 327,47" opacity="0.5" />
       </g>
 
-      <g fill="#5877a4" opacity="0.58">
+      <g fill="#2f4774" opacity="0.74">
         <polygon points="674,34 682,34 669,47 661,47" opacity="0.5" />
         <polygon points="686,34 698,34 685,47 673,47" />
         <polygon points="700,34 712,34 699,47 687,47" />
@@ -184,9 +189,24 @@ function HeroHudFrame() {
 }
 
 function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const heroTitleHighlightParts = t('hero.titleHighlight').split(' ');
+  const heroLanguage = i18n.resolvedLanguage ?? i18n.language;
+  const heroLanguageTag = heroLanguage.startsWith('zh') ? 'zh' : heroLanguage.startsWith('ja') ? 'ja' : 'latin';
+  const isCjkHero = heroLanguageTag !== 'latin';
+  const heroTitleLinesValue = t('hero.titleLines', { returnObjects: true });
+  const heroTitleLines = Array.isArray(heroTitleLinesValue) && heroTitleLinesValue.every((line) => typeof line === 'string')
+    ? heroTitleLinesValue
+    : [t('hero.title'), t('hero.titleHighlight')];
+  const heroMobileTitleLinesValue = t('hero.mobileTitleLines', { returnObjects: true });
+  const heroMobileTitleLines = Array.isArray(heroMobileTitleLinesValue) && heroMobileTitleLinesValue.every((line) => typeof line === 'string')
+    ? heroMobileTitleLinesValue
+    : heroTitleLines;
+  const heroSubtitleLines = t('hero.subtitle').split('\n');
+  const heroMobileSubtitleLinesValue = t('hero.mobileSubtitleLines', { returnObjects: true });
+  const heroMobileSubtitleLines = Array.isArray(heroMobileSubtitleLinesValue) && heroMobileSubtitleLinesValue.every((line) => typeof line === 'string')
+    ? heroMobileSubtitleLinesValue
+    : heroSubtitleLines;
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -207,6 +227,18 @@ function App() {
   const [isCheckingActivationCode, setIsCheckingActivationCode] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [isSubmittingNext, setIsSubmittingNext] = useState(false);
+  const [authOpenSignal, setAuthOpenSignal] = useState(0);
+  const [authState, setAuthState] = useState<AuthSessionState>({
+    user: null,
+    emailConfirmed: false,
+    loading: true,
+  });
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [shareNotice, setShareNotice] = useState('');
 
 
   const refreshAccessDashboard = useCallback(async (preferredCode?: string) => {
@@ -230,11 +262,19 @@ function App() {
       setActivationCodeInput(savedCode);
     }
 
-    refreshAccessDashboard(savedCode);
-  }, [refreshAccessDashboard]);
+    if (!authState.loading && authState.user && authState.emailConfirmed) {
+      refreshAccessDashboard(savedCode);
+    } else if (!authState.loading) {
+      setRemainingCredits(null);
+      setActivationCodeInfo(null);
+    }
+  }, [authState.emailConfirmed, authState.loading, authState.user, refreshAccessDashboard]);
 
   useEffect(() => {
     const syncDashboard = () => {
+      if (!authState.user || !authState.emailConfirmed) {
+        return;
+      }
       const preferredCode = activationCodeInput.trim() || getSavedActivationCode();
       refreshAccessDashboard(preferredCode);
     };
@@ -255,54 +295,128 @@ function App() {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [activationCodeInput, refreshAccessDashboard]);
+  }, [activationCodeInput, authState.emailConfirmed, authState.user, refreshAccessDashboard]);
 
-  const handleBindActivationCode = useCallback(async (codeOverride?: string) => {
+  const handleRedeemActivationCode = useCallback(async (codeOverride?: string) => {
+    if (!authState.user) {
+      setGenerationError(t('errors.loginRequired'));
+      setAuthOpenSignal((value) => value + 1);
+      return null;
+    }
+
+    if (!authState.emailConfirmed) {
+      setGenerationError(t('errors.emailNotConfirmed'));
+      setAuthOpenSignal((value) => value + 1);
+      return null;
+    }
+
     const rawCode = (codeOverride ?? activationCodeInput).trim();
     if (!rawCode) {
-      setActivationCodeError('请输入激活码');
-      return null;
+      setActivationCodeError(t('errors.enterActivationCode'));
+      return false;
     }
 
     setIsCheckingActivationCode(true);
     setActivationCodeError('');
 
     try {
-      const info = await getActivationCodeInfo(rawCode);
+      const redeemResult = await consumeActivationCode(rawCode);
 
-      if (!info) {
+      if (!redeemResult.success) {
         setActivationCodeInfo(null);
-        setActivationCodeError('激活码不存在，请检查后重试');
-        return null;
-      }
-
-      setActivationCodeInfo(info);
-      setActivationCodeInput(info.code);
-
-      if (info.status !== 'active' || info.remaining_uses <= 0) {
         clearSavedActivationCode();
-        setActivationCodeError('这个激活码已用完或不可用，请更换新的激活码');
-        return info;
+        setActivationCodeError(t('errors.activationUnavailable'));
+        return false;
       }
 
-      saveActivationCode(info.code);
+      setActivationCodeInput('');
+      setActivationCodeInfo(null);
       setActivationCodeError('');
-      return info;
+      await refreshAccessDashboard();
+      return true;
     } finally {
       setIsCheckingActivationCode(false);
     }
-  }, [activationCodeInput]);
+  }, [activationCodeInput, authState.emailConfirmed, authState.user, refreshAccessDashboard, t]);
 
   const handleImageChange = (file: File) => {
-    if (file && file.type.startsWith('image/')) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      setImageFile(null);
+      setImagePreview(null);
+      setGenerationError(t('errors.unsupportedImageType'));
+      return;
     }
+
+    if (file.size > MAX_IMAGE_FILE_BYTES) {
+      setImageFile(null);
+      setImagePreview(null);
+      setGenerationError(t('errors.imageTooLarge', { size: `${MAX_IMAGE_FILE_MB}MB` }));
+      return;
+    }
+
+    setGenerationError('');
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
+
+  const copyShareLink = useCallback(async (channel: string) => {
+    const shareUrl = 'https://vaid.top/';
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareNotice(t('footer.shareCopied', { channel }));
+      window.setTimeout(() => setShareNotice(''), 3200);
+    } catch {
+      setShareNotice(t('footer.shareCopyFailed'));
+      window.setTimeout(() => setShareNotice(''), 3200);
+    }
+  }, [t]);
+
+  const handleShare = useCallback((channel: 'weibo' | 'xiaohongshu' | 'wechat') => {
+    const shareUrl = 'https://vaid.top/';
+    const shareTitle = t('footer.shareText');
+
+    if (channel === 'weibo') {
+      const url = new URL('https://service.weibo.com/share/share.php');
+      url.searchParams.set('url', shareUrl);
+      url.searchParams.set('title', shareTitle);
+      window.open(url.toString(), '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const channelName = channel === 'xiaohongshu' ? t('footer.xiaohongshu') : t('footer.wechatMoments');
+    copyShareLink(channelName);
+  }, [copyShareLink, t]);
+
+  const handleContactSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setContactStatus('sending');
+
+    const { error } = await supabase.functions.invoke('contact-submit', {
+      body: {
+        name: contactName,
+        email: contactEmail,
+        message: contactMessage,
+        page_url: window.location.href,
+        language: i18n.resolvedLanguage ?? i18n.language,
+      },
+    });
+
+    if (error) {
+      setContactStatus('error');
+      return;
+    }
+
+    setContactStatus('sent');
+    setContactName('');
+    setContactEmail('');
+    setContactMessage('');
+  }, [contactEmail, contactMessage, contactName, i18n.language, i18n.resolvedLanguage]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -323,7 +437,7 @@ function App() {
   const handleEditInfo = () => {
     if (!imagePreview || !imageFile) return;
     if (!characterName.trim() || !creatorName.trim()) {
-      setGenerationError('请先填写角色名称和创作者名称');
+      setGenerationError(t('errors.fillNames'));
       return;
     }
     setGenerationError('');
@@ -361,12 +475,12 @@ function App() {
     if (isSubmittingNext) return;
 
     if (!imagePreview || !imageFile) {
-      setGenerationError('请先上传图片');
+      setGenerationError(t('errors.uploadImage'));
       return;
     }
 
     if (!characterName.trim() || !creatorName.trim()) {
-      setGenerationError('请先返回上一步填写角色名称和创作者名称');
+      setGenerationError(t('errors.returnFillNames'));
       return;
     }
 
@@ -374,6 +488,25 @@ function App() {
     setIsSubmittingNext(true);
 
     try {
+      if (authState.loading) {
+        setIsSubmittingNext(false);
+        return;
+      }
+
+      if (!authState.user) {
+        setGenerationError(t('errors.loginRequired'));
+        setAuthOpenSignal((value) => value + 1);
+        setIsSubmittingNext(false);
+        return;
+      }
+
+      if (!authState.emailConfirmed) {
+        setGenerationError(t('errors.emailNotConfirmed'));
+        setAuthOpenSignal((value) => value + 1);
+        setIsSubmittingNext(false);
+        return;
+      }
+
       const normalizedInput = normalizeActivationCode(activationCodeInput);
       if (activationCodeInput.trim() && normalizedInput !== activationCodeInput) {
         setActivationCodeInput(normalizedInput);
@@ -382,9 +515,10 @@ function App() {
       const { freeRemaining, savedCodeInfo } = await refreshAccessDashboard(normalizedInput);
       let activeActivationCode = savedCodeInfo ?? activationCodeInfo;
 
-      // Free quota takes priority. Only validate activation code after free quota is exhausted.
+      // Free quota takes priority. Only check activation code after free quota is exhausted.
       if (freeRemaining <= 0 && normalizedInput) {
-        activeActivationCode = await handleBindActivationCode(normalizedInput);
+        activeActivationCode = await getActivationCodeInfo(normalizedInput);
+        setActivationCodeInfo(activeActivationCode);
       } else if (freeRemaining > 0) {
         setActivationCodeError('');
       }
@@ -395,7 +529,7 @@ function App() {
 
       if (freeRemaining <= 0 && !hasUsableActivationCode) {
         if (!activeActivationCode && normalizedInput) {
-          setActivationCodeError('激活码不存在，请检查后重试');
+          setActivationCodeError(t('errors.activationNotFound'));
         }
         setShowPaywall(true);
         setIsSubmittingNext(false);
@@ -448,59 +582,48 @@ function App() {
           const hash = await calculateSHA256(imageFile);
           localStorage.setItem('vid_original_file_hash', hash);
 
-          const accessResult = await consumeGenerationAccess(normalizedInput);
-          const refreshedState = await refreshAccessDashboard(accessResult.activation_code?.code || normalizedInput);
+          let refreshedState = await refreshAccessDashboard(normalizedInput);
 
-          if (accessResult.activation_code?.code) {
-            setActivationCodeInput(accessResult.activation_code.code);
+          if (refreshedState.freeRemaining <= 0 && normalizedInput) {
+            const redeemResult = await consumeActivationCode(normalizedInput);
+            if (!redeemResult.success) {
+              setActivationCodeError(t('errors.activationUnavailable'));
+            } else {
+              setActivationCodeInput('');
+              setActivationCodeError('');
+              refreshedState = await refreshAccessDashboard();
+            }
           }
 
-          if (!accessResult.success) {
-            if (accessResult.error === 'ACTIVATION_CODE_REQUIRED') {
-              setActivationCodeError('请输入激活码后再生成');
-            } else if (accessResult.activation_code) {
-              setActivationCodeInfo(accessResult.activation_code);
-              setActivationCodeError('这个激活码已用完或不可用，请更换新的激活码');
-            } else if (accessResult.error === 'FREE_QUOTA_CONSUME_FAILED') {
-              setGenerationError('剩余次数扣减失败，请稍后重试');
-            } else {
-              setGenerationError('生成前校验失败，请稍后重试');
-            }
-
-            const latestActivationCode = accessResult.activation_code ?? refreshedState.savedCodeInfo;
-            const hasUsableLatestActivationCode = !!latestActivationCode
-              && latestActivationCode.status === 'active'
-              && latestActivationCode.remaining_uses > 0;
-
-            if (refreshedState.freeRemaining <= 0 && !hasUsableLatestActivationCode) {
-              setShowPaywall(true);
-            }
+          if (refreshedState.freeRemaining <= 0) {
+            setShowPaywall(true);
+            setIsSubmittingNext(false);
             return;
           }
 
-          setRemainingCredits(accessResult.free_remaining);
-          setActivationCodeInfo(accessResult.activation_code ?? refreshedState.savedCodeInfo);
+          setRemainingCredits(refreshedState.freeRemaining);
+          setActivationCodeInfo(refreshedState.savedCodeInfo);
           setActivationCodeError('');
           setGenerationError('');
           markGenerationReady();
           setShowForgingAnimation(true);
         } catch (error) {
           console.error('Failed to prepare generation flow:', error);
-          setGenerationError('生成流程异常，请稍后重试');
+          setGenerationError(t('errors.generationFlowFailed'));
         } finally {
           setIsSubmittingNext(false);
         }
       };
 
       img.onerror = () => {
-        setGenerationError('图片读取失败，请重新上传后重试');
+        setGenerationError(t('errors.imageReadFailed'));
         setIsSubmittingNext(false);
       };
 
       img.src = imagePreview;
     } catch (error) {
       console.error('Failed to check generation prerequisites:', error);
-      setGenerationError('次数状态校验失败，请稍后重试');
+      setGenerationError(t('errors.quotaStatusFailed'));
       setIsSubmittingNext(false);
     }
   };
@@ -521,78 +644,115 @@ function App() {
       ? null
       : (remainingCredits > 0 ? remainingCredits : usableActivationRemaining);
   const hasRemainingCount = (remainingCountForDisplay ?? 0) > 0;
+  const processSteps = [
+    { id: 'step1', Icon: Upload },
+    { id: 'step2', Icon: Shield },
+    { id: 'step3', Icon: FileCheck },
+    { id: 'step4', Icon: Shield },
+  ];
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
-      <div
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(
-              to bottom,
-              rgba(35, 70, 150, 0.09) 0%,
-              rgba(35, 70, 150, 0.11) 48%,
-              rgba(24, 58, 132, 0.1) 100%
-            ),
-            linear-gradient(
-              to bottom,
-              rgba(4, 7, 24, 0) 0%,
-              rgba(4, 7, 24, 0.36) 48%,
-              rgba(4, 7, 24, 0.74) 62%,
-              rgba(4, 7, 24, 0.94) 74%,
-              #040718 100%
-            ),
-            url(${HERO_LIGHT_BG_SRC})
-          `,
-          backgroundSize: 'cover, cover, cover',
-          backgroundPosition: 'center, center, center',
-          backgroundRepeat: 'no-repeat, no-repeat, no-repeat',
-        }}
-        aria-hidden
-      />
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          poster={HERO_LIGHT_BG_SRC}
+        >
+          <source src={HERO_BACKGROUND_VIDEO_SRC} type="video/mp4" />
+        </video>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              linear-gradient(
+                to bottom,
+                rgba(35, 70, 150, 0.09) 0%,
+                rgba(35, 70, 150, 0.11) 48%,
+                rgba(24, 58, 132, 0.1) 100%
+              ),
+              linear-gradient(
+                to bottom,
+                rgba(4, 7, 24, 0.18) 0%,
+                rgba(4, 7, 24, 0.46) 48%,
+                rgba(4, 7, 24, 0.78) 62%,
+                rgba(4, 7, 24, 0.94) 74%,
+                #040718 100%
+              )
+            `,
+            backgroundSize: 'cover, cover',
+            backgroundPosition: 'center, center',
+            backgroundRepeat: 'no-repeat, no-repeat',
+          }}
+        />
+      </div>
       <AnimatedGrid />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="pt-8 pb-4 flex items-center justify-between">
+        <header className="pt-8 pb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <img
-              src="/000.png"
+              src="/vaid-logo-top.png"
               alt="VAID Logo"
-              className="h-16 w-auto"
+              className="h-8 sm:h-10 md:h-[48px] w-auto max-w-[280px] mix-blend-screen"
             />
           </div>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <AuthControl
+              openSignal={authOpenSignal}
+              onAuthChange={setAuthState}
+            />
+            <LanguageSwitcher />
+          </div>
         </header>
 
-        <section className="py-20 text-center">
+        <section className="vaid-hero-section py-20 text-center">
           <div className="vaid-hero relative w-full max-w-6xl mx-auto">
             <div className="vaid-hero-shell" aria-hidden>
               <HeroHudFrame />
             </div>
 
-            <div className="vaid-hero-copy-panel">
-              <p className="vaid-hero-kicker">VAID // IDENTITY PROTOCOL</p>
-              <h2 className="vaid-hero-title">
-                <span>{t('hero.title')}</span>
-                {heroTitleHighlightParts.length > 1 ? (
-                  <>
-                    <span>{heroTitleHighlightParts[0]}</span>
-                    <span>{heroTitleHighlightParts.slice(1).join(' ')}</span>
-                  </>
-                ) : (
-                  <span>{t('hero.titleHighlight')}</span>
-                )}
-              </h2>
-              <p className="vaid-hero-subtitle">
-                {t('hero.subtitle')}
-              </p>
-              <button
-                onClick={() => document.getElementById('submission')?.scrollIntoView({ behavior: 'smooth' })}
-                className="vaid-hero-cta"
-              >
-                {t('hero.cta')}
-                <ChevronDown className="w-4 h-4" />
-              </button>
+            <div className={`vaid-hero-copy-panel ${isCjkHero ? `vaid-hero-copy-panel--${heroLanguageTag}` : ''}`}>
+              <div className="vaid-hero-copy-body">
+                <p className="vaid-hero-kicker">VAID // IDENTITY PROTOCOL</p>
+                <h2 className={`vaid-hero-title vaid-hero-title--desktop ${isCjkHero ? `vaid-hero-title--cjk vaid-hero-title--${heroLanguageTag}` : 'vaid-hero-title--latin'}`}>
+                  {heroTitleLines.map((line, index) => (
+                    <span key={`${line}-${index}`}>{line}</span>
+                  ))}
+                </h2>
+                <h2 className={`vaid-hero-title vaid-hero-title--mobile ${isCjkHero ? `vaid-hero-title--cjk vaid-hero-title--${heroLanguageTag}` : 'vaid-hero-title--latin'}`}>
+                  {heroMobileTitleLines.map((line, index) => (
+                    <span key={`${line}-${index}`}>{line}</span>
+                  ))}
+                </h2>
+                <p className={`vaid-hero-subtitle vaid-hero-subtitle--desktop ${isCjkHero ? `vaid-hero-subtitle--cjk vaid-hero-subtitle--${heroLanguageTag}` : ''}`}>
+                  {heroSubtitleLines.map((line, index) => (
+                    <span key={`${line}-${index}`} className="vaid-hero-subtitle-line">
+                      {line}
+                      {index < heroSubtitleLines.length - 1 ? ' ' : ''}
+                    </span>
+                  ))}
+                </p>
+                <p className={`vaid-hero-subtitle vaid-hero-subtitle--mobile ${isCjkHero ? `vaid-hero-subtitle--cjk vaid-hero-subtitle--${heroLanguageTag}` : ''}`}>
+                  {heroMobileSubtitleLines.map((line, index) => (
+                    <span key={`${line}-${index}`} className="vaid-hero-subtitle-line">
+                      {line}
+                      {index < heroMobileSubtitleLines.length - 1 ? ' ' : ''}
+                    </span>
+                  ))}
+                </p>
+                <button
+                  onClick={() => document.getElementById('submission')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="vaid-hero-cta"
+                >
+                  {t('hero.cta')}
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <img
@@ -604,42 +764,39 @@ function App() {
           </div>
         </section>
 
-        <section className="py-16">
-          <h3 className="text-3xl font-bold text-center text-white mb-16">
+        <section className="vaid-process-section -mt-20 pt-16 pb-10">
+          <h3 className="text-3xl font-bold text-center text-white mb-12">
             {t('process.title')}
           </h3>
-          <div className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {['step1', 'step2', 'step3', 'step4'].map((step, index) => (
-              <div
-                key={step}
-                className="relative p-6 rounded-xl bg-[#0a0a0a]/50 backdrop-blur-xl border border-slate-800 hover:border-blue-500/50 transition-all group"
+          <div className="vaid-process-grid grid md:grid-cols-4 gap-5 max-w-5xl mx-auto">
+            {processSteps.map(({ id, Icon }) => (
+              <article
+                key={id}
+                className="vaid-process-card group"
+                tabIndex={0}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-green-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative">
-                  <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center justify-center mb-4">
-                    {index === 0 && <Upload className="w-6 h-6 text-blue-400" />}
-                    {index === 1 && <Shield className="w-6 h-6 text-blue-400" />}
-                    {index === 2 && <FileCheck className="w-6 h-6 text-blue-400" />}
-                    {index === 3 && <Shield className="w-6 h-6 text-blue-400" />}
+                <div className="vaid-process-card-glow" aria-hidden />
+                <div className="vaid-process-card-slice" aria-hidden />
+                <div className="relative z-10">
+                  <div className="vaid-process-icon">
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <div className="text-xl font-bold text-white mb-2">
-                    {t(`process.${step}.title`)}
-                  </div>
-                  <p className="text-slate-400 text-sm leading-relaxed">
-                    {t(`process.${step}.desc`)}
+                  <h4 className="vaid-process-title">
+                    {t(`process.${id}.title`)}
+                  </h4>
+                  <p className="vaid-process-copy">
+                    {t(`process.${id}.desc`)}
                   </p>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </section>
 
-        <section id="submission" className="py-16 pb-24">
+        <section id="submission" className="pt-20 pb-24">
           <div className="max-w-3xl mx-auto">
-            <div className="relative p-8 rounded-2xl bg-[#0a0a0a]/80 backdrop-blur-xl border border-blue-500/30 shadow-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-green-500/5 rounded-2xl" />
-
-              <div className="relative">
+            <div className="vaid-form-panel relative p-8 rounded-2xl border">
+              <div className="vaid-form-body relative">
                 <h3 className="text-2xl font-bold text-white mb-8 text-center">
                   {t('form.title')}
                 </h3>
@@ -651,13 +808,13 @@ function App() {
                       : 'bg-red-500/10 border-red-500/30'
                   }`}>
                     <span className={`text-sm font-medium ${hasRemainingCount ? 'text-green-400' : 'text-red-400'}`}>
-                      剩余次数：{remainingCountForDisplay} 次
+                      {t('form.remaining', { count: remainingCountForDisplay })}
                     </span>
                     <button
                       onClick={() => setShowPaywall(true)}
                       className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
                     >
-                      购买套餐
+                      {t('form.buyPlan')}
                     </button>
                   </div>
                 )}
@@ -676,15 +833,15 @@ function App() {
                         setActivationCodeError('');
                         setGenerationError('');
                       }}
-                      placeholder="输入激活码，例如 VAID-ABCD-EFGH-IJKL"
+                      placeholder={t('form.activationPlaceholder')}
                       className="flex-1 px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                     <button
-                      onClick={() => handleBindActivationCode()}
+                      onClick={() => handleRedeemActivationCode()}
                       disabled={isCheckingActivationCode || !activationCodeInput.trim()}
                       className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all"
                     >
-                      {isCheckingActivationCode ? '验证中...' : '验证激活码'}
+                      {isCheckingActivationCode ? t('form.verifying') : t('form.verifyActivation')}
                     </button>
                   </div>
 
@@ -707,7 +864,7 @@ function App() {
                       onDrop={handleDrop}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
-                      className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
+                      className={`vaid-upload-zone border-2 border-dashed rounded-xl p-12 text-center transition-all ${
                         isDragging
                           ? 'border-blue-400 bg-blue-500/10'
                           : imagePreview
@@ -757,7 +914,7 @@ function App() {
                     <div className="mt-8 space-y-6">
                       <div>
                         <label htmlFor="characterName" className="block text-left text-base font-medium text-white mb-2">
-                          Character Name
+                          {t('form.characterName')}
                         </label>
                         <input
                           id="characterName"
@@ -767,14 +924,14 @@ function App() {
                             setCharacterName(e.target.value);
                             setGenerationError('');
                           }}
-                          placeholder="e.g., Nova StarSeeker"
+                          placeholder={t('form.characterPlaceholder')}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                       </div>
 
                       <div>
                         <label htmlFor="creatorName" className="block text-left text-base font-medium text-white mb-2">
-                          Creator Name
+                          {t('form.creatorName')}
                         </label>
                         <input
                           id="creatorName"
@@ -784,7 +941,7 @@ function App() {
                             setCreatorName(e.target.value);
                             setGenerationError('');
                           }}
-                          placeholder="e.g., Alex Chen"
+                          placeholder={t('form.creatorPlaceholder')}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                       </div>
@@ -812,7 +969,7 @@ function App() {
                           </div>
                         </div>
                         <span className="text-sm text-slate-400 leading-relaxed">
-                          我已阅读并同意{' '}
+                          {t('form.termsPrefix')}{' '}
                           <a
                             href="/terms"
                             target="_blank"
@@ -820,9 +977,9 @@ function App() {
                             className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            用户协议
+                            {t('form.terms')}
                           </a>
-                          {' '}和{' '}
+                          {' '}{t('form.and')}{' '}
                           <a
                             href="/privacy"
                             target="_blank"
@@ -830,9 +987,9 @@ function App() {
                             className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            隐私政策
+                            {t('form.privacy')}
                           </a>
-                          ，了解浏览器指纹仅用于免费额度管理，付费套餐将通过激活码交付
+                          {t('form.termsSuffix')}
                         </span>
                       </label>
                     </div>
@@ -842,13 +999,13 @@ function App() {
                       disabled={!imageFile || !agreedToTerms || !characterName.trim() || !creatorName.trim()}
                       className="w-full mt-4 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >
-                      Edit Info
+                      {t('form.editInfo')}
                     </button>
                   </>
                 ) : (
                   <div className="space-y-6">
                     <div
-                      className="relative w-80 h-80 mx-auto"
+                      className="vaid-avatar-editor relative w-80 h-80 mx-auto"
                       onMouseMove={handleImageMouseMove}
                       onMouseUp={handleImageMouseUp}
                       onMouseLeave={handleImageMouseUp}
@@ -875,14 +1032,14 @@ function App() {
                     </div>
 
                     <div className="text-center text-slate-300">
-                      <p className="mb-2">拖拽图片调整位置</p>
-                      <p className="text-sm text-slate-500">使用下方滑块缩放图片</p>
+                      <p className="mb-2">{t('form.dragAdjust')}</p>
+                      <p className="text-sm text-slate-500">{t('form.scaleHint')}</p>
                     </div>
 
                     <div className="space-y-4 px-4">
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm text-slate-400">缩放</label>
+                          <label className="text-sm text-slate-400">{t('form.scale')}</label>
                           <span className="text-sm text-blue-400">{Math.round(imageScale * 100)}%</span>
                         </div>
                         <input
@@ -903,7 +1060,7 @@ function App() {
                         }}
                         className="w-full py-2 text-sm bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
                       >
-                        重置位置和缩放
+                        {t('form.resetImage')}
                       </button>
                     </div>
 
@@ -912,14 +1069,14 @@ function App() {
                         onClick={() => setIsEditing(false)}
                         className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-all"
                       >
-                        Back
+                        {t('form.back')}
                       </button>
                       <button
                         onClick={handleNextToGenerator}
                         disabled={isSubmittingNext}
                         className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                       >
-                        {isSubmittingNext ? '处理中...' : 'Next'}
+                        {isSubmittingNext ? t('form.processing') : t('form.next')}
                       </button>
                     </div>
                   </div>
@@ -929,22 +1086,47 @@ function App() {
           </div>
         </section>
 
-        <footer className="py-12 border-t border-slate-800">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                <h4 className="font-semibold text-amber-400 mb-2">{t('footer.disclaimer')}</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  {t('footer.disclaimerText')}
-                </p>
+        <footer className="vaid-footer-circuit relative overflow-hidden py-12 border-t border-slate-800">
+          <div className="relative z-10 max-w-4xl mx-auto space-y-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <button
+                type="button"
+                onClick={() => setShowContactForm(true)}
+                className="px-5 py-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 text-cyan-100 text-sm font-semibold hover:bg-cyan-400/16 hover:border-cyan-300/50 transition-colors"
+              >
+                {t('footer.contact')}
+              </button>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs uppercase tracking-[0.24em] text-slate-600">
+                  {t('footer.share')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleShare('weibo')}
+                  className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900/55 text-xs text-slate-300 hover:text-cyan-100 hover:border-cyan-500/40 transition-colors"
+                >
+                  {t('footer.weibo')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShare('xiaohongshu')}
+                  className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900/55 text-xs text-slate-300 hover:text-cyan-100 hover:border-cyan-500/40 transition-colors"
+                >
+                  {t('footer.xiaohongshu')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShare('wechat')}
+                  className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900/55 text-xs text-slate-300 hover:text-cyan-100 hover:border-cyan-500/40 transition-colors"
+                >
+                  {t('footer.wechatMoments')}
+                </button>
               </div>
 
-              <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                <h4 className="font-semibold text-blue-400 mb-2">{t('footer.manifesto')}</h4>
-                <p className="text-xs text-slate-300 leading-relaxed italic">
-                  {t('footer.manifestoText')}
-                </p>
-              </div>
+              {shareNotice && (
+                <p className="text-xs text-cyan-200/80">{shareNotice}</p>
+              )}
             </div>
 
             <div className="text-center text-slate-600 text-sm pt-6 space-y-2">
@@ -958,6 +1140,78 @@ function App() {
           </div>
         </footer>
       </div>
+
+      {showContactForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/72 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-cyan-400/20 bg-slate-950/95 p-6 shadow-2xl shadow-cyan-950/40">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white">{t('footer.contactTitle')}</h2>
+                <p className="mt-2 text-sm text-slate-400">{t('footer.contactSubtitle')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContactForm(false);
+                  setContactStatus('idle');
+                }}
+                className="rounded-full border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:border-cyan-400/50 hover:text-cyan-100"
+              >
+                {t('auth.close')}
+              </button>
+            </div>
+
+            <form onSubmit={handleContactSubmit} className="mt-6 space-y-4">
+              <input
+                type="text"
+                required
+                maxLength={120}
+                value={contactName}
+                onChange={(event) => setContactName(event.target.value)}
+                placeholder={t('footer.contactName')}
+                className="w-full rounded-lg border border-slate-700 bg-black/50 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+              <input
+                type="email"
+                required
+                maxLength={320}
+                value={contactEmail}
+                onChange={(event) => setContactEmail(event.target.value)}
+                placeholder={t('footer.contactEmail')}
+                className="w-full rounded-lg border border-slate-700 bg-black/50 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+              <textarea
+                required
+                maxLength={4000}
+                rows={5}
+                value={contactMessage}
+                onChange={(event) => setContactMessage(event.target.value)}
+                placeholder={t('footer.contactMessage')}
+                className="w-full resize-none rounded-lg border border-slate-700 bg-black/50 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+
+              {contactStatus === 'sent' && (
+                <p className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-200">
+                  {t('footer.contactSent')}
+                </p>
+              )}
+              {contactStatus === 'error' && (
+                <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                  {t('footer.contactError')}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={contactStatus === 'sending'}
+                className="w-full rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-700"
+              >
+                {contactStatus === 'sending' ? t('footer.contactSending') : t('footer.contactSend')}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
 
       {showForgingAnimation && (

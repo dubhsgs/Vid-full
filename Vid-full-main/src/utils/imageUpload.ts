@@ -49,7 +49,13 @@ export async function uploadImageToStorage(dataUrl: string, filename?: string): 
     const fileName = filename
       ? filename.replace(/\.\w+$/, '.jpg')
       : `${crypto.randomUUID()}.jpg`;
-    const filePath = `avatars/${fileName}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      console.error('[ImageUpload] Upload requires an authenticated user');
+      return null;
+    }
+
+    const filePath = `avatars/${user.id}/${fileName}`;
 
     console.log('[ImageUpload] Uploading to storage:', filePath);
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Download, ExternalLink, Loader2, AlertCircle, Calendar, User, Hash, Lock } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import QRCode from 'qrcode';
+import JSZip from 'jszip';
 
 interface VIDRecord {
   id: string;
@@ -46,8 +47,8 @@ export function VerifyPage() {
         console.log('[VerifyPage] Normalized ID:', normalizedId);
 
         const { data, error } = await supabase
-          .from('v_ids')
-          .select('id, friendly_id, character_name, creator_name, sha256_hash, image_url, created_at, ots_status, ots_file_path')
+          .from('public_v_ids')
+          .select('friendly_id, character_name, creator_name, sha256_hash, image_url, created_at, ots_status, ots_file_path')
           .eq('friendly_id', normalizedId)
           .maybeSingle();
 
@@ -60,7 +61,7 @@ export function VerifyPage() {
           setError('No record found for this Citizen ID');
         } else {
           console.log('[VerifyPage] Record found:', data);
-          const rec = { ...data, id: data.friendly_id || data.id };
+          const rec = { ...data, id: data.friendly_id };
           setRecord(rec);
           setOtsStatus(data.ots_status || 'pending');
         }
@@ -431,7 +432,6 @@ V-ID 协议：让虚拟，真实存在。
 For more information, visit: ${window.location.origin}
 `;
 
-      const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
       const zip = new JSZip();
 
       zip.file('V-ID_Certificate.png', imageBlob);

@@ -10,13 +10,33 @@ const resources = {
         thank: 'Thank you for your patience.'
       },
       hero: {
-        title: 'Your Digital Identity,',
+        title: 'Your Digital Identity',
         titleHighlight: 'Permanently Documented',
-        subtitle: 'V-ID provides digital identity proof of existence for digital assets and characters, creating an immutable record of your digital creations from the moment they are born.',
+        titleLines: ['Your Digital Identity', 'Permanently', 'Documented'],
+        subtitle: 'VAID provides proof of existence for digital assets and virtual characters,\ncreating an immutable record from the moment they are created.',
         cta: 'Get Started'
       },
+      auth: {
+        loading: 'Loading',
+        login: 'Login',
+        account: 'Account',
+        loginTitle: 'Login to VAID',
+        loginSubtitle: 'Enter your email and use the secure magic link to continue.',
+        accountSubtitle: 'Certificates, credits, and purchases are now tied to this account.',
+        email: 'Email',
+        emailPlaceholder: 'you@example.com',
+        emailRequired: 'Please enter your email.',
+        magicLinkSent: 'Magic link sent. Please check your email and open the link to finish login.',
+        sending: 'Sending...',
+        sendMagicLink: 'Send Magic Link',
+        currentEmail: 'Current email',
+        emailVerified: 'Email verified',
+        emailNotVerified: 'Email not verified. Please verify your email before generating certificates.',
+        signOut: 'Sign out',
+        close: 'Close'
+      },
       about: {
-        title: 'About V-ID Platform',
+        title: 'About VAID Platform',
         description: 'A digital asset archival and identity recognition technology demonstration platform for developers.',
         purpose: 'This platform showcases digital fingerprinting, cryptographic hashing, and immutable record-keeping technologies for educational and development purposes.'
       },
@@ -24,38 +44,73 @@ const resources = {
         title: 'How It Works',
         step1: {
           title: '01. Upload',
-          desc: 'Upload your character files and provide essential details about your creation.'
+          desc: 'Upload your digital assets or characters to initiate registration. The essential first step in securing a permanent record of your creativity.'
         },
         step2: {
           title: '02. Generate',
-          desc: 'Our system generates a unique Digital Fingerprint using SHA-256 cryptographic hashing.'
+          desc: 'Extract a unique fingerprint using advanced cryptography. Anchor your work with a digital genetic signature and a unique identity.'
         },
         step3: {
           title: '03. Receive',
-          desc: 'Receive an Immutable Certificate with permanent proof of your creation existence.'
+          desc: 'Obtain a tamper-proof certificate to anchor the digital soul. Declares your permanent ownership of the asset from this moment forward.'
         },
         step4: {
           title: '04. Verify',
-          desc: 'Universal Verification: Anyone can verify the authenticity of your ID through the public digital ledger.'
+          desc: 'Enable instant, universal verification of authenticity. Ensures your creative legacy is traceable and backed by undeniable proof.'
         }
       },
       form: {
         title: 'Create Your Certificate',
+        remaining: 'Remaining uses: {{count}}',
+        buyPlan: 'Buy Plan',
+        activationPlaceholder: 'Enter activation code, e.g. VAID-ABCD-EFGH-IJKL',
+        verifyActivation: 'Redeem Code',
+        verifying: 'Redeeming...',
         privacyGuard: 'Privacy Guard:',
         privacyText: 'Your original file stays on your device. We only generate a digital fingerprint.',
         dragDrop: 'Drag and drop your character image here',
         or: 'or',
-        selectFile: 'Select File for Local Hashing',
+        selectFile: 'Select File for Local Encryption',
         changeImage: 'Change Image',
         characterName: 'Character Name',
         characterPlaceholder: 'e.g., Nova StarSeeker',
         creatorName: 'Creator Name',
         creatorPlaceholder: 'e.g., Alex Chen',
+        termsPrefix: 'I have read and agree to the',
+        terms: 'Terms of Service',
+        and: 'and',
+        privacy: 'Privacy Policy',
+        termsSuffix: ', and understand my account is used for quota management, certificate registration, and payment record binding.',
+        editInfo: 'Edit Info',
+        dragAdjust: 'Drag the image to adjust its position',
+        scaleHint: 'Use the slider below to scale the image',
+        scale: 'Scale',
+        resetImage: 'Reset position and scale',
+        back: 'Back',
+        next: 'Next',
         generateProof: 'Generate Certificate',
         processing: 'Processing...',
-        download: 'Download V-ID Certificate',
+        download: 'Download VAID Certificate',
         certificateDownloaded: 'Certificate Generated Successfully!',
         createAnother: 'Create Another Certificate'
+      },
+      errors: {
+        enterActivationCode: 'Please enter an activation code',
+        activationNotFound: 'Activation code not found. Please check and try again.',
+        activationUnavailable: 'This activation code has been used up or is unavailable. Please use a new code.',
+        fillNames: 'Please enter the character name and creator name first.',
+        uploadImage: 'Please upload an image first.',
+        returnFillNames: 'Please go back and enter the character name and creator name first.',
+        activationRequired: 'Please enter an activation code before generating.',
+        quotaConsumeFailed: 'Failed to deduct remaining uses. Please try again later.',
+        generationCheckFailed: 'Generation check failed. Please try again later.',
+        generationFlowFailed: 'Generation flow failed. Please try again later.',
+        imageReadFailed: 'Image read failed. Please upload again.',
+        unsupportedImageType: 'Please upload a JPG, PNG, WEBP, or GIF image.',
+        imageTooLarge: 'Image is too large. Please upload an image smaller than {{size}}.',
+        quotaStatusFailed: 'Failed to check remaining uses. Please try again later.',
+        loginRequired: 'Please log in before generating a certificate.',
+        emailNotConfirmed: 'Please verify your email before generating a certificate.'
       },
       progress: {
         reading: 'Reading file locally...',
@@ -73,15 +128,42 @@ const resources = {
       paywall: {
         title: 'Unlock More Certificate Generations',
         subtitle: 'Choose your plan, secure payment via Alipay',
+        pack1: '1x Plan',
+        pack5: '5x Plan',
         pack10: '10x Plan',
-        pack50: '50x Plan',
-        pack100: '100x Plan'
+        certificates: '{{count}} certificate generations',
+        bestValue: 'Best Value',
+        buyNow: 'Buy Now',
+        iframeNotice: 'You are in a preview environment, so Alipay cannot open inside the embedded window. After purchase, the payment page will open in a new tab and return to the payment result page after success.',
+        createOrderFailed: 'Failed to create order. Please try again later.',
+        paymentUrlFailed: 'Failed to get payment link.',
+        networkError: 'Network error. Please check your connection.',
+        pendingPayment: 'If the Alipay page did not open automatically, click the button below.',
+        openAlipay: 'Open Alipay in a new tab',
+        securityNote: 'Payment is secured by Alipay • Credits are added directly to your VAID account after payment succeeds.'
       },
       footer: {
         disclaimer: 'Legal Disclaimer',
-        disclaimerText: 'V-ID is a digital archival platform for developers, not a legal title. We provide technical demonstration for digital asset management. This service creates digital identity proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
+        disclaimerText: 'VAID is a digital archival platform for developers, not a legal title. We provide technical demonstration for digital asset management. This service creates digital identity proof of existence at a specific point in time but does not establish legal ownership or copyright. Consult with legal professionals for matters related to intellectual property rights.',
         manifesto: 'Privacy Manifesto',
         manifestoText: 'Digital sovereignty belongs to creators. No tracking. No emails. Only mathematical proof.',
+        contact: 'Contact Us',
+        contactTitle: 'Contact VAID',
+        contactSubtitle: 'Send a message without exposing the VAID mailbox address.',
+        contactName: 'Your name',
+        contactEmail: 'Your reply email',
+        contactMessage: 'How can we help?',
+        contactSend: 'Send Message',
+        contactSending: 'Sending...',
+        contactSent: 'Message sent. We will reply if needed.',
+        contactError: 'Message failed to send. Please try again later.',
+        share: 'Share',
+        shareText: 'VAID - digital identity proof for virtual assets',
+        weibo: 'Weibo',
+        xiaohongshu: 'Xiaohongshu',
+        wechatMoments: 'WeChat Moments',
+        shareCopied: '{{channel}} link copied. Open the app and paste it to share.',
+        shareCopyFailed: 'Copy failed. Please copy the page link manually.',
         copyright: '© 2026 VAID Platform. All rights reserved.',
         icp: 'ICP Filing Number'
       }
@@ -95,13 +177,35 @@ const resources = {
         thank: '感谢您的耐心等待。'
       },
       hero: {
-        title: '您的数字身份，',
-        titleHighlight: '永久记录',
-        subtitle: 'V-ID 为数字资产和角色提供数字存在证明，从诞生之刻起为您的数字创作建立不可篡改的记录。',
+        title: '您的数字身份',
+        titleHighlight: '永久存证',
+        titleLines: ['您的数字资产永久存证', '将数字灵魂锚定', '物理世界'],
+        mobileTitleLines: ['您的数字资产永久存证', '将数字灵魂锚定物理世界'],
+        subtitle: 'VAID 为数字资产、虚拟角色与原创设定提供存在证明与时间锚点。\n从作品诞生的那一刻起，为创作留下一份可追溯、可验证、不可篡改的数字记录。',
+        mobileSubtitleLines: ['VAID 为数字资产、虚拟角色与原创设定提供存在证明与时间锚点。', '从作品诞生的那一刻起，为创作留下一份可追溯、可验证、', '不可篡改的数字记录。'],
         cta: '立即开始'
       },
+      auth: {
+        loading: '加载中',
+        login: '登录',
+        account: '账户',
+        loginTitle: '登录 VAID',
+        loginSubtitle: '输入邮箱，通过安全邮件链接继续。',
+        accountSubtitle: '证书、额度和购买记录都会绑定到此账户。',
+        email: '邮箱',
+        emailPlaceholder: 'you@example.com',
+        emailRequired: '请输入邮箱',
+        magicLinkSent: '登录链接已发送，请检查邮箱并打开链接完成登录。',
+        sending: '发送中...',
+        sendMagicLink: '发送登录链接',
+        currentEmail: '当前邮箱',
+        emailVerified: '邮箱已验证',
+        emailNotVerified: '邮箱未验证。生成证书前请先完成邮箱验证。',
+        signOut: '退出登录',
+        close: '关闭'
+      },
       about: {
-        title: '关于 V-ID 平台',
+        title: '关于 VAID 平台',
         description: '面向开发者的数字资产存档与身份识别技术展示平台',
         purpose: '本平台展示数字指纹、加密散列和不可变记录保存技术，用于教育和开发目的。'
       },
@@ -109,38 +213,73 @@ const resources = {
         title: '工作原理',
         step1: {
           title: '01. 上传',
-          desc: '上传您的角色文件并提供创作的基本信息。'
+          desc: '将您的数字资产或虚拟角色交托于此，为原创作品开启正式登记。这是把创意心血转化为长期记录的第一步。'
         },
         step2: {
           title: '02. 生成',
-          desc: '系统使用 SHA-256 加密散列生成唯一的数字指纹。'
+          desc: '利用加密技术提取作品指纹，并写入可验证的存证记录。为您的创作赋予唯一识别依据与数字基因。'
         },
         step3: {
           title: '03. 接收',
-          desc: '获得永久存在证明的不可篡改证书。'
+          desc: '获得一份不可篡改的数字化存证证书，让数字灵魂正式锚定于物理世界，宣告该虚拟资产从此永久属于您。'
         },
         step4: {
           title: '04. 验证',
-          desc: '通用验证：任何人都可以通过公共数字账本验证您 ID 的真实性。'
+          desc: '任何人在任何时刻都可以核验这份存证的真实性，让您的创作记录始终有迹可循，并保留可靠依据。'
         }
       },
       form: {
         title: '创建您的证书',
+        remaining: '剩余次数：{{count}} 次',
+        buyPlan: '购买套餐',
+        activationPlaceholder: '输入激活码，例如 VAID-ABCD-EFGH-IJKL',
+        verifyActivation: '兑换激活码',
+        verifying: '兑换中...',
         privacyGuard: '隐私保护：',
         privacyText: '您的原始文件保留在您的设备上。我们只生成数字指纹。',
         dragDrop: '将角色图片拖放到此处',
         or: '或',
-        selectFile: '选择文件进行本地哈希',
+        selectFile: '择文件进行本地加密',
         changeImage: '更换图片',
         characterName: '角色名称',
         characterPlaceholder: '例如：星辰探索者诺娃',
         creatorName: '创作者姓名',
         creatorPlaceholder: '例如：陈亚历克斯',
+        termsPrefix: '我已阅读并同意',
+        terms: '用户协议',
+        and: '和',
+        privacy: '隐私政策',
+        termsSuffix: '，了解账户将用于额度管理、证书注册和支付记录绑定',
+        editInfo: '编辑信息',
+        dragAdjust: '拖拽图片调整位置',
+        scaleHint: '使用下方滑块缩放图片',
+        scale: '缩放',
+        resetImage: '重置位置和缩放',
+        back: '返回',
+        next: '下一步',
         generateProof: '生成证书',
         processing: '处理中...',
-        download: '下载 V-ID 证书',
+        download: '下载 VAID 证书',
         certificateDownloaded: '证书生成成功！',
         createAnother: '创建另一个证书'
+      },
+      errors: {
+        enterActivationCode: '请输入激活码',
+        activationNotFound: '激活码不存在，请检查后重试',
+        activationUnavailable: '这个激活码已用完或不可用，请更换新的激活码',
+        fillNames: '请先填写角色名称和创作者名称',
+        uploadImage: '请先上传图片',
+        returnFillNames: '请先返回上一步填写角色名称和创作者名称',
+        activationRequired: '请输入激活码后再生成',
+        quotaConsumeFailed: '剩余次数扣减失败，请稍后重试',
+        generationCheckFailed: '生成前校验失败，请稍后重试',
+        generationFlowFailed: '生成流程异常，请稍后重试',
+        imageReadFailed: '图片读取失败，请重新上传后重试',
+        unsupportedImageType: '请上传 JPG、PNG、WEBP 或 GIF 图片',
+        imageTooLarge: '图片过大，请上传小于 {{size}} 的图片',
+        quotaStatusFailed: '次数状态校验失败，请稍后重试',
+        loginRequired: '请先登录，再生成证书',
+        emailNotConfirmed: '请先完成邮箱验证，再生成证书'
       },
       progress: {
         reading: '本地读取文件中...',
@@ -158,15 +297,42 @@ const resources = {
       paywall: {
         title: '解锁更多证书生成次数',
         subtitle: '选择适合您的套餐，支付宝安全支付',
+        pack1: '1次套餐',
+        pack5: '5次套餐',
         pack10: '10次套餐',
-        pack50: '50次套餐',
-        pack100: '100次套餐'
+        certificates: '{{count}} 次证书生成',
+        bestValue: '最划算',
+        buyNow: '立即购买',
+        iframeNotice: '当前处于预览环境，支付宝无法在内嵌窗口中打开。点击购买后，支付页面会在新标签页中打开，支付成功后会返回支付结果页面。',
+        createOrderFailed: '创建订单失败，请稍后重试',
+        paymentUrlFailed: '获取支付链接失败',
+        networkError: '网络错误，请检查连接',
+        pendingPayment: '如果支付宝页面没有自动打开，请点击下面的按钮。',
+        openAlipay: '在新标签页打开支付宝',
+        securityNote: '支付由支付宝提供安全保障 • 支付成功后额度会直接充入您的 VAID 账户'
       },
       footer: {
         disclaimer: '法律声明',
-        disclaimerText: 'V-ID 是面向开发者的数字存档平台，而非法律所有权凭证。我们为数字资产管理提供技术展示。此服务创建特定时间点的数字存在证明，但不建立法律所有权或版权。有关知识产权事宜，请咨询法律专业人士。',
+        disclaimerText: 'VAID 是面向开发者的数字存档平台，而非法律所有权凭证。我们为数字资产管理提供技术展示。此服务创建特定时间点的数字存在证明，但不建立法律所有权或版权。有关知识产权事宜，请咨询法律专业人士。',
         manifesto: '隐私宣言',
         manifestoText: '数字主权属于创作者。无追踪。无邮件。只有数学证明。',
+        contact: '联系我们',
+        contactTitle: '联系 VAID',
+        contactSubtitle: '通过站内表单发送消息，用户不会看到 VAID 邮箱地址。',
+        contactName: '您的称呼',
+        contactEmail: '您的回复邮箱',
+        contactMessage: '请输入您想咨询的内容',
+        contactSend: '发送消息',
+        contactSending: '发送中...',
+        contactSent: '消息已发送，如有需要我们会回复。',
+        contactError: '消息发送失败，请稍后重试。',
+        share: '分享',
+        shareText: 'VAID - 为虚拟资产提供数字身份存证',
+        weibo: '新浪微博',
+        xiaohongshu: '小红书',
+        wechatMoments: '微信朋友圈',
+        shareCopied: '{{channel}} 分享链接已复制，请打开对应 App 粘贴发布。',
+        shareCopyFailed: '复制失败，请手动复制当前页面链接。',
         copyright: '© 2026 VAID 平台. 保留所有权利。',
         icp: 'ICP 备案号'
       }
@@ -182,12 +348,32 @@ const resources = {
       hero: {
         title: 'あなたのデジタルアイデンティティを',
         titleHighlight: '永久的に記録',
-        subtitle: 'V-IDは、デジタル資産とキャラクターの暗号的存在証明を提供し、デジタル創作物の誕生時から不変の記録を作成します。',
+        titleLines: ['あなたのデジタル', 'アイデンティティを', '永久的に記録'],
+        subtitle: 'VAIDは、デジタル資産とキャラクターの暗号的存在証明を提供し、\nデジタル創作物の誕生時から不変の記録を作成します。',
         cta: '今すぐ始める',
         carouselText: 'デジタル存在の最終証明：デジタル資産を物理世界に固定する。'
       },
+      auth: {
+        loading: '読込中',
+        login: 'ログイン',
+        account: 'アカウント',
+        loginTitle: 'VAIDにログイン',
+        loginSubtitle: 'メールアドレスを入力し、安全なマジックリンクで続行します。',
+        accountSubtitle: '証明書、クレジット、購入履歴はこのアカウントに紐づきます。',
+        email: 'メール',
+        emailPlaceholder: 'you@example.com',
+        emailRequired: 'メールアドレスを入力してください。',
+        magicLinkSent: 'ログインリンクを送信しました。メールを確認してリンクを開いてください。',
+        sending: '送信中...',
+        sendMagicLink: 'ログインリンクを送信',
+        currentEmail: '現在のメール',
+        emailVerified: 'メール確認済み',
+        emailNotVerified: 'メールが未確認です。証明書を生成する前に確認してください。',
+        signOut: 'ログアウト',
+        close: '閉じる'
+      },
       about: {
-        title: 'V-IDプラットフォームについて',
+        title: 'VAIDプラットフォームについて',
         description: '開発者向けのデジタル資産アーカイブおよびアイデンティティ認識技術デモンストレーションプラットフォーム',
         purpose: 'このプラットフォームは、教育および開発目的のためのデジタル指紋、暗号ハッシュ、および不変記録保管技術を展示します。'
       },
@@ -195,38 +381,73 @@ const resources = {
         title: '仕組み',
         step1: {
           title: '01. アップロード',
-          desc: 'キャラクターファイルをアップロードし、創作物の詳細情報を提供します。'
+          desc: 'デジタル資産やバーチャルキャラクターをここに託し、オリジナル作品の正式な登録を始めます。これは、創作の情熱を長く残る記録へと変える第一歩です。'
         },
         step2: {
           title: '02. 生成',
-          desc: 'SHA-256暗号ハッシュを使用してユニークなデジタル指紋を生成します。'
+          desc: '暗号技術で作品のフィンガープリントを抽出し、検証可能な記録として刻みます。あなたの創作に、唯一の識別根拠とデジタル上の遺伝子を与えます。'
         },
         step3: {
           title: '03. 受け取り',
-          desc: '創作物の永続的な存在証明を持つ不変の証明書を受け取ります。'
+          desc: '改ざん不可能なデジタル存証証明書を受け取り、デジタルの魂を物理世界へと正式に錨定します。この瞬間から、そのバーチャル資産が永続的にあなたのものであることを宣言します。'
         },
         step4: {
           title: '04. 検証',
-          desc: 'ユニバーサル検証：誰でも公開デジタル台帳を通じてIDの真正性を確認できます。'
+          desc: 'いつでも誰でもこの存証の真正性を検証でき、あなたの創作記録が常に追跡可能で、確かな根拠として残り続けます。'
         }
       },
       form: {
         title: '証明書を作成',
+        remaining: '残り回数：{{count}} 回',
+        buyPlan: 'プランを購入',
+        activationPlaceholder: 'アクティベーションコードを入力（例：VAID-ABCD-EFGH-IJKL）',
+        verifyActivation: 'コードを引き換え',
+        verifying: '引き換え中...',
         privacyGuard: 'プライバシーガード：',
         privacyText: '元のファイルはあなたのデバイスに残ります。デジタル指紋のみを生成します。',
         dragDrop: 'キャラクター画像をここにドラッグ＆ドロップ',
         or: 'または',
-        selectFile: 'ローカルハッシュ用ファイル選択',
+        selectFile: 'ローカル暗号化用ファイルを選択',
         changeImage: '画像を変更',
         characterName: 'キャラクター名',
         characterPlaceholder: '例：ノヴァ・スターシーカー',
         creatorName: 'クリエイター名',
         creatorPlaceholder: '例：アレックス・チェン',
+        termsPrefix: '私は',
+        terms: '利用規約',
+        and: 'および',
+        privacy: 'プライバシーポリシー',
+        termsSuffix: 'を読み同意し、アカウントがクレジット管理、証明書登録、購入履歴の紐づけに使用されることを理解しました。',
+        editInfo: '情報を編集',
+        dragAdjust: '画像をドラッグして位置を調整',
+        scaleHint: '下のスライダーで画像を拡大縮小',
+        scale: '拡大率',
+        resetImage: '位置と拡大率をリセット',
+        back: '戻る',
+        next: '次へ',
         generateProof: '証明書を生成',
         processing: '処理中...',
-        download: 'V-ID証明書をダウンロード',
+        download: 'VAID証明書をダウンロード',
         certificateDownloaded: '証明書が正常に生成されました！',
         createAnother: '別の証明書を作成'
+      },
+      errors: {
+        enterActivationCode: 'アクティベーションコードを入力してください',
+        activationNotFound: 'アクティベーションコードが見つかりません。確認して再試行してください。',
+        activationUnavailable: 'このアクティベーションコードは使い切られたか利用できません。新しいコードを使用してください。',
+        fillNames: '先にキャラクター名とクリエイター名を入力してください。',
+        uploadImage: '先に画像をアップロードしてください。',
+        returnFillNames: '前の手順に戻ってキャラクター名とクリエイター名を入力してください。',
+        activationRequired: '生成前にアクティベーションコードを入力してください。',
+        quotaConsumeFailed: '残り回数の消費に失敗しました。後でもう一度お試しください。',
+        generationCheckFailed: '生成前の確認に失敗しました。後でもう一度お試しください。',
+        generationFlowFailed: '生成処理でエラーが発生しました。後でもう一度お試しください。',
+        imageReadFailed: '画像の読み込みに失敗しました。再度アップロードしてください。',
+        unsupportedImageType: 'JPG、PNG、WEBP、GIF 画像をアップロードしてください。',
+        imageTooLarge: '画像が大きすぎます。{{size}} 未満の画像をアップロードしてください。',
+        quotaStatusFailed: '残り回数の確認に失敗しました。後でもう一度お試しください。',
+        loginRequired: '証明書を生成する前にログインしてください。',
+        emailNotConfirmed: '証明書を生成する前にメール確認を完了してください。'
       },
       progress: {
         reading: 'ファイルをローカルで読み込み中...',
@@ -241,11 +462,45 @@ const resources = {
         characterName: 'キャラクター名',
         creator: 'クリエイター'
       },
+      paywall: {
+        title: '証明書生成回数を追加',
+        subtitle: 'プランを選択し、Alipayで安全に決済',
+        pack1: '1回プラン',
+        pack5: '5回プラン',
+        pack10: '10回プラン',
+        certificates: '{{count}} 回の証明書生成',
+        bestValue: '最もお得',
+        buyNow: '今すぐ購入',
+        iframeNotice: 'プレビュー環境では、Alipayを埋め込みウィンドウ内で開けません。購入後、決済ページは新しいタブで開き、成功後に決済結果ページへ戻ります。',
+        createOrderFailed: '注文の作成に失敗しました。後でもう一度お試しください。',
+        paymentUrlFailed: '決済リンクの取得に失敗しました。',
+        networkError: 'ネットワークエラーです。接続を確認してください。',
+        pendingPayment: 'Alipayページが自動で開かない場合は、下のボタンをクリックしてください。',
+        openAlipay: '新しいタブでAlipayを開く',
+        securityNote: '決済はAlipayにより保護されます • 決済成功後、クレジットはVAIDアカウントに直接追加されます'
+      },
       footer: {
         disclaimer: '法的免責事項',
-        disclaimerText: 'V-IDは開発者向けのデジタルアーカイブプラットフォームであり、法的権利ではありません。デジタル資産管理のための技術的デモンストレーションを提供します。このサービスは特定時点での暗号的存在証明を作成しますが、法的所有権や著作権を確立するものではありません。知的財産権に関する事項については、法律専門家にご相談ください。',
+        disclaimerText: 'VAIDは開発者向けのデジタルアーカイブプラットフォームであり、法的権利ではありません。デジタル資産管理のための技術的デモンストレーションを提供します。このサービスは特定時点での暗号的存在証明を作成しますが、法的所有権や著作権を確立するものではありません。知的財産権に関する事項については、法律専門家にご相談ください。',
         manifesto: 'プライバシー宣言',
         manifestoText: 'デジタル主権はクリエイターに属します。トラッキングなし。メールなし。数学的証明のみ。',
+        contact: 'お問い合わせ',
+        contactTitle: 'VAIDに連絡',
+        contactSubtitle: 'VAIDのメールアドレスを公開せずにメッセージを送信できます。',
+        contactName: 'お名前',
+        contactEmail: '返信先メール',
+        contactMessage: 'お問い合わせ内容',
+        contactSend: '送信',
+        contactSending: '送信中...',
+        contactSent: 'メッセージを送信しました。必要に応じて返信します。',
+        contactError: '送信に失敗しました。後でもう一度お試しください。',
+        share: '共有',
+        shareText: 'VAID - 仮想資産のデジタルID証明',
+        weibo: 'Weibo',
+        xiaohongshu: 'Xiaohongshu',
+        wechatMoments: 'WeChat Moments',
+        shareCopied: '{{channel}} の共有リンクをコピーしました。アプリで貼り付けて共有してください。',
+        shareCopyFailed: 'コピーに失敗しました。ページリンクを手動でコピーしてください。',
         copyright: '© 2026 VAIDプラットフォーム. All rights reserved.',
         icp: 'ICP登録番号'
       }
@@ -257,8 +512,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'zh',
+    lng: 'en',
     fallbackLng: 'en',
+    supportedLngs: ['en', 'zh', 'ja'],
     interpolation: {
       escapeValue: false
     }
