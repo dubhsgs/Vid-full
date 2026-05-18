@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Download, ExternalLink, Loader2, AlertCircle, Calendar, User, Hash, Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Download, ExternalLink, Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
 import { supabase } from '../utils/supabase';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import QRCode from 'qrcode';
 import JSZip from 'jszip';
 
@@ -53,9 +55,148 @@ const QR_TEXT_PRIMARY_SIZE = 9.4;
 const QR_TEXT_SECONDARY_SIZE = 9.4;
 const DESCRIPTION_TEXT_SIZE = 13.2;
 
+const verifyCopy = {
+  en: {
+    loading: 'Verifying VAID Record...',
+    failedTitle: 'Verification Failed',
+    returnHome: 'Return to Home',
+    home: 'Home',
+    kicker: 'VAID // PUBLIC VERIFICATION',
+    title: 'VAID Verification Record',
+    subtitle: 'Digital identity archive confirmed',
+    preview: 'Certificate Preview',
+    metadata: 'Identity Metadata',
+    characterName: 'Character Name',
+    creator: 'Creator Name',
+    citizenId: 'Citizen ID',
+    timestamp: 'Timestamp',
+    digitalSeal: 'VAID Digital Seal',
+    sealDescription: 'This digital seal has entered VAID chain-based time anchoring, forming traceable and tamper-resistant proof of existence.',
+    download: 'Download Bundle',
+    proofStatus: 'Proof Status',
+    aboutTitle: 'About This Verification',
+    aboutText: 'This VAID record is part of the VAID digital identity archive. The system creates a unique digital seal for the original work and connects it to a blockchain-based time anchor, helping prove that this digital identity existed at a specific moment and remains traceable, verifiable, and tamper-resistant.',
+    status: {
+      confirmed: 'Blockchain archive confirmed',
+      stamped: 'Chain time anchor submitted, awaiting network confirmation',
+      failed: 'Chain archive submission failed',
+      pending: 'Chain archive processing...',
+    },
+    alert: {
+      confirmed: 'Blockchain archive confirmed. This VAID digital seal has been confirmed by the blockchain network.',
+      stamped: 'Chain time anchor submitted. This VAID digital seal is awaiting blockchain network confirmation.',
+      failed: 'Chain archive submission failed. Please try again later or contact VAID.',
+      pending: 'Chain archive processing. VAID is creating a verifiable time anchor for this record.',
+    },
+  },
+  zh: {
+    loading: '正在验证 VAID 记录...',
+    failedTitle: '验证失败',
+    returnHome: '返回首页',
+    home: '首页',
+    kicker: 'VAID // 公开验证协议',
+    title: 'VAID 验证记录',
+    subtitle: '数字身份档案已确认',
+    preview: '证书预览',
+    metadata: '身份元数据',
+    characterName: '角色名称',
+    creator: '创作者名称',
+    citizenId: '公民编号',
+    timestamp: '生成时间',
+    digitalSeal: 'VAID 数字存证印记',
+    sealDescription: '此数字存证印记已进入 VAID 的链上时间锚定流程，用于形成不可篡改、可追溯的存在证明。',
+    download: '下载证书包',
+    proofStatus: '存证状态',
+    aboutTitle: '关于此验证',
+    aboutText: '此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。系统会为原始作品生成唯一的数字存证印记，并将其接入区块链时间锚定流程，用于证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、不可随意篡改。',
+    status: {
+      confirmed: '链上存证已确认',
+      stamped: '已提交，等待链上确认',
+      failed: '链上存证提交失败',
+      pending: '链上存证处理中...',
+    },
+    alert: {
+      confirmed: '链上存证已确认。此 VAID 的数字存证印记已获得区块链网络确认。',
+      stamped: '链上时间锚点已提交。此 VAID 的数字存证印记正在等待区块链网络确认。',
+      failed: '链上存证提交失败。请稍后重试或联系 VAID。',
+      pending: '链上存证处理中。系统正在为此 VAID 建立可验证的时间锚点。',
+    },
+  },
+  ja: {
+    loading: 'VAID レコードを検証中...',
+    failedTitle: '検証に失敗しました',
+    returnHome: 'ホームへ戻る',
+    home: 'ホーム',
+    kicker: 'VAID // 公開検証プロトコル',
+    title: 'VAID 検証レコード',
+    subtitle: 'デジタルアイデンティティの記録を確認済み',
+    preview: '証明書プレビュー',
+    metadata: 'アイデンティティ情報',
+    characterName: 'キャラクター名',
+    creator: 'クリエイター名',
+    citizenId: 'シチズン ID',
+    timestamp: '発行日時',
+    digitalSeal: 'VAID デジタル証明シール',
+    sealDescription: 'このデジタル証明シールは、VAID のチェーンベース時間アンカー処理に入り、追跡可能で改ざん耐性のある存在証明を形成します。',
+    download: '証明書パッケージをダウンロード',
+    proofStatus: '証明ステータス',
+    aboutTitle: 'この検証について',
+    aboutText: 'この VAID レコードは、VAID のデジタルアイデンティティアーカイブに記録されています。システムは原作品に固有のデジタル証明シールを生成し、ブロックチェーンベースの時間アンカーへ接続することで、このデジタルアイデンティティが特定の時点で存在していたことを示し、追跡・検証・改ざん耐性を高めます。',
+    status: {
+      confirmed: 'チェーンアーカイブ確認済み',
+      stamped: '送信済み、確認待ち',
+      failed: 'チェーンアーカイブ送信失敗',
+      pending: 'チェーンアーカイブ処理中...',
+    },
+    alert: {
+      confirmed: 'チェーンアーカイブ確認済み。この VAID デジタル証明シールはブロックチェーンネットワークで確認されています。',
+      stamped: 'チェーン時間アンカー送信済み。この VAID デジタル証明シールはネットワーク確認待ちです。',
+      failed: 'チェーンアーカイブ送信に失敗しました。時間をおいて再試行するか、VAID にお問い合わせください。',
+      pending: 'チェーンアーカイブ処理中。VAID はこのレコードの検証可能な時間アンカーを作成しています。',
+    },
+  },
+};
+
+const verifyTypography = {
+  en: {
+    metaLabelBox: 'w-[150px]',
+    metaLabel: 'text-[0.7rem] tracking-[0.18em]',
+    metaValue: 'text-[0.95rem]',
+    metaValueLong: 'text-[0.95rem]',
+    proofLabel: 'text-[0.74rem] tracking-[0.18em]',
+    proofTitle: 'text-[1rem]',
+    proofText: 'text-[0.84rem]',
+    aboutTitle: 'text-[1.55rem] tracking-[0.1em]',
+    aboutText: 'text-[1.08rem] leading-10',
+  },
+  zh: {
+    metaLabelBox: 'w-[100px]',
+    metaLabel: 'text-[0.82rem] tracking-[0.06em]',
+    metaValue: 'text-[1.04rem]',
+    metaValueLong: 'text-[1.04rem]',
+    proofLabel: 'text-[0.82rem] tracking-[0.06em]',
+    proofTitle: 'text-[1.05rem]',
+    proofText: 'text-[0.9rem]',
+    aboutTitle: 'text-[1.62rem] tracking-[0.08em]',
+    aboutText: 'text-[1.05rem] leading-9',
+  },
+  ja: {
+    metaLabelBox: 'w-[124px]',
+    metaLabel: 'text-[0.76rem] tracking-[0.03em]',
+    metaValue: 'text-[0.98rem]',
+    metaValueLong: 'text-[0.98rem]',
+    proofLabel: 'text-[0.76rem] tracking-[0.03em]',
+    proofTitle: 'text-[0.98rem]',
+    proofText: 'text-[0.82rem]',
+    aboutTitle: 'text-[1.42rem] tracking-[0.07em]',
+    aboutText: 'text-[0.98rem] leading-9',
+  },
+};
+
 export function VerifyPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [record, setRecord] = useState<VIDRecord | null>(null);
@@ -63,6 +204,9 @@ export function VerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [certificateReady, setCertificateReady] = useState(false);
   const [otsStatus, setOtsStatus] = useState<string>('pending');
+  const langKey = i18n.language?.startsWith('zh') ? 'zh' : i18n.language?.startsWith('ja') ? 'ja' : 'en';
+  const copy = verifyCopy[langKey];
+  const type = verifyTypography[langKey];
 
   useEffect(() => {
     const fetchRecord = async () => {
@@ -641,25 +785,27 @@ export function VerifyPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
+    const locale = langKey === 'zh' ? 'zh-CN' : langKey === 'ja' ? 'ja-JP' : 'en-US';
+
+    return date.toLocaleString(locale, {
+      month: langKey === 'en' ? 'short' : '2-digit',
       day: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZoneName: 'short'
+      hour12: langKey === 'en'
     });
   };
 
   const handleInspectProof = () => {
     const statusText =
       otsStatus === 'confirmed'
-        ? '链上存证已确认。此 VAID 的数字存证印记已获得区块链网络确认。'
+        ? copy.alert.confirmed
         : otsStatus === 'stamped'
-          ? '链上时间锚点已提交。此 VAID 的数字存证印记正在等待区块链网络确认。'
+          ? copy.alert.stamped
           : otsStatus === 'failed'
-            ? '链上存证提交失败。请稍后重试或联系 VAID。'
-            : '链上存证处理中。系统正在为此 VAID 建立可验证的时间锚点。';
+            ? copy.alert.failed
+            : copy.alert.pending;
 
     window.alert(statusText);
   };
@@ -720,12 +866,18 @@ For more information, visit: ${window.location.origin}
     }
   };
 
+  const statusLabel =
+    otsStatus === 'confirmed' ? copy.status.confirmed :
+    otsStatus === 'stamped' ? copy.status.stamped :
+    otsStatus === 'failed' ? copy.status.failed :
+    copy.status.pending;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-[#050817] text-white flex items-center justify-center">
+        <div className="text-center rounded-2xl border border-cyan-300/20 bg-slate-950/70 px-10 py-9 shadow-[0_0_60px_rgba(14,165,233,0.18)]">
           <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-300">Verifying VAID Record...</p>
+          <p className="text-slate-300">{copy.loading}</p>
         </div>
       </div>
     );
@@ -733,17 +885,17 @@ For more information, visit: ${window.location.origin}
 
   if (error || !record) {
     return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#050817] text-white flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <div className="bg-[#1a1a2e]/80 backdrop-blur-xl border border-red-500/30 rounded-xl p-8 text-center">
+          <div className="bg-[#101528]/90 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(239,68,68,0.15)]">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Verification Failed</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{copy.failedTitle}</h2>
             <p className="text-slate-400 mb-6">{error}</p>
             <button
               onClick={() => navigate('/')}
               className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-all"
             >
-              Return to Home
+              {copy.returnHome}
             </button>
           </div>
         </div>
@@ -752,183 +904,169 @@ For more information, visit: ${window.location.origin}
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a12] text-white relative overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-20 pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '10px 10px'
-        }}
-      />
+    <div className="min-h-screen text-white relative overflow-hidden bg-[#030713]">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 12% 12%, rgba(0, 188, 255, 0.14), transparent 24%),
+              radial-gradient(circle at 90% 22%, rgba(255, 46, 72, 0.12), transparent 26%),
+              linear-gradient(115deg, rgba(5, 18, 45, 0.95), rgba(3, 7, 19, 0.96) 52%, rgba(4, 10, 25, 0.98)),
+              url('/circuit_style.png')
+            `,
+            backgroundSize: 'cover, cover, cover, cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-35"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(42, 150, 255, 0.12) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(42, 150, 255, 0.12) 1px, transparent 1px)
+            `,
+            backgroundSize: '64px 64px',
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-px bg-slate-400/22" />
+      </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 md:py-16">
-        <button
-          onClick={() => navigate('/')}
-          className="mb-6 text-slate-400 hover:text-cyan-400 transition-colors text-sm md:text-base"
-        >
-          ← Back to Home
-        </button>
-
-        <div className="text-center mb-8 md:mb-12">
-          <div className="inline-flex items-center justify-center mb-6">
-            <div className="relative">
-              <svg className="w-20 h-20 md:w-24 md:h-24 animate-spin-slow" viewBox="0 0 100 100">
-                <defs>
-                  <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: '#06b6d4', stopOpacity: 0.8 }} />
-                    <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 0.8 }} />
-                  </linearGradient>
-                </defs>
-                <polygon
-                  points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5"
-                  fill="none"
-                  stroke="url(#hexGradient)"
-                  strokeWidth="2"
-                  className="drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="w-8 h-8 md:w-10 md:h-10 text-cyan-400 animate-breathe" />
-              </div>
-            </div>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            VERIFIED BY VAID PROTOCOL
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base">Digital Identity Record Confirmed</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-[#0f1629]/80 border border-cyan-500/30 rounded-2xl p-4 md:p-8 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-          <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
-            <div className="flex flex-col">
-              <h2 className="text-lg md:text-xl font-bold text-cyan-400 mb-4">Certificate Preview</h2>
-              <div className="bg-black/40 border border-cyan-500/20 rounded-xl p-3 md:p-4 flex items-center justify-center relative overflow-hidden">
-                {!certificateReady && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-                  </div>
-                )}
-                <div className="w-full max-w-[1024px] aspect-video">
-                  <canvas
-                    ref={canvasRef}
-                    className="block w-full h-full rounded-lg shadow-lg"
-                    style={{ display: certificateReady ? 'block' : 'none' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col space-y-4">
-              <h2 className="text-lg md:text-xl font-bold text-cyan-400 mb-2">Identity Metadata</h2>
-
-              <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-1" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-400 mb-1">CHARACTER NAME</div>
-                    <div className="text-xl md:text-2xl font-bold text-white break-words">{record.character_name}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-purple-400 flex-shrink-0 mt-1" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-400 mb-1">CREATOR</div>
-                    <div className="text-lg md:text-xl font-semibold text-white break-words">{record.creator_name}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Hash className="w-5 h-5 text-green-400 flex-shrink-0 mt-1" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-400 mb-1">CITIZEN ID</div>
-                    <div className="text-sm md:text-base font-mono text-white break-all">{record.id}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-amber-400 flex-shrink-0 mt-1" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-400 mb-1">TIMESTAMP</div>
-                    <div className="text-sm md:text-base text-white break-words">{formatDate(record.created_at)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 md:mt-8 bg-black/60 border border-cyan-500/40 rounded-xl p-4 md:p-6">
-            <div className="flex items-start gap-3 mb-3">
-              <Hash className="w-6 h-6 text-cyan-400 flex-shrink-0 mt-1" />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs md:text-sm font-bold text-cyan-400 mb-2">
-                  VAID DIGITAL SEAL (数字存证印记)
-                </div>
-                <div className="font-mono text-xs md:text-sm text-green-400 break-all leading-relaxed bg-black/50 p-3 md:p-4 rounded-lg border border-green-500/30">
-                  {record.sha256_hash}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-3 mb-2">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                otsStatus === 'confirmed' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]' :
-                otsStatus === 'stamped'   ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]' :
-                otsStatus === 'failed'    ? 'bg-red-400' :
-                'bg-slate-500'
-              }`} />
-              <span className="text-xs font-mono text-slate-300">
-                {otsStatus === 'confirmed' && '链上存证已确认'}
-                {otsStatus === 'stamped'   && '链上时间锚点已提交，等待区块链网络确认'}
-                {otsStatus === 'failed'    && '链上存证提交失败'}
-                {otsStatus === 'pending'   && '链上存证处理中...'}
-              </span>
-            </div>
-
-            <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-              此数字存证印记已进入 VAID 的链上时间锚定流程，用于形成不可篡改、可追溯的存在证明。
-            </p>
-          </div>
-
-          <div className="mt-6 md:mt-8 grid sm:grid-cols-2 gap-3 md:gap-4">
+      <div className="relative z-10 mx-auto max-w-[1500px] px-4 pb-8 sm:px-6 lg:px-8">
+        <header className="flex items-center justify-between border-b border-slate-400/22 py-5">
+          <button onClick={() => navigate('/')} className="shrink-0">
+            <img
+              src="/vaid-logo-top.png"
+              alt="VAID Logo"
+              className="h-8 w-auto max-w-[190px] mix-blend-screen sm:h-10 md:h-[54px]"
+            />
+          </button>
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleDownloadBundle}
-              disabled={!certificateReady}
-              className="flex items-center justify-center gap-2 px-4 md:px-6 py-3 md:py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-cyan-500/30 text-sm md:text-base"
+              onClick={() => navigate('/')}
+              className="hidden items-center gap-2 rounded-xl border border-transparent px-4 py-2 text-sm font-semibold text-cyan-100/80 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/8 hover:text-cyan-100 sm:inline-flex"
             >
-              <Download className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Download Bundle</span>
+              <Home className="h-4 w-4" />
+              Back to Home
             </button>
-
-            <button
-              onClick={handleInspectProof}
-              className="flex items-center justify-center gap-2 px-4 md:px-6 py-3 md:py-4 bg-transparent hover:bg-cyan-500/10 border-2 border-cyan-500/50 hover:border-cyan-400 text-cyan-400 hover:text-cyan-300 font-bold rounded-xl transition-all group text-sm md:text-base"
-            >
-              <Lock className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Proof Status</span>
-              <ExternalLink className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <LanguageSwitcher />
           </div>
-        </div>
+        </header>
 
-        <div className="mt-6 md:mt-8 p-4 md:p-6 bg-cyan-500/5 border border-cyan-500/20 rounded-xl backdrop-blur-sm">
-          <h3 className="text-base md:text-lg font-semibold text-cyan-400 mb-3">About This Verification</h3>
-          <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-            此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。
-            系统会为原始作品生成唯一的数字存证印记，并将其接入区块链时间锚定流程，
-            用于证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、不可随意篡改。
-            下载包中包含配套的存证证明文件，可用于后续独立核验。
+        <section className="relative py-8 text-center md:py-10">
+          <div className="pointer-events-none absolute left-[7%] top-1/2 hidden h-px w-[25%] bg-gradient-to-r from-transparent via-slate-400/28 to-slate-400/12 md:block" />
+          <div className="pointer-events-none absolute right-[7%] top-1/2 hidden h-px w-[25%] bg-gradient-to-l from-transparent via-slate-400/28 to-slate-400/12 md:block" />
+          <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.42em] text-cyan-300/70 md:hidden">
+            {copy.kicker}
           </p>
-        </div>
+          <h1 className="text-3xl font-black uppercase tracking-[0.14em] text-cyan-100 drop-shadow-[0_0_22px_rgba(125,226,255,0.55)] md:text-5xl">
+            {langKey === 'en' ? 'VAID VERIFICATION' : copy.title}
+          </h1>
+          <p className="mt-3 text-sm text-slate-300/78 md:text-xl">
+            {copy.subtitle}
+          </p>
+        </section>
+
+        <main className="relative">
+          <div className="pointer-events-none absolute -inset-3 rounded-[2.1rem] border border-slate-400/24 shadow-[0_0_42px_rgba(0,183,255,0.12)]" />
+          <div className="pointer-events-none absolute left-0 top-0 h-20 w-20 rounded-tl-[1.9rem] border-l-[5px] border-t-[5px] border-cyan-300 shadow-[-4px_-4px_20px_rgba(34,211,238,0.65)]" />
+          <div className="pointer-events-none absolute right-0 top-0 h-20 w-20 rounded-tr-[1.9rem] border-r-[5px] border-t-[5px] border-cyan-300 shadow-[4px_-4px_20px_rgba(34,211,238,0.48)]" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-20 rounded-bl-[1.9rem] border-b-[5px] border-l-[5px] border-cyan-300 shadow-[-4px_4px_20px_rgba(34,211,238,0.45)]" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-20 w-20 rounded-br-[1.9rem] border-b-[5px] border-r-[5px] border-cyan-300 shadow-[4px_4px_20px_rgba(34,211,238,0.65)]" />
+
+          <section className="relative overflow-hidden rounded-[1.55rem] border border-slate-400/22 bg-[#061329]/72 px-4 py-5 shadow-[inset_0_0_70px_rgba(38,170,255,0.08),0_30px_100px_rgba(0,0,0,0.42)] backdrop-blur-md md:px-8 md:py-8">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_55%_100%,rgba(0,130,255,0.16),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.055),transparent_34%,rgba(17,118,255,0.06))]" />
+
+            <div className="relative grid items-stretch gap-4 md:grid-cols-[minmax(0,1fr)_minmax(250px,0.42fr)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.48fr)]">
+              <section className="flex rounded-2xl border border-slate-400/22 bg-black/18 p-2 shadow-[0_0_20px_rgba(14,165,233,0.06)]">
+                <div className="relative flex min-h-[190px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-[#030814]/64 p-1">
+                  {!certificateReady && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-cyan-300" />
+                    </div>
+                  )}
+                  <div className="relative aspect-video w-full max-w-[1220px]">
+                    <canvas
+                      ref={canvasRef}
+                      className="block h-full w-full rounded-lg object-contain shadow-[0_18px_55px_rgba(0,0,0,0.45)]"
+                      style={{ display: certificateReady ? 'block' : 'none' }}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <aside className="flex h-full flex-col gap-2.5">
+                {[
+                  { label: copy.characterName, value: record.character_name, Icon: User },
+                  { label: copy.creator, value: record.creator_name, Icon: User },
+                  { label: copy.citizenId, value: record.id, Icon: Hash, mono: true },
+                  { label: copy.timestamp, value: formatDate(record.created_at), Icon: Calendar, long: true },
+                ].map(({ label, value, Icon, mono, long }) => (
+                  <div key={label} className="rounded-xl border border-slate-400/22 bg-[#07172f]/76 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-1 md:items-center">
+                    <div className="flex w-full items-center gap-3">
+                      <Icon className="h-5 w-5 shrink-0 text-cyan-300" />
+                      <div className={`shrink-0 ${type.metaLabelBox}`}>
+                        <div className={`${langKey === 'en' ? 'uppercase' : ''} text-slate-400 ${type.metaLabel}`}>{label}</div>
+                      </div>
+                      <div className={`min-w-0 flex-1 text-left font-semibold leading-snug text-white ${long ? type.metaValueLong : type.metaValue} ${mono ? 'font-mono' : ''}`}>
+                        {value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="rounded-xl border border-slate-400/22 bg-gradient-to-br from-cyan-400/9 to-emerald-400/8 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-[1.45] md:items-center">
+                  <div className="flex w-full items-center gap-3">
+                    <ShieldCheck className="h-7 w-7 shrink-0 text-cyan-300" />
+                    <div className="min-w-0 flex-1">
+                      <div className={`${langKey === 'en' ? 'uppercase' : ''} text-slate-400 ${type.proofLabel}`}>{copy.proofStatus}</div>
+                      <div className={`mt-1 font-black text-green-300 drop-shadow-[0_0_12px_rgba(74,222,128,0.38)] ${type.proofTitle}`}>
+                        {copy.digitalSeal}
+                      </div>
+                      <div className={`text-slate-300 ${type.proofText}`}>{statusLabel}</div>
+                    </div>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-green-400 text-green-300 shadow-[0_0_18px_rgba(74,222,128,0.35)]">
+                      ✓
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+
+            <section className="relative mt-6 rounded-2xl border border-slate-400/22 bg-[#041126]/70 p-5 shadow-[inset_0_0_46px_rgba(14,165,233,0.07)]">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.34fr)]">
+                <div className="min-h-[150px]">
+                  <div className="flex items-center gap-4">
+                    <ShieldCheck className="h-8 w-8 text-cyan-300" />
+                    <h3 className={`font-black text-cyan-300 ${type.aboutTitle}`}>{copy.aboutTitle}</h3>
+                  </div>
+                  <p className={`mt-4 max-w-3xl text-slate-300/86 ${type.aboutText}`}>
+                    {copy.aboutText}
+                  </p>
+                </div>
+
+                <div className="flex flex-col justify-center gap-4">
+                  <button
+                    onClick={handleDownloadBundle}
+                    disabled={!certificateReady}
+                    className="flex items-center justify-center gap-3 rounded-xl border border-cyan-100/30 bg-gradient-to-r from-cyan-500 to-blue-700 px-5 py-4 text-base font-bold text-white shadow-[0_0_30px_rgba(0,145,255,0.42)] transition-all hover:from-cyan-400 hover:to-blue-600 disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700"
+                  >
+                    <Download className="h-5 w-5" />
+                    {copy.download}
+                  </button>
+                  <button
+                    onClick={handleInspectProof}
+                    className="flex items-center justify-center gap-3 rounded-xl border border-cyan-300/50 bg-black/18 px-5 py-4 text-base font-bold text-cyan-200 transition-all hover:border-cyan-200 hover:bg-cyan-300/10"
+                  >
+                    <Lock className="h-5 w-5" />
+                    {copy.proofStatus}
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </section>
+          </section>
+        </main>
       </div>
 
       <style>{`
