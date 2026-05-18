@@ -16,9 +16,42 @@ interface VIDRecord {
   ots_file_path: string | null;
 }
 
-const CANVAS_W = 512;
-const CANVAS_H = 288;
-const DPR = 2;
+const CANVAS_W = 1024;
+const CANVAS_H = 576;
+const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2;
+const PANEL_W = 880;
+const PANEL_H = 494;
+const PANEL_X = (CANVAS_W - PANEL_W) / 2;
+const PANEL_Y = (CANVAS_H - PANEL_H) / 2;
+const PANEL_RADIUS = 32;
+
+const AVATAR_COLOR_START = '#b8dce8';
+const AVATAR_COLOR_END = '#e040a0';
+const AVATAR_CENTER_X_RATIO = 0.2112;
+const AVATAR_CENTER_Y_RATIO = 0.5236;
+const AVATAR_DIAMETER_RATIO = 0.298;
+const AVATAR_IMAGE_RATIO = 0.79;
+const AVATAR_COVER_SCALE = 1.14;
+const DIVIDER_X_RATIO = 0.4176;
+const DIVIDER_LENGTH_SCALE = 0.828;
+const DIVIDER_TOP_SCALE = 0.95;
+const TEXT_START_X_RATIO = 0.4592;
+const TEXT_NAME_Y_RATIO = 0.3776;
+const TEXT_STATUS_Y_RATIO = 0.4808;
+const TEXT_ISSUED_Y_RATIO = 0.5885;
+const TEXT_ID_Y_RATIO = 0.6947;
+const QR_PLATE_X_RATIO = 0.836;
+const QR_PLATE_W_RATIO = 0.112;
+const QR_PLATE_H_RATIO = 0.247;
+const QR_MODULE_INSET_X_RATIO = 0.126;
+const QR_MODULE_INSET_Y_RATIO = 0.0956;
+const QR_MODULE_SIZE_IN_PLATE_RATIO = 0.748;
+const QR_PROOF_LABEL_Y_RATIO = 0.78;
+const QR_PROOF_VALUE_Y_RATIO = 0.895;
+const INFO_TEXT_FONT_SIZE = 22;
+const QR_TEXT_PRIMARY_SIZE = 9.4;
+const QR_TEXT_SECONDARY_SIZE = 9.4;
+const DESCRIPTION_TEXT_SIZE = 13.2;
 
 export function VerifyPage() {
   const { id } = useParams<{ id: string }>();
@@ -161,8 +194,6 @@ export function VerifyPage() {
 
     canvas.width = CANVAS_W * DPR;
     canvas.height = CANVAS_H * DPR;
-    canvas.style.width = `${CANVAS_W}px`;
-    canvas.style.height = `${CANVAS_H}px`;
     ctx.scale(DPR, DPR);
 
     try {
@@ -172,8 +203,12 @@ export function VerifyPage() {
           console.warn('[VerifyPage] Failed to load background:', err);
           return null;
         }),
-        loadImage('/logo.png').catch(err => {
+        loadImage('/vaid_logo_mark.png').catch(err => {
           console.warn('[VerifyPage] Failed to load logo:', err);
+          return null;
+        }),
+        loadImage('/grid_texture.png').catch(err => {
+          console.warn('[VerifyPage] Failed to load texture:', err);
           return null;
         }),
       ];
@@ -192,8 +227,8 @@ export function VerifyPage() {
         loadPromises.push(Promise.resolve(null));
       }
 
-      const [bgImg, logoImg, avatarImg] = await Promise.all(loadPromises);
-      console.log('[VerifyPage] Images loaded:', { bg: !!bgImg, logo: !!logoImg, avatar: !!avatarImg });
+      const [bgImg, logoImg, textureImg, avatarImg] = await Promise.all(loadPromises);
+      console.log('[VerifyPage] Images loaded:', { bg: !!bgImg, logo: !!logoImg, texture: !!textureImg, avatar: !!avatarImg });
 
       console.log('[VerifyPage] Generating QR code for:', record.id);
       let qrImg: HTMLImageElement | null = null;
@@ -201,9 +236,10 @@ export function VerifyPage() {
         const qrUrl = `${window.location.origin}/verify/${record.id}`;
         console.log('[VerifyPage] QR URL:', qrUrl);
         const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-          width: 120,
+          width: 240,
           margin: 1,
-          color: { dark: '#000000', light: '#00000000' },
+          color: { dark: '#f18ab5', light: '#00000000' },
+          errorCorrectionLevel: 'M',
         });
         qrImg = await loadImage(qrDataUrl);
         console.log('[VerifyPage] QR code loaded successfully');
@@ -211,135 +247,28 @@ export function VerifyPage() {
         console.error('[VerifyPage] Failed to generate/load QR code:', err);
       }
 
-      const px = 22, py = 14, pw = 467, ph = 260, r = 9;
-
-      ctx.save();
-      ctx.beginPath();
-      roundRect(ctx, px, py, pw, ph, r);
-      ctx.clip();
-      ctx.filter = 'blur(1.5px) brightness(0.92)';
-      if (bgImg) drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
-      ctx.filter = 'none';
-      ctx.restore();
-
-      ctx.strokeStyle = 'rgba(100, 180, 255, 0.4)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      roundRect(ctx, px, py, pw, ph, r);
-      ctx.stroke();
-
-      if (logoImg) {
-        const logoSize = 40;
-        ctx.drawImage(logoImg, CANVAS_W / 2 - logoSize / 2, py + 15, logoSize, logoSize);
-      }
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 10px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('V-ID Protocol', CANVAS_W / 2, py + 70);
-
-      if (avatarImg) {
-        const avatarSize = 70;
-        const avatarX = px + 30;
-        const avatarY = py + 90;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-
-        const gradient = ctx.createLinearGradient(avatarX, avatarY, avatarX, avatarY + avatarSize);
-        gradient.addColorStop(0, 'rgba(184, 220, 232, 0.3)');
-        gradient.addColorStop(1, 'rgba(224, 64, 160, 0.3)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
-
-        drawCover(ctx, avatarImg, avatarX, avatarY, avatarSize, avatarSize);
-        ctx.restore();
-
-        ctx.strokeStyle = 'rgba(184, 220, 232, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      const textX = px + 140;
-      let textY = py + 100;
-
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '8px Arial';
-      ctx.fillText('NAME:', textX, textY);
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 14px Arial';
-      ctx.fillText(record.character_name, textX + 45, textY);
-
-      textY += 20;
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '8px Arial';
-      ctx.fillText('STATUS:', textX, textY);
-
-      ctx.fillStyle = '#10b981';
-      ctx.font = 'bold 12px Arial';
-      ctx.fillText('VERIFIED', textX + 45, textY);
-
-      textY += 20;
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '8px Arial';
-      ctx.fillText('ISSUED:', textX, textY);
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 11px Arial';
       const issueDate = new Date(record.created_at).toLocaleDateString('en-US', {
         month: 'short',
         day: '2-digit',
         year: 'numeric'
       }).toUpperCase();
-      ctx.fillText(issueDate, textX + 45, textY);
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      if (bgImg) drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
 
-      textY += 20;
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '8px Arial';
-      ctx.fillText('CITIZEN ID:', textX, textY);
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 10px monospace';
-      const citizenId = record.id.toUpperCase();
-      ctx.fillText(citizenId, textX + 60, textY);
-
-      const qrSize = 85;
-      const qrX = px + pw - qrSize - 20;
-      const qrY = py + 90;
-
-      ctx.fillStyle = 'rgba(222, 106, 168, 0.15)';
-      ctx.fillRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10);
-
-      if (qrImg) {
-        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-      } else {
-        ctx.fillStyle = '#333';
-        ctx.fillRect(qrX, qrY, qrSize, qrSize);
-        ctx.fillStyle = '#666';
-        ctx.font = '8px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('QR UNAVAILABLE', qrX + qrSize / 2, qrY + qrSize / 2);
-      }
-
-      ctx.font = '5px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(100, 180, 255, 0.50)';
-      const hashPrefix = record.sha256_hash ? record.sha256_hash.slice(0, 8) : '00000000';
-      ctx.fillText(`HASH: 0x${hashPrefix}...`, qrX + qrSize / 2, qrY + qrSize + 12);
-      ctx.fillText('STATUS: ON-CHAIN SYNCED', qrX + qrSize / 2, qrY + qrSize + 20);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.font = '7px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY', CANVAS_W / 2, py + ph - 25);
-      ctx.fillText('ANCHORED ON THE IMMUTABLE V-ID LEDGER.', CANVAS_W / 2, py + ph - 15);
+      drawPanel(ctx, bgImg);
+      drawTechTexture(ctx, textureImg);
+      drawLogo(ctx, logoImg);
+      drawAvatar(ctx, avatarImg);
+      drawDividerLine(ctx);
+      drawTextFields(ctx, {
+        name: record.character_name,
+        status: 'VERIFIED',
+        issuedDate: issueDate,
+        serialId: record.id.toUpperCase(),
+      });
+      drawQRCode(ctx, qrImg);
+      drawDescription(ctx, 'THIS DOCUMENT PROVIDES VERIFIABLE EVIDENCE OF A UNIQUE DIGITAL IDENTITY RECORDED BY VAID.');
+      drawCardMistBlur(ctx);
 
       console.log('[VerifyPage] Certificate rendered successfully');
       setCertificateReady(true);
@@ -387,6 +316,329 @@ export function VerifyPage() {
     ctx.closePath();
   };
 
+  const hexToRgba = (hex: string, alpha = 1) => {
+    const normalized = hex.replace('#', '');
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const getAvatarGeometry = () => {
+    const outerDiameter = PANEL_W * AVATAR_DIAMETER_RATIO;
+    const cx = PANEL_X + PANEL_W * AVATAR_CENTER_X_RATIO;
+    const cy = PANEL_Y + PANEL_H * AVATAR_CENTER_Y_RATIO;
+    const ringR = outerDiameter / 2;
+    const haloR = ringR * 1.24;
+    const imageR = ringR * AVATAR_IMAGE_RATIO;
+    return { cx, cy, ringR, haloR, imageR };
+  };
+
+  const getDividerGeometry = () => {
+    const { cy, ringR } = getAvatarGeometry();
+    const dividerHalfLength = ringR * DIVIDER_LENGTH_SCALE;
+    const dividerTopHalfLength = dividerHalfLength * DIVIDER_TOP_SCALE;
+    return {
+      lx: PANEL_X + PANEL_W * DIVIDER_X_RATIO,
+      ly1: cy - dividerTopHalfLength,
+      ly2: cy + dividerHalfLength,
+    };
+  };
+
+  const getQRCodeGeometry = () => {
+    const plateX = PANEL_X + PANEL_W * QR_PLATE_X_RATIO;
+    const plateW = PANEL_W * QR_PLATE_W_RATIO;
+    const plateH = PANEL_H * QR_PLATE_H_RATIO;
+    const { ly2 } = getDividerGeometry();
+    const plateY = ly2 - plateH;
+    const qs = plateW * QR_MODULE_SIZE_IN_PLATE_RATIO;
+    return {
+      plateX,
+      plateY,
+      plateW,
+      plateH,
+      qx: plateX + plateW * QR_MODULE_INSET_X_RATIO,
+      qy: plateY + plateH * QR_MODULE_INSET_Y_RATIO,
+      qs,
+    };
+  };
+
+  const drawPanel = (ctx: CanvasRenderingContext2D, bgImg: HTMLImageElement | null) => {
+    if (bgImg) {
+      ctx.save();
+      roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+      ctx.clip();
+      ctx.filter = 'blur(6px) brightness(1.15) saturate(1.06)';
+      drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
+      ctx.restore();
+    }
+
+    ctx.save();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.12)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(225, 235, 255, 0.42)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.shadowColor = 'rgba(140, 180, 255, 0.18)';
+    ctx.shadowBlur = 32;
+    ctx.strokeStyle = 'rgba(140, 180, 255, 0.14)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawTechTexture = (ctx: CanvasRenderingContext2D, textureImg: HTMLImageElement | null) => {
+    if (!textureImg) return;
+    ctx.save();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+    ctx.globalAlpha = 0.18;
+    ctx.filter = 'contrast(1.35) brightness(1.08)';
+    const textureScale = 1.5;
+    const scaledW = PANEL_W * textureScale;
+    const scaledH = PANEL_H * textureScale;
+    drawCover(ctx, textureImg, PANEL_X - (scaledW - PANEL_W) / 2, PANEL_Y - (scaledH - PANEL_H) / 2, scaledW, scaledH);
+    ctx.restore();
+  };
+
+  const drawLogo = (ctx: CanvasRenderingContext2D, logoImg: HTMLImageElement | null) => {
+    if (!logoImg) return;
+    const sourceX = 220;
+    const sourceY = 560;
+    const sourceW = 1610;
+    const sourceH = 840;
+    const processedW = 520;
+    const processedH = 250;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = processedW;
+    offscreen.height = processedH;
+    const offCtx = offscreen.getContext('2d');
+    if (!offCtx) return;
+
+    offCtx.drawImage(logoImg, sourceX, sourceY, sourceW, sourceH, 0, 0, processedW, processedH);
+    const imageData = offCtx.getImageData(0, 0, processedW, processedH);
+    const { data } = imageData;
+    for (let i = 0; i < data.length; i += 4) {
+      const luminance = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      if (luminance < 150) {
+        data[i + 3] = 0;
+        continue;
+      }
+      const alpha = Math.min(255, Math.max(0, (luminance - 140) * 2.2));
+      data[i] = 248;
+      data[i + 1] = 241;
+      data[i + 2] = 214;
+      data[i + 3] = alpha;
+    }
+    offCtx.clearRect(0, 0, processedW, processedH);
+    offCtx.putImageData(imageData, 0, 0);
+
+    const logoW = 211;
+    const logoH = 102;
+    const lx = (CANVAS_W - logoW) / 2;
+    const ly = 58;
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    ctx.drawImage(offscreen, lx, ly, logoW, logoH);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.shadowColor = 'rgba(120, 232, 248, 0.72)';
+    ctx.shadowBlur = 24;
+    ctx.drawImage(offscreen, lx, ly, logoW, logoH);
+    ctx.shadowColor = 'rgba(228, 116, 204, 0.62)';
+    ctx.shadowBlur = 14;
+    ctx.drawImage(offscreen, lx, ly, logoW, logoH);
+    ctx.restore();
+  };
+
+  const drawAvatar = (ctx: CanvasRenderingContext2D, avatarImg: HTMLImageElement | null) => {
+    const { cx, cy, ringR, haloR, imageR } = getAvatarGeometry();
+    ctx.save();
+    const ambientGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, haloR);
+    ambientGlow.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
+    ambientGlow.addColorStop(0.52, hexToRgba(AVATAR_COLOR_START, 0.12));
+    ambientGlow.addColorStop(0.78, hexToRgba(AVATAR_COLOR_END, 0.11));
+    ambientGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = ambientGlow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, haloR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+    const conicCapableContext = ctx as CanvasRenderingContext2D & {
+      createConicGradient?: (startAngle: number, x: number, y: number) => CanvasGradient;
+    };
+    const ringStroke = typeof conicCapableContext.createConicGradient === 'function'
+      ? conicCapableContext.createConicGradient(-Math.PI / 2, cx, cy)
+      : ctx.createLinearGradient(cx - ringR, cy, cx + ringR, cy);
+    ringStroke.addColorStop(0, '#32d7d2');
+    ringStroke.addColorStop(0.47, '#32d7d2');
+    ringStroke.addColorStop(0.5, '#e040a0');
+    ringStroke.addColorStop(0.97, '#e040a0');
+    ringStroke.addColorStop(1, '#32d7d2');
+    ctx.strokeStyle = ringStroke;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = 'rgba(80, 200, 220, 0.20)';
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.lineWidth = 7;
+    ctx.shadowColor = 'rgba(138, 214, 255, 0.55)';
+    ctx.shadowBlur = 22;
+    ctx.stroke();
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = 'rgba(230, 140, 220, 0.48)';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.restore();
+
+    if (avatarImg) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, imageR, 0, Math.PI * 2);
+      ctx.clip();
+      const minSide = Math.min(avatarImg.width, avatarImg.height);
+      const sx = (avatarImg.width - minSide) / 2;
+      const sy = (avatarImg.height - minSide) / 2;
+      const targetSize = imageR * 2 * AVATAR_COVER_SCALE;
+      ctx.filter = 'saturate(1.02) brightness(0.98) contrast(1.02)';
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(avatarImg, sx, sy, minSide, minSide, cx - targetSize / 2, cy - targetSize / 2, targetSize, targetSize);
+      ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, imageR + 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawDividerLine = (ctx: CanvasRenderingContext2D) => {
+    const { lx, ly1, ly2 } = getDividerGeometry();
+    ctx.save();
+    ctx.fillStyle = 'rgba(215, 244, 235, 0.62)';
+    ctx.fillRect(lx - 1.5, ly1, 3, ly2 - ly1);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = 'rgba(122, 238, 230, 0.34)';
+    ctx.shadowColor = 'rgba(122, 238, 230, 0.58)';
+    ctx.shadowBlur = 12;
+    ctx.fillRect(lx - 1, ly1, 2, ly2 - ly1);
+    ctx.restore();
+  };
+
+  const drawTextFields = (
+    ctx: CanvasRenderingContext2D,
+    fields: { name: string; status: string; issuedDate: string; serialId: string }
+  ) => {
+    const startX = PANEL_X + PANEL_W * TEXT_START_X_RATIO;
+    const labelStyle = 'rgba(205, 198, 183, 0.84)';
+    const valueStyle = 'rgba(247, 241, 229, 0.98)';
+    const sharedFont = `600 ${INFO_TEXT_FONT_SIZE}px "Avenir Next", "Segoe UI", system-ui`;
+    const labelGap = 11;
+    const lines = [
+      { label: 'NAME:', value: fields.name, y: PANEL_Y + PANEL_H * TEXT_NAME_Y_RATIO, valueColor: valueStyle },
+      { label: 'STATUS:', value: fields.status, y: PANEL_Y + PANEL_H * TEXT_STATUS_Y_RATIO, valueColor: '#1fe06b' },
+      { label: 'ISSUED:', value: fields.issuedDate, y: PANEL_Y + PANEL_H * TEXT_ISSUED_Y_RATIO, valueColor: valueStyle },
+      { label: 'ID:', value: fields.serialId, y: PANEL_Y + PANEL_H * TEXT_ID_Y_RATIO, valueColor: valueStyle },
+    ];
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    lines.forEach((line) => {
+      ctx.font = sharedFont;
+      ctx.fillStyle = labelStyle;
+      ctx.fillText(line.label, startX, line.y);
+      const valueX = startX + ctx.measureText(line.label).width + labelGap;
+      if (line.label === 'STATUS:') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = 'rgba(31, 224, 107, 0.63)';
+        ctx.shadowBlur = 36;
+        ctx.shadowColor = 'rgba(31, 224, 107, 0.95)';
+        ctx.fillText(line.value, valueX, line.y);
+        ctx.restore();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(31, 224, 107, 0.95)';
+      }
+      ctx.fillStyle = line.valueColor;
+      ctx.fillText(line.value, valueX, line.y);
+      ctx.shadowBlur = 0;
+    });
+    ctx.restore();
+  };
+
+  const drawQRCode = (ctx: CanvasRenderingContext2D, qrImg: HTMLImageElement | null) => {
+    const { plateX, plateY, plateW, plateH, qx, qy, qs } = getQRCodeGeometry();
+    const textCenterX = plateX + plateW / 2;
+    ctx.save();
+    roundRect(ctx, plateX, plateY, plateW, plateH, 8);
+    const plateGradient = ctx.createLinearGradient(plateX, plateY, plateX + plateW, plateY + plateH);
+    plateGradient.addColorStop(0, 'rgba(114, 99, 70, 0.48)');
+    plateGradient.addColorStop(0.58, 'rgba(90, 82, 58, 0.38)');
+    plateGradient.addColorStop(1, 'rgba(129, 115, 86, 0.42)');
+    ctx.fillStyle = plateGradient;
+    ctx.shadowColor = 'rgba(244, 147, 193, 0.22)';
+    ctx.shadowBlur = 18;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(233, 206, 163, 0.26)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if (qrImg) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(qx, qy, qs, qs);
+      ctx.clip();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.shadowColor = 'rgba(248, 152, 205, 0.34)';
+      ctx.shadowBlur = 7;
+      ctx.drawImage(qrImg, qx, qy, qs, qs);
+      ctx.restore();
+      ctx.drawImage(qrImg, qx, qy, qs, qs);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${QR_TEXT_PRIMARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
+    ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
+    ctx.fillText('PROOF:', textCenterX, plateY + plateH * QR_PROOF_LABEL_Y_RATIO, plateW - 12);
+    ctx.font = `700 ${QR_TEXT_SECONDARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
+    ctx.fillText('Blockchain sealed', textCenterX, plateY + plateH * QR_PROOF_VALUE_Y_RATIO, plateW - 12);
+    ctx.restore();
+  };
+
+  const drawDescription = (ctx: CanvasRenderingContext2D, description: string) => {
+    ctx.save();
+    ctx.font = `500 ${DESCRIPTION_TEXT_SIZE}px "Segoe UI", system-ui`;
+    ctx.fillStyle = 'rgba(180, 190, 210, 0.45)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(description, CANVAS_W / 2, 514);
+    ctx.restore();
+  };
+
+  const drawCardMistBlur = (ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+    ctx.clip();
+    ctx.filter = 'blur(20px)';
+    ctx.globalCompositeOperation = 'screen';
+    const mistBand = ctx.createLinearGradient(PANEL_X, PANEL_Y + PANEL_H * 0.22, PANEL_X + PANEL_W, PANEL_Y + PANEL_H * 0.92);
+    mistBand.addColorStop(0, 'rgba(255, 228, 150, 0.0525)');
+    mistBand.addColorStop(0.62, 'rgba(255, 214, 112, 0.025)');
+    mistBand.addColorStop(1, 'rgba(255, 208, 98, 0.0175)');
+    ctx.fillStyle = mistBand;
+    ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+    ctx.restore();
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
@@ -400,9 +652,16 @@ export function VerifyPage() {
   };
 
   const handleInspectProof = () => {
-    if (record?.sha256_hash) {
-      window.open(`https://opentimestamps.org/?hash=${record.sha256_hash}`, '_blank');
-    }
+    const statusText =
+      otsStatus === 'confirmed'
+        ? '链上存证已确认。此 VAID 的数字存证印记已获得区块链网络确认。'
+        : otsStatus === 'stamped'
+          ? '链上时间锚点已提交。此 VAID 的数字存证印记正在等待区块链网络确认。'
+          : otsStatus === 'failed'
+            ? '链上存证提交失败。请稍后重试或联系 VAID。'
+            : '链上存证处理中。系统正在为此 VAID 建立可验证的时间锚点。';
+
+    window.alert(statusText);
   };
 
   const handleDownloadBundle = async () => {
@@ -414,27 +673,27 @@ export function VerifyPage() {
         canvas.toBlob((blob) => resolve(blob!), 'image/png');
       });
 
-      const proofText = `V-ID PROTOCOL - PROOF OF EXISTENCE
+      const proofText = `VAID PROTOCOL - PROOF OF EXISTENCE
 
 Certificate ID: ${record.id}
 Character Name: ${record.character_name}
 Creator: ${record.creator_name}
 Timestamp: ${formatDate(record.created_at)}
 
-SHA-256 DIGITAL FINGERPRINT:
+VAID DIGITAL SEAL:
 ${record.sha256_hash}
 
 VERIFICATION GUIDE:
-此文件包含您的 SHA-256 数字指纹。您可以访问 https://opentimestamps.org 并上传您的证书图片，以独立验证其在比特币网络上的存在时间戳。
+此文件包含您的 VAID 数字存证印记。该印记用于证明证书内容的唯一性，并与链上时间锚点共同构成可验证的存在证明。
 
-V-ID 协议：让虚拟，真实存在。
+VAID 协议：让虚拟，真实存在。
 
 For more information, visit: ${window.location.origin}
 `;
 
       const zip = new JSZip();
 
-      zip.file('V-ID_Certificate.png', imageBlob);
+      zip.file('VAID_Certificate.png', imageBlob);
       zip.file('Proof_of_Existence.txt', proofText);
 
       if (record.ots_file_path || otsStatus === 'stamped' || otsStatus === 'confirmed') {
@@ -450,7 +709,7 @@ For more information, visit: ${window.location.origin}
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `V-ID_Bundle_${record.id}.zip`;
+      a.download = `VAID_Bundle_${record.id}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -466,7 +725,7 @@ For more information, visit: ${window.location.origin}
       <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-300">Verifying V-ID Record...</p>
+          <p className="text-slate-300">Verifying VAID Record...</p>
         </div>
       </div>
     );
@@ -537,7 +796,7 @@ For more information, visit: ${window.location.origin}
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            VERIFIED BY V-ID PROTOCOL
+            VERIFIED BY VAID PROTOCOL
           </h1>
           <p className="text-slate-400 text-sm md:text-base">Digital Identity Record Confirmed</p>
         </div>
@@ -546,17 +805,19 @@ For more information, visit: ${window.location.origin}
           <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
             <div className="flex flex-col">
               <h2 className="text-lg md:text-xl font-bold text-cyan-400 mb-4">Certificate Preview</h2>
-              <div className="bg-black/40 border border-cyan-500/20 rounded-xl p-4 flex items-center justify-center relative min-h-64">
+              <div className="bg-black/40 border border-cyan-500/20 rounded-xl p-3 md:p-4 flex items-center justify-center relative overflow-hidden">
                 {!certificateReady && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                   </div>
                 )}
-                <canvas
-                  ref={canvasRef}
-                  className="w-full h-auto max-w-full rounded-lg shadow-lg"
-                  style={{ display: certificateReady ? 'block' : 'none' }}
-                />
+                <div className="w-full max-w-[1024px] aspect-video">
+                  <canvas
+                    ref={canvasRef}
+                    className="block w-full h-full rounded-lg shadow-lg"
+                    style={{ display: certificateReady ? 'block' : 'none' }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -610,7 +871,7 @@ For more information, visit: ${window.location.origin}
               <Hash className="w-6 h-6 text-cyan-400 flex-shrink-0 mt-1" />
               <div className="flex-1 min-w-0">
                 <div className="text-xs md:text-sm font-bold text-cyan-400 mb-2">
-                  IMMUTABLE HASH (不可篡改指纹)
+                  VAID DIGITAL SEAL (数字存证印记)
                 </div>
                 <div className="font-mono text-xs md:text-sm text-green-400 break-all leading-relaxed bg-black/50 p-3 md:p-4 rounded-lg border border-green-500/30">
                   {record.sha256_hash}
@@ -626,15 +887,15 @@ For more information, visit: ${window.location.origin}
                 'bg-slate-500'
               }`} />
               <span className="text-xs font-mono text-slate-300">
-                {otsStatus === 'confirmed' && 'OTS 已在比特币链上确认'}
-                {otsStatus === 'stamped'   && 'OTS 时间戳已提交，等待区块链确认（约1小时）'}
-                {otsStatus === 'failed'    && 'OTS 时间戳提交失败'}
-                {otsStatus === 'pending'   && 'OTS 时间戳处理中...'}
+                {otsStatus === 'confirmed' && '链上存证已确认'}
+                {otsStatus === 'stamped'   && '链上时间锚点已提交，等待区块链网络确认'}
+                {otsStatus === 'failed'    && '链上存证提交失败'}
+                {otsStatus === 'pending'   && '链上存证处理中...'}
               </span>
             </div>
 
             <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-              原始图片的 SHA-256 指纹已通过 OpenTimestamps 协议锚定至比特币区块链，提供不可篡改的存在时间证明。
+              此数字存证印记已进入 VAID 的链上时间锚定流程，用于形成不可篡改、可追溯的存在证明。
             </p>
           </div>
 
@@ -653,7 +914,7 @@ For more information, visit: ${window.location.origin}
               className="flex items-center justify-center gap-2 px-4 md:px-6 py-3 md:py-4 bg-transparent hover:bg-cyan-500/10 border-2 border-cyan-500/50 hover:border-cyan-400 text-cyan-400 hover:text-cyan-300 font-bold rounded-xl transition-all group text-sm md:text-base"
             >
               <Lock className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Inspect Proof</span>
+              <span>Proof Status</span>
               <ExternalLink className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -662,9 +923,10 @@ For more information, visit: ${window.location.origin}
         <div className="mt-6 md:mt-8 p-4 md:p-6 bg-cyan-500/5 border border-cyan-500/20 rounded-xl backdrop-blur-sm">
           <h3 className="text-base md:text-lg font-semibold text-cyan-400 mb-3">About This Verification</h3>
           <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-            此 V-ID 记录已永久注册在我们的去中心化身份台账中。原始图片文件的 SHA-256 哈希值通过
-            OpenTimestamps 协议真实锚定至比特币主网，任何人均可独立验证此证明的存在时间。
-            下载包中包含 <span className="text-cyan-400 font-mono">.ots</span> 证明文件，可使用官方 OTS 客户端离线验证。
+            此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。
+            系统会为原始作品生成唯一的数字存证印记，并将其接入区块链时间锚定流程，
+            用于证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、不可随意篡改。
+            下载包中包含配套的存证证明文件，可用于后续独立核验。
           </p>
         </div>
       </div>
