@@ -23,7 +23,7 @@ export function AppWithRouter() {
               : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
           }`}
         >
-          V-ID Certificate
+          VAID Certificate
         </button>
         <button
           onClick={() => setCurrentPage('card')}

@@ -27,7 +27,7 @@ export function MaintenanceMode() {
 
         <div className="mt-12 p-6 bg-slate-800/50 rounded-lg border border-slate-700">
           <p className="text-sm text-slate-500">
-            V-ID Platform - 面向开发者的数字资产存档与身份识别技术展示平台
+            VAID Platform - 面向开发者的数字资产存档与身份识别技术展示平台
           </p>
         </div>
       </div>

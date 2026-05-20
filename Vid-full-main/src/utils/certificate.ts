@@ -196,7 +196,7 @@ export function generateCertificatePNG(
     ctx.font = '20px monospace';
     ctx.textAlign = 'center';
     ctx.letterSpacing = '3px';
-    ctx.fillText('V-ID PROTOCOL', logoX, logoY + 70);
+    ctx.fillText('VAID PROTOCOL', logoX, logoY + 70);
 
     const avatarCenterX = 390;
     const avatarCenterY = height / 2 + 10;
@@ -344,7 +344,7 @@ export function generateCertificatePNG(
       ctx.fillStyle = '#5a7888';
       ctx.font = '16px Arial, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('V-ID NAME:', infoX, infoY);
+      ctx.fillText('VAID NAME:', infoX, infoY);
 
       infoY += 52;
       ctx.save();
@@ -433,7 +433,7 @@ export function generateCertificatePNG(
       ctx.fillStyle = '#4a6978';
       ctx.font = '13px Arial, sans-serif';
       ctx.textAlign = 'center';
-      const footerText = 'THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY ANCHORED ON THE IMMUTABLE V-ID LEDGER.';
+      const footerText = 'THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY ANCHORED ON THE IMMUTABLE VAID LEDGER.';
       ctx.fillText(footerText, width / 2, height - 85);
 
       canvas.toBlob((blob) => {

@@ -31,6 +31,43 @@ function getShortEmail(email?: string): string {
   return `${name.slice(0, 6)}@${domain.split('.')[0]}`;
 }
 
+function getEmailRedirectTo(): string {
+  const { hostname, origin } = window.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'https://vaid.top';
+  }
+  return origin;
+}
+
+function clearAuthParamsFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('code');
+  url.hash = '';
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
+}
+
+async function completeAuthFromUrl() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const code = searchParams.get('code');
+  const accessToken = hashParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token');
+
+  if (code) {
+    await supabase.auth.exchangeCodeForSession(code);
+    clearAuthParamsFromUrl();
+    return;
+  }
+
+  if (accessToken && refreshToken) {
+    await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    window.history.replaceState({}, document.title, window.location.pathname || '/');
+  }
+}
+
 export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) {
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
@@ -56,9 +93,10 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
     let isMounted = true;
 
     const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
+      await completeAuthFromUrl();
+      const { data } = await supabase.auth.getSession();
       if (!isMounted) return;
-      setUser(data.user ?? null);
+      setUser(data.session?.user ?? null);
       setLoading(false);
     };
 
@@ -96,7 +134,7 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
     const { error: signInError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: getEmailRedirectTo(),
       },
     });
 

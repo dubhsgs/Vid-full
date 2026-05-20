@@ -229,7 +229,7 @@ Deno.serve(async (req: Request) => {
     const bizContent = {
       out_trade_no: outTradeNo,
       total_amount: amount.toFixed(2),
-      subject: `V-ID 证书生成次数包 x${pack_size}`,
+      subject: `VAID 证书生成次数包 x${pack_size}`,
       product_code: 'FAST_INSTANT_TRADE_PAY',
     };
 

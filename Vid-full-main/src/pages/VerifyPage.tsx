@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Download, ExternalLink, Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
+import { Download, Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import QRCode from 'qrcode';
@@ -78,15 +78,15 @@ const verifyCopy = {
     aboutText: 'This VAID record is part of the VAID digital identity archive. The system creates a unique digital seal for the original work and connects it to a blockchain-based time anchor, helping prove that this digital identity existed at a specific moment and remains traceable, verifiable, and tamper-resistant.',
     status: {
       confirmed: 'Blockchain archive confirmed',
-      stamped: 'Chain time anchor submitted, awaiting network confirmation',
+      stamped: 'VAID digital seal active, archive in progress',
       failed: 'Chain archive submission failed',
-      pending: 'Chain archive processing...',
+      pending: 'VAID archive running in the background',
     },
     alert: {
       confirmed: 'Blockchain archive confirmed. This VAID digital seal has been confirmed by the blockchain network.',
-      stamped: 'Chain time anchor submitted. This VAID digital seal is awaiting blockchain network confirmation.',
+      stamped: 'VAID digital seal is active. Chain archive confirmation is running in the background and will update automatically when completed.',
       failed: 'Chain archive submission failed. Please try again later or contact VAID.',
-      pending: 'Chain archive processing. VAID is creating a verifiable time anchor for this record.',
+      pending: 'VAID archive is running in the background. The verification record is already available and the archive status will update after completion.',
     },
   },
   zh: {
@@ -111,15 +111,15 @@ const verifyCopy = {
     aboutText: '此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。系统会为原始作品生成唯一的数字存证印记，并将其接入区块链时间锚定流程，用于证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、不可随意篡改。',
     status: {
       confirmed: '链上存证已确认',
-      stamped: '已提交，等待链上确认',
+      stamped: 'VAID 数字印记已生效，链上归档进行中',
       failed: '链上存证提交失败',
-      pending: '链上存证处理中...',
+      pending: 'VAID 存证归档后台处理中',
     },
     alert: {
       confirmed: '链上存证已确认。此 VAID 的数字存证印记已获得区块链网络确认。',
-      stamped: '链上时间锚点已提交。此 VAID 的数字存证印记正在等待区块链网络确认。',
+      stamped: 'VAID 数字存证印记已生效。链上归档确认会在后台继续完成，完成后验证页状态会自动更新。',
       failed: '链上存证提交失败。请稍后重试或联系 VAID。',
-      pending: '链上存证处理中。系统正在为此 VAID 建立可验证的时间锚点。',
+      pending: 'VAID 存证归档正在后台处理中。当前验证记录已经可用，归档完成后状态会自动更新。',
     },
   },
   ja: {
@@ -144,22 +144,22 @@ const verifyCopy = {
     aboutText: 'この VAID レコードは、VAID のデジタルアイデンティティアーカイブに記録されています。システムは原作品に固有のデジタル証明シールを生成し、ブロックチェーンベースの時間アンカーへ接続することで、このデジタルアイデンティティが特定の時点で存在していたことを示し、追跡・検証・改ざん耐性を高めます。',
     status: {
       confirmed: 'チェーンアーカイブ確認済み',
-      stamped: '送信済み、確認待ち',
+      stamped: 'VAID デジタルシール有効、アーカイブ進行中',
       failed: 'チェーンアーカイブ送信失敗',
-      pending: 'チェーンアーカイブ処理中...',
+      pending: 'VAID アーカイブをバックグラウンド処理中',
     },
     alert: {
       confirmed: 'チェーンアーカイブ確認済み。この VAID デジタル証明シールはブロックチェーンネットワークで確認されています。',
-      stamped: 'チェーン時間アンカー送信済み。この VAID デジタル証明シールはネットワーク確認待ちです。',
+      stamped: 'VAID デジタル証明シールは有効です。チェーンアーカイブ確認はバックグラウンドで継続され、完了後に状態が更新されます。',
       failed: 'チェーンアーカイブ送信に失敗しました。時間をおいて再試行するか、VAID にお問い合わせください。',
-      pending: 'チェーンアーカイブ処理中。VAID はこのレコードの検証可能な時間アンカーを作成しています。',
+      pending: 'VAID アーカイブはバックグラウンドで処理中です。検証レコードはすでに利用可能で、完了後に状態が更新されます。',
     },
   },
 };
 
 const verifyTypography = {
   en: {
-    metaLabelBox: 'w-[150px]',
+    metaLabelBox: 'w-[118px] sm:w-[150px]',
     metaLabel: 'text-[0.7rem] tracking-[0.18em]',
     metaValue: 'text-[0.95rem]',
     metaValueLong: 'text-[0.95rem]',
@@ -785,16 +785,18 @@ export function VerifyPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const locale = langKey === 'zh' ? 'zh-CN' : langKey === 'ja' ? 'ja-JP' : 'en-US';
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
 
-    return date.toLocaleString(locale, {
-      month: langKey === 'en' ? 'short' : '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: langKey === 'en'
-    });
+    if (langKey === 'en') {
+      const monthName = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month];
+      return `${monthName} ${day}, ${year}, ${hour}:${minute}`;
+    }
+
+    return `${year}/${String(month + 1).padStart(2, '0')}/${day} ${hour}:${minute}`;
   };
 
   const handleInspectProof = () => {
@@ -912,10 +914,9 @@ For more information, visit: ${window.location.origin}
             backgroundImage: `
               radial-gradient(circle at 12% 12%, rgba(0, 188, 255, 0.14), transparent 24%),
               radial-gradient(circle at 90% 22%, rgba(255, 46, 72, 0.12), transparent 26%),
-              linear-gradient(115deg, rgba(5, 18, 45, 0.95), rgba(3, 7, 19, 0.96) 52%, rgba(4, 10, 25, 0.98)),
-              url('/circuit_style.png')
+              linear-gradient(115deg, rgba(5, 18, 45, 0.95), rgba(3, 7, 19, 0.96) 52%, rgba(4, 10, 25, 0.98))
             `,
-            backgroundSize: 'cover, cover, cover, cover',
+            backgroundSize: 'cover, cover, cover',
             backgroundPosition: 'center',
           }}
         />
@@ -933,7 +934,7 @@ For more information, visit: ${window.location.origin}
       </div>
 
       <div className="relative z-10 mx-auto max-w-[1500px] px-4 pb-8 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between border-b border-slate-400/22 py-5">
+        <header className="flex items-center justify-between border-b border-[#4b7899]/35 py-5">
           <button onClick={() => navigate('/')} className="shrink-0">
             <img
               src="/vaid-logo-top.png"
@@ -968,17 +969,12 @@ For more information, visit: ${window.location.origin}
         </section>
 
         <main className="relative">
-          <div className="pointer-events-none absolute -inset-3 rounded-[2.1rem] border border-slate-400/24 shadow-[0_0_42px_rgba(0,183,255,0.12)]" />
-          <div className="pointer-events-none absolute left-0 top-0 h-20 w-20 rounded-tl-[1.9rem] border-l-[5px] border-t-[5px] border-cyan-300 shadow-[-4px_-4px_20px_rgba(34,211,238,0.65)]" />
-          <div className="pointer-events-none absolute right-0 top-0 h-20 w-20 rounded-tr-[1.9rem] border-r-[5px] border-t-[5px] border-cyan-300 shadow-[4px_-4px_20px_rgba(34,211,238,0.48)]" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-20 rounded-bl-[1.9rem] border-b-[5px] border-l-[5px] border-cyan-300 shadow-[-4px_4px_20px_rgba(34,211,238,0.45)]" />
-          <div className="pointer-events-none absolute bottom-0 right-0 h-20 w-20 rounded-br-[1.9rem] border-b-[5px] border-r-[5px] border-cyan-300 shadow-[4px_4px_20px_rgba(34,211,238,0.65)]" />
+          <div className="pointer-events-none absolute inset-0 rounded-[2.1rem] bg-cyan-950/[0.35] shadow-[inset_0_0_64px_rgba(14,165,233,0.09)] backdrop-blur-xl" />
+          <div className="pointer-events-none absolute inset-0 rounded-[2.1rem] border-2 border-slate-200/55" />
 
-          <section className="relative overflow-hidden rounded-[1.55rem] border border-slate-400/22 bg-[#061329]/72 px-4 py-5 shadow-[inset_0_0_70px_rgba(38,170,255,0.08),0_30px_100px_rgba(0,0,0,0.42)] backdrop-blur-md md:px-8 md:py-8">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_55%_100%,rgba(0,130,255,0.16),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.055),transparent_34%,rgba(17,118,255,0.06))]" />
-
+          <section className="relative px-4 py-5 md:px-8 md:py-8">
             <div className="relative grid items-stretch gap-4 md:grid-cols-[minmax(0,1fr)_minmax(250px,0.42fr)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.48fr)]">
-              <section className="flex rounded-2xl border border-slate-400/22 bg-black/18 p-2 shadow-[0_0_20px_rgba(14,165,233,0.06)]">
+              <section className="flex rounded-2xl border-2 border-slate-200/55 bg-black/18 p-2 shadow-[0_0_20px_rgba(14,165,233,0.06)]">
                 <div className="relative flex min-h-[190px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-[#030814]/64 p-1">
                   {!certificateReady && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center">
@@ -1002,20 +998,20 @@ For more information, visit: ${window.location.origin}
                   { label: copy.citizenId, value: record.id, Icon: Hash, mono: true },
                   { label: copy.timestamp, value: formatDate(record.created_at), Icon: Calendar, long: true },
                 ].map(({ label, value, Icon, mono, long }) => (
-                  <div key={label} className="rounded-xl border border-slate-400/22 bg-[#07172f]/76 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-1 md:items-center">
+                  <div key={label} className="rounded-xl border-2 border-slate-200/55 bg-[#07172f]/76 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-1 md:items-center">
                     <div className="flex w-full items-center gap-3">
                       <Icon className="h-5 w-5 shrink-0 text-cyan-300" />
                       <div className={`shrink-0 ${type.metaLabelBox}`}>
                         <div className={`${langKey === 'en' ? 'uppercase' : ''} text-slate-400 ${type.metaLabel}`}>{label}</div>
                       </div>
-                      <div className={`min-w-0 flex-1 text-left font-semibold leading-snug text-white ${long ? type.metaValueLong : type.metaValue} ${mono ? 'font-mono' : ''}`}>
+                      <div className={`min-w-0 flex-1 text-left font-semibold leading-snug text-white ${(mono || long) ? 'whitespace-nowrap' : ''} ${long ? type.metaValueLong : type.metaValue} ${mono ? 'font-mono' : ''}`}>
                         {value}
                       </div>
                     </div>
                   </div>
                 ))}
 
-                <div className="rounded-xl border border-slate-400/22 bg-gradient-to-br from-cyan-400/9 to-emerald-400/8 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-[1.45] md:items-center">
+                <div className="rounded-xl border-2 border-slate-200/55 bg-gradient-to-br from-cyan-400/9 to-emerald-400/8 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-[1.45] md:items-center">
                   <div className="flex w-full items-center gap-3">
                     <ShieldCheck className="h-7 w-7 shrink-0 text-cyan-300" />
                     <div className="min-w-0 flex-1">
@@ -1033,8 +1029,16 @@ For more information, visit: ${window.location.origin}
               </aside>
             </div>
 
-            <section className="relative mt-6 rounded-2xl border border-slate-400/22 bg-[#041126]/70 p-5 shadow-[inset_0_0_46px_rgba(14,165,233,0.07)]">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.34fr)]">
+            <section className="relative mt-6 overflow-hidden rounded-2xl border-2 border-slate-200/55 p-5">
+              <div className="pointer-events-none absolute -inset-[2px] rounded-[inherit] bg-[#041126]/70 shadow-[inset_0_0_46px_rgba(14,165,233,0.07)] backdrop-blur-xl" />
+              <img
+                src="/digital-globe-transparent.png"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute top-[12%] left-[36%] hidden w-[43%] max-w-[760px] opacity-[0.225] mix-blend-screen brightness-[0.72] contrast-[1.28] saturate-[1.55] hue-rotate-[8deg] lg:block"
+              />
+
+              <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.34fr)]">
                 <div className="min-h-[150px]">
                   <div className="flex items-center gap-4">
                     <ShieldCheck className="h-8 w-8 text-cyan-300" />
@@ -1060,7 +1064,6 @@ For more information, visit: ${window.location.origin}
                   >
                     <Lock className="h-5 w-5" />
                     {copy.proofStatus}
-                    <ExternalLink className="h-4 w-4" />
                   </button>
                 </div>
               </div>

@@ -40,7 +40,7 @@ export function TemplateCertificate({
         <div className="absolute inset-0 p-20 flex flex-col">
           <div className="flex justify-between items-start mb-16">
             <div className="text-white text-xl font-mono tracking-wider">
-              V-ID PROTOCOL
+              VAID PROTOCOL
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white text-sm font-mono">STATUS:</span>
@@ -63,7 +63,7 @@ export function TemplateCertificate({
             </div>
 
             <div>
-              <div className="text-gray-500 text-sm font-mono mb-2">V-ID ACCESS CODE</div>
+              <div className="text-gray-500 text-sm font-mono mb-2">VAID ACCESS CODE</div>
               <div className="text-white text-xl font-mono tracking-wider">{citizenId}</div>
             </div>
           </div>

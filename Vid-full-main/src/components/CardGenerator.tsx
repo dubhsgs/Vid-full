@@ -107,10 +107,11 @@ export function CardGenerator() {
 
   useEffect(() => {
     const initializeCard = async () => {
-      const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
-      const savedName = localStorage.getItem('vid_character_name');
-      const creatorName = localStorage.getItem('vid_creator_name');
-      const hasCardSession = sessionStorage.getItem(CARD_GENERATOR_SESSION_KEY) === '1';
+      const isLocalPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === '1';
+      const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.png') : localStorage.getItem('vid_uploaded_avatar');
+      const savedName = isLocalPreview ? 'Preview Character' : localStorage.getItem('vid_character_name');
+      const creatorName = isLocalPreview ? 'VAID Preview' : localStorage.getItem('vid_creator_name');
+      const hasCardSession = isLocalPreview || sessionStorage.getItem(CARD_GENERATOR_SESSION_KEY) === '1';
 
       if (!savedAvatar || !savedName || !creatorName) {
         sessionStorage.removeItem(CARD_GENERATOR_SESSION_KEY);
@@ -140,6 +141,18 @@ export function CardGenerator() {
 
       (async () => {
         try {
+          if (isLocalPreview) {
+            const hashValue = await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${savedAvatar}`);
+            setSha256Hash(hashValue);
+            setCitizenId(serialId);
+            setForm(prev => ({
+              ...prev,
+              serialId,
+              qrContent: `${siteOrigin}/verify/${serialId}`,
+            }));
+            return;
+          }
+
           let imageUrl = '';
           let hashValue = '';
           const originalFileHash = localStorage.getItem('vid_original_file_hash') || '';
@@ -175,13 +188,13 @@ export function CardGenerator() {
           });
 
           if (error) {
-            console.error('Error registering V-ID:', error);
+            console.error('Error registering VAID:', error);
             setAccessError('证书注册失败，请返回首页重试。若问题持续，请检查登录状态和剩余额度。');
             return;
           }
 
           if (data?.success && data?.friendly_id) {
-            console.log('Successfully registered V-ID, friendly_id:', data.friendly_id);
+            console.log('Successfully registered VAID, friendly_id:', data.friendly_id);
             const friendlyId = data.friendly_id;
             setCitizenId(friendlyId);
             setForm(prev => ({
@@ -191,7 +204,7 @@ export function CardGenerator() {
             }));
             localStorage.removeItem('vid_original_file_hash');
           } else {
-            console.error('V-ID registration returned no friendly_id:', data);
+            console.error('VAID registration returned no friendly_id:', data);
             setAccessError('证书注册没有返回有效编号，请返回首页重试。');
           }
         } catch (err) {
@@ -247,7 +260,8 @@ export function CardGenerator() {
         console.error('[CardGenerator] Failed to load grid texture image:', textureUrl, textureResult.reason);
       }
 
-      const savedAvatar = localStorage.getItem('vid_uploaded_avatar');
+      const isLocalPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === '1';
+      const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.png') : localStorage.getItem('vid_uploaded_avatar');
       if (!savedAvatar) {
         setAvatarImg(null);
         return;
@@ -457,10 +471,14 @@ export function CardGenerator() {
     ctx.restore();
   };
   const drawCardMistBlur = (ctx: CanvasRenderingContext2D) => {
+    const { cx, cy, imageR } = getAvatarGeometry();
+
     ctx.save();
     ctx.beginPath();
     roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
-    ctx.clip();
+    ctx.moveTo(cx + imageR * 1.08, cy);
+    ctx.arc(cx, cy, imageR * 1.08, 0, Math.PI * 2);
+    ctx.clip('evenodd');
 
     ctx.filter = 'blur(20px)';
     ctx.globalCompositeOperation = 'screen';
@@ -923,7 +941,7 @@ export function CardGenerator() {
 
     ctx.font = `700 ${QR_TEXT_SECONDARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
     ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
-    ctx.fillText('Verified on-chain', textCenterX, proofValueY, textSafeWidth);
+    ctx.fillText('Blockchain sealed', textCenterX, proofValueY, textSafeWidth);
     ctx.restore();
   };
 
@@ -992,61 +1010,81 @@ export function CardGenerator() {
 
     const imageDataUrl = canvas.toDataURL('image/png');
 
-    const verificationGuide = `V-ID VERIFICATION GUIDE
-========================
+    const verificationGuide = `VAID VERIFICATION GUIDE
+=======================
 
-Thank you for generating your V-ID Certificate!
+ENGLISH
+-------
 
-WHAT IS THE SHA-256 HASH?
--------------------------
-The SHA-256 hash is a unique cryptographic fingerprint of your V-ID certificate.
-It serves as tamper-proof evidence that this identity existed at a specific point in time.
+WHAT IS VAID?
+VAID stands for Virtual Asset ID, meaning "Virtual Asset Identity".
 
-YOUR V-ID DETAILS:
-------------------
+A VAID record gives a digital asset, virtual character, or original digital work a unique and verifiable identity. It records key identity information and connects it to a chain-based time archive, helping make the asset traceable, verifiable, and resistant to later alteration.
+
+VAID DETAILS:
 Character Name: ${form.name}
 Citizen ID: ${form.serialId}
 Issue Date: ${form.issuedDate}
-SHA-256 Hash: ${sha256Hash}
+VAID Proof Code: ${sha256Hash}
 
-HOW TO VERIFY YOUR V-ID:
-------------------------
-1. Visit the OpenTimestamps official website:
-   https://opentimestamps.org
+HOW TO VERIFY:
+1. Open the public verification page:
+   ${siteOrigin}/verify/${citizenId}
+2. Compare the certificate information with this package.
+3. Check the proof status shown on the verification page.
+4. Keep this package as your local proof archive.
 
-2. Copy your SHA-256 hash (shown above)
 
-3. Paste it into the verification field on OpenTimestamps.org
+中文
+----
 
-4. The website will show you the timestamp proof
+什么是 VAID？
+VAID 是 Virtual Asset ID 的缩写，意思是“虚拟资产身份”。
 
-WHY THIS MATTERS:
------------------
-- Your V-ID is anchored to digital identity technology
-- This provides independent, decentralized proof of existence
-- No one can alter or backdate your V-ID record
-- The verification is completely independent of our service
+VAID 记录为数字资产、虚拟角色或原创数字作品创建一个唯一且可验证的身份。它记录关键身份信息，并连接至链上时间存证体系，使该资产具备可追溯、可验证和防篡改的证明属性。
 
-ONLINE VERIFICATION:
---------------------
-You can also verify your V-ID online at:
-${siteOrigin}/verify/${citizenId}
+VAID 信息：
+角色名称：${form.name}
+公民编号：${form.serialId}
+生成日期：${form.issuedDate}
+VAID 证明码：${sha256Hash}
 
-This will show your full V-ID record and provide a direct link
-to verify the hash on OpenTimestamps.org
+如何验证：
+1. 打开公开验证页：
+   ${siteOrigin}/verify/${citizenId}
+2. 对照验证页中的证书信息与本下载包是否一致。
+3. 查看验证页显示的存证状态。
+4. 请妥善保存本下载包，作为本地证明档案。
 
-QUESTIONS?
-----------
-For more information about V-ID and digital identity verification,
-visit our website or contact support.
 
-© V-ID Protocol - Decentralized Identity Verification
+日本語
+------
+
+VAID とは？
+VAID は Virtual Asset ID の略称で、「仮想資産アイデンティティ」を意味します。
+
+VAID レコードは、デジタル資産、仮想キャラクター、またはオリジナルのデジタル作品に、一意で検証可能なアイデンティティを与えます。重要な識別情報を記録し、チェーンベースの時刻アーカイブに接続することで、その資産を追跡可能、検証可能、かつ後から改ざんされにくいものにします。
+
+VAID 情報：
+キャラクター名：${form.name}
+シチズン ID：${form.serialId}
+発行日時：${form.issuedDate}
+VAID 証明コード：${sha256Hash}
+
+確認方法：
+1. 公開検証ページを開きます：
+   ${siteOrigin}/verify/${citizenId}
+2. 検証ページの証明書情報と、このダウンロードパッケージの内容を照合します。
+3. 検証ページに表示される証明ステータスを確認します。
+4. このパッケージをローカルの証明アーカイブとして安全に保管してください。
+
+© VAID Protocol
 `;
 
     const zip = new JSZip();
 
     const imageBlob = await (await fetch(imageDataUrl)).blob();
-    zip.file('V-ID_Certificate.png', imageBlob);
+    zip.file('VAID_Certificate.png', imageBlob);
     zip.file('Proof_Verification_Guide.txt', verificationGuide);
 
     if (citizenId) {
@@ -1060,7 +1098,7 @@ visit our website or contact support.
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const link = document.createElement('a');
-    link.download = `V-ID_${form.serialId}_Complete.zip`;
+    link.download = `VAID_${form.serialId}_Complete.zip`;
     link.href = URL.createObjectURL(zipBlob);
     link.click();
 
@@ -1088,24 +1126,41 @@ visit our website or contact support.
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d1a] text-white flex flex-col items-center">
-      <div className="max-w-[1200px] w-full p-6 flex justify-between items-center">
+    <div className="min-h-screen text-white relative overflow-hidden bg-[#030713] flex flex-col items-center">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 12% 12%, rgba(0, 188, 255, 0.14), transparent 24%),
+              radial-gradient(circle at 90% 22%, rgba(255, 46, 72, 0.12), transparent 26%),
+              linear-gradient(115deg, rgba(5, 18, 45, 0.95), rgba(3, 7, 19, 0.96) 52%, rgba(4, 10, 25, 0.98))
+            `,
+            backgroundSize: 'cover, cover, cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-35"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(42, 150, 255, 0.12) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(42, 150, 255, 0.12) 1px, transparent 1px)
+            `,
+            backgroundSize: '64px 64px',
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-px bg-slate-400/22" />
+      </div>
+
+      <div className="relative z-10 max-w-[1200px] w-full p-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Identity Preview</h1>
         <div className="flex gap-4">
-          <button
-            onClick={() => {
-              sessionStorage.removeItem(CARD_GENERATOR_SESSION_KEY);
-              navigate('/');
-            }}
-            className="px-5 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all"
-          >
-            Back
-          </button>
           <button onClick={exportPNG} className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Download</button>
         </div>
       </div>
-      <canvas ref={canvasRef} className="rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
-      <p className="mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
+      <canvas ref={canvasRef} className="relative z-10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
+      <p className="relative z-10 mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
         * PROOF OF IDENTITY RECORDED BY VAID
       </p>
     </div>

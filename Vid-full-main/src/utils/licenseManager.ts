@@ -382,7 +382,7 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
     getActivationCodeInfo,
     clearSavedActivationCode,
     info: () => {
-      console.log('=== V-ID 开发者工具 ===');
+      console.log('=== VAID 开发者工具 ===');
       console.log('使用方法:');
       console.log('  V_ID_DEV.toggleDevMode() - 切换开发者模式（无限制生成）');
       console.log('  V_ID_DEV.isDevelopmentMode() - 检查当前是否为开发模式');

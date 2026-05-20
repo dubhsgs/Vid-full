@@ -1,4 +1,4 @@
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import { Copy, Check, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -21,8 +21,6 @@ export function HashDisplay({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const verificationUrl = `https://opentimestamps.org/?hash=${hash}`;
 
   return (
     <div className="space-y-6 bg-[#0a0a0a]/80 backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
@@ -50,15 +48,14 @@ export function HashDisplay({
               </>
             )}
           </button>
-          <a
-            href={verificationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => window.alert('此数字存证印记已进入 VAID 的链上时间锚定流程，可在证书验证页查看最新状态。')}
             className="inline-flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
           >
-            <ExternalLink className="w-4 h-4" />
+            <ShieldCheck className="w-4 h-4" />
             {t('hash.verify')}
-          </a>
+          </button>
         </div>
       </div>
 

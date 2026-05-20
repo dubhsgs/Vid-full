@@ -1845,3 +1845,495 @@ Deployment status:
 
 - Backend table and Edge Function are deployed.
 - Frontend code is built locally but still needs website frontend deployment before users see the new footer/contact/share UI on `vaid.top`.
+
+## 2026-05-11 Supabase Auth email template / SMTP cost decision archive
+
+Context:
+
+- User asked how to handle custom SMTP because enterprise mailbox / professional SMTP cost felt too high.
+- Decision for now: do not buy paid enterprise SMTP yet.
+- Lowest-cost approach chosen: keep Supabase built-in email sender, but customize the Magic Link email subject/body so users clearly see it is for VAID.
+- This does not change the real sender identity. Emails may still appear from `Supabase Auth <noreply@mail.app.supabase.io>` until a real SMTP/domain mail service is configured.
+- QQ mailbox deliverability may still be unreliable under Supabase's default sender.
+
+Supabase dashboard state observed:
+
+- Production Supabase project: `vimglsksvvvnxkjnaqeh`.
+- Page: Authentication -> Email Templates -> Magic link.
+- Subject field is set to:
+  - `VAID 登录链接 / VAID Magic Link`
+
+Important correction:
+
+- The Magic Link body editor was found containing incorrect text:
+  - `co.umbrella.vitalme`
+- This must not be saved as the email template.
+
+Draft template prepared in the dashboard editor:
+
+```html
+<div style="font-family: Arial, sans-serif; line-height: 1.7; color: #111827;">
+  <h2 style="margin: 0 0 16px; color: #0f172a;">登录 VAID / Sign in to VAID</h2>
+  <p>请点击下方按钮登录您的 VAID 账户。</p>
+  <p>Please click the button below to sign in to your VAID account.</p>
+  <p style="margin: 24px 0;">
+    <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 12px 18px; background: #0ea5e9; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700;">登录 VAID / Sign in to VAID</a>
+  </p>
+  <p style="font-size: 12px; color: #64748b;">如果您没有请求登录 VAID，可以忽略这封邮件。</p>
+  <p style="font-size: 12px; color: #64748b;">If you did not request this sign-in link, you can ignore this email.</p>
+  <p style="font-size: 12px; color: #64748b;">VAID Identity Protocol<br />https://vaid.top</p>
+</div>
+```
+
+Critical template variable:
+
+- `{{ .ConfirmationURL }}` must remain exactly unchanged.
+- It is the Supabase Magic Link login URL variable.
+
+Current completion status:
+
+- The dashboard editor content was replaced with the VAID bilingual Magic Link HTML template.
+- `Save changes` has not been clicked yet.
+- Reason: saving changes is a production Supabase Auth email-template change, so it requires explicit final confirmation before clicking.
+
+Next action:
+
+- If user confirms, click `Save changes` on the Supabase Magic Link template page.
+- After saving, test login email again with Gmail first.
+- QQ email delivery should be tested too, but failure would still point to sender reputation / SMTP limitation rather than VAID frontend code.
+
+Do not confuse this with custom SMTP:
+
+- Custom SMTP is still not configured.
+- This archive only records the low-cost template-branding workaround.
+
+## 2026-05-16 DirectMail SMTP and mobile Magic Link login follow-up
+
+Context:
+
+- The previous 2026-05-11 note said custom SMTP was not configured yet.
+- That note is now outdated.
+- On 2026-05-16, the project moved from Supabase's default mail sender to Alibaba Cloud DirectMail custom SMTP for Supabase Auth login emails.
+- Goal: make VAID login emails look professional, improve QQ mailbox delivery, and reduce Supabase default email rate-limit problems.
+
+Alibaba Cloud DirectMail setup completed:
+
+- Alibaba Cloud DirectMail was opened.
+- DirectMail region observed in console: China East 1 / Hangzhou.
+- Sending domain configured:
+  - `auth.vaid.top`
+- DNS verification completed for:
+  - DKIM
+  - SPF
+  - DMARC
+  - MX
+- DirectMail sender address created and active:
+  - `no-reply@auth.vaid.top`
+- Sender type:
+  - Trigger email
+- The sender status in Alibaba Cloud console showed normal after setup.
+- SMTP password was created in Alibaba Cloud.
+- Important security note:
+  - Do not write the SMTP password into this document.
+  - Do not commit SMTP credentials to the repo.
+  - The password is stored only inside Supabase Auth SMTP settings.
+
+Supabase custom SMTP setup completed:
+
+- Production Supabase project:
+  - `vimglsksvvvnxkjnaqeh`
+- Supabase page used:
+  - Authentication -> Email -> SMTP Settings
+- Custom SMTP was enabled.
+- Sender details configured:
+  - Sender email: `no-reply@auth.vaid.top`
+  - Sender name: `VAID`
+- SMTP provider settings configured:
+  - Host: `smtpdm.aliyun.com`
+  - Port: `465`
+  - Username: `no-reply@auth.vaid.top`
+  - Password: configured in Supabase, not visible after save
+- Supabase saved the settings successfully.
+- After saving, the Supabase dashboard no longer showed the password, which is normal.
+
+Email delivery verification completed:
+
+- A test Magic Link email was sent to QQ mailbox:
+  - `dub7@qq.com`
+- User confirmed:
+  - The email was received.
+  - It did not go to spam.
+  - The sender displayed as `VAID`.
+- This confirms the custom SMTP sender identity and QQ delivery path are working at least for the tested QQ mailbox.
+- The previous `email rate limit exceeded` problem was not seen during this test after custom SMTP was enabled.
+
+Magic Link email template updated:
+
+- Supabase Magic Link email template was updated again.
+- The template must keep using Supabase's real login variable:
+  - `{{ .ConfirmationURL }}`
+- Critical rule:
+  - Ordinary `https://vaid.top` links can open the website but cannot log the user in.
+  - Only `{{ .ConfirmationURL }}` can complete Magic Link login.
+- The email template now includes:
+  - A blue sign-in button using `{{ .ConfirmationURL }}`
+  - A backup sign-in link also using `{{ .ConfirmationURL }}`
+  - Chinese and English instructions
+  - A note that the login link can only be used once
+  - A plain site reference `https://vaid.top` at the bottom
+- Reason for adding the backup link:
+  - On mobile QQ Mail, the blue button initially failed to open the website.
+  - A visible backup link gives users another way to open/copy the exact Supabase login URL.
+
+Important Magic Link behavior confirmed:
+
+- Magic Links are one-time links.
+- If the same email link is clicked once, clicking it again can show:
+  - `otp_expired`
+  - `Email link is invalid or has expired`
+- This is normal Supabase behavior and should not be treated as a website bug.
+- For testing, every device/test attempt should use a freshly sent email.
+- If testing mobile login, do not click the same new email on desktop first.
+
+Mobile login issue investigation:
+
+- Initial mobile problem:
+  - Mobile QQ Mail blue button could not enter the website.
+- Cause identified:
+  - The login email had been sent from the local development site `127.0.0.1:5175`.
+  - The Magic Link redirect was therefore tied to local origin.
+  - On a phone, `127.0.0.1` means the phone itself, not the Mac, so the phone could not open the local site.
+- Frontend fix implemented:
+  - `src/components/AuthControl.tsx`
+  - Local development origins now redirect Magic Link login to production:
+    - `https://vaid.top`
+  - Production origin still redirects to its own origin.
+- User later confirmed:
+  - Mobile QQ Mail blue button can now jump to the VAID website.
+
+Remaining mobile login problem:
+
+- Current mobile state:
+  - The phone can open `https://vaid.top` from the email button.
+  - But the user is still not logged in after returning to the website.
+- Desktop state:
+  - Desktop email button opens the website and logs in successfully.
+- This means:
+  - SMTP is working.
+  - Email delivery is working.
+  - Supabase template link is mostly working.
+  - Redirect to website is working.
+  - The remaining issue is likely frontend session handling on mobile browser / embedded mail browser.
+
+Frontend auth handling fix implemented locally:
+
+- File changed:
+  - `src/components/AuthControl.tsx`
+- Added explicit Magic Link callback handling:
+  - Reads `code` from query string.
+  - Calls `supabase.auth.exchangeCodeForSession(code)`.
+  - Reads `access_token` and `refresh_token` from URL hash if present.
+  - Calls `supabase.auth.setSession(...)` as a fallback.
+  - Cleans auth tokens from the URL after handling.
+- Reason:
+  - Some mobile browsers or in-app email browsers may not reliably let Supabase auto-detect the session from the URL.
+  - Explicit parsing provides a fallback and should make mobile login more reliable.
+- Also changed initial auth load from `getUser()` to `getSession()` after callback handling.
+
+Verification completed locally:
+
+- `npm run typecheck` passed.
+- `npm run build` passed.
+- Build output completed successfully.
+- Vite warning about large chunk size remains only a build warning, not a blocking error.
+
+Deployment status:
+
+- The mobile login callback fix is currently local code only.
+- It has not yet been deployed to the live `https://vaid.top` frontend.
+- Therefore, phone testing against `https://vaid.top` will not reflect this fix until frontend deployment is completed.
+- Next required action:
+  - Deploy the updated frontend to production.
+  - Then send a fresh Magic Link email.
+  - Test mobile first, without clicking the same email on desktop.
+
+What is completed as of this note:
+
+- Alibaba Cloud DirectMail opened.
+- `auth.vaid.top` DNS authentication completed.
+- `no-reply@auth.vaid.top` sender created.
+- Supabase custom SMTP configured and saved.
+- QQ mailbox received VAID login email as normal mail.
+- Supabase Magic Link email template updated with backup login link.
+- Local-origin redirect problem fixed in code.
+- Mobile button now opens the website.
+- Explicit frontend session callback handling implemented locally.
+- Typecheck passed.
+- Production build passed.
+
+What is not completed yet:
+
+- The latest frontend auth fix has not been deployed to production.
+- Mobile login after redirect still needs retesting after deployment.
+- The new SMTP/template/auth work has not yet been committed in a clean commit.
+- Documentation has now been updated with this section, but git status still needs review before final commit.
+
+Operational warnings:
+
+- Never expose the Alibaba Cloud DirectMail SMTP password.
+- Do not save SMTP credentials into source files, `.env`, docs, screenshots, or git commits.
+- Do not use old Magic Link emails for testing.
+- Do not test the same Magic Link on desktop first if the goal is mobile login verification.
+
+## 2026-05-18 Hero inner container glassmorphism experiment baseline
+
+Context:
+
+- User wants to try a new effect inside the top hero container.
+- Requirement: remember the current values so the effect can be rolled back quickly.
+- Scope: only the top hero internal container visual layer.
+- Do not change mobile/desktop layout, text content, CTA, figure image, or surrounding UI unless explicitly requested.
+
+Baseline before experiment:
+
+- File: `src/App.tsx`
+- `hero-gdepth` gradient stops:
+  - `#1a2b53`, offset `0%`, opacity `0.0288`
+  - `#121f43`, offset `58%`, opacity `0.0461`
+  - `#0b1430`, offset `100%`, opacity `0.0576`
+- `hero-gbg` gradient stops:
+  - `#f1fbff`, offset `0%`, opacity `0.0634`
+  - `#d2e3ff`, offset `52%`, opacity `0.049`
+  - `#9db4e7`, offset `100%`, opacity `0.0346`
+- `hero-gshine` gradient stops:
+  - `#fbfeff`, offset `0%`, opacity `0.0346`
+  - `#e2f0ff`, offset `38%`, opacity `0.0187`
+  - `#9fb8e8`, offset `100%`, opacity `0`
+- Fill paths in `HeroHudFrame` before experiment:
+  - `fill="url(#hero-gdepth)"`
+  - `fill="url(#hero-gbg)"`
+  - `fill="url(#hero-gshine)"`
+
+- File: `src/index.css`
+- `.vaid-hero` before experiment:
+  - `min-height: clamp(500px, 48vw, 650px);`
+  - `--shell-top: 7.5%;`
+  - `--shell-side: -1.5%;`
+  - `--shell-bottom: 10.5%;`
+- `.vaid-hero-shell` before experiment:
+  - `position: absolute;`
+  - `inset: var(--shell-top) var(--shell-side) var(--shell-bottom) var(--shell-side);`
+  - `z-index: 1;`
+  - `pointer-events: none;`
+- `.vaid-hero-shell svg` before experiment:
+  - `display: block;`
+  - `width: 100%;`
+  - `height: 100%;`
+  - `overflow: visible;`
+  - `filter: none;`
+
+Experiment requested:
+
+- Remove the white misty/light haze effect from the hero internal container.
+- Replace it with a glassmorphism / frosted-glass style effect.
+
+Rollback instruction:
+
+- Restore the `hero-gbg` and `hero-gshine` stop opacities to the baseline values above.
+- Remove the new `.vaid-hero-shell::before` glass layer if the experiment is rejected.
+
+## 2026-05-19 Verification page UI completion checkpoint
+
+Context:
+
+- User confirmed the current verification page work is complete for now.
+- Local verification URL used for this round:
+  - `http://127.0.0.1:5175/verify/V29Y4-42EM-9YTU`
+- Main edited file:
+  - `src/pages/VerifyPage.tsx`
+- Added visual asset:
+  - `public/digital-globe-transparent.png`
+  - Source copy retained as `public/digital-globe-source.png`
+
+Verification page UI changes completed:
+
+- Reworked verification page into a VAID-system sci-fi layout matching the homepage direction more closely.
+- Added language switcher to verification page, using the same three-language model as the homepage.
+- Removed login button from verification page because public verification should not require account entry.
+- Removed external-link icon from the `Proof Status` button because the button currently opens a status explanation instead of navigating to a proof details page.
+- Rebuilt the main verification area with:
+  - large certificate preview/card on the left
+  - five metadata/status containers on the right
+  - card container height aligned with the right metadata/status stack
+- Removed the extra middle wrapper container that made the page look over-layered.
+- Removed the bright cyan corner decorations from the large verification container.
+- Removed the background circuit overlay from the page background.
+- Added blue glassmorphism / frosted visual treatment to the main verification container.
+- Adjusted container borders to a white-gray style after several experiments with cyan/blue borders.
+- Controlled glow overflow so halos do not visibly bleed outside container boundaries.
+- Merged the lower About / action-button area into one container.
+- Added a transparent digital globe image as a decorative background element in the lower About container.
+- Adjusted the globe to:
+  - sit near the upper portion of the lower container
+  - move left to better match the reference
+  - use reduced opacity
+  - avoid overpowering the text
+- Current globe class values:
+  - `top-[12%]`
+  - `left-[36%]`
+  - `w-[43%]`
+  - `opacity-[0.225]`
+  - `mix-blend-screen`
+  - `brightness-[0.72]`
+  - `contrast-[1.28]`
+  - `saturate-[1.55]`
+  - `hue-rotate-[8deg]`
+
+Verification page language and copy changes completed:
+
+- Replaced technical wording that explicitly exposed SHA-256, OpenTimestamps, and Bitcoin references in user-facing verification text.
+- Kept blockchain-style positioning but made wording more product-facing and less implementation-specific.
+- Standardized `V-ID` wording to `VAID`.
+- Updated `stamped` and `pending` status copy in English, Chinese, and Japanese so users do not feel the certificate is incomplete while chain archive confirmation is still running.
+- Current `stamped` copy:
+  - English: `VAID digital seal active, archive in progress`
+  - Chinese: `VAID 数字印记已生效，链上归档进行中`
+  - Japanese: `VAID デジタルシール有効、アーカイブ進行中`
+- Current `pending` copy:
+  - English: `VAID archive running in the background`
+  - Chinese: `VAID 存证归档后台处理中`
+  - Japanese: `VAID アーカイブをバックグラウンド処理中`
+- `Proof Status` popup text was also updated in all three languages to explain that the verification record is already available and chain archive confirmation continues in the background.
+
+Mobile verification page fixes completed:
+
+- Fixed mobile certificate/card preview distortion earlier in this verification-page work.
+- Ensured the verification-card-rendered certificate language follows the selected verification page language.
+- Forced timestamp formatting to be manual instead of relying on `toLocaleString`, because iOS Safari added `at` in English output.
+- Current timestamp display:
+  - English: `May 07, 2026, 22:30`
+  - Chinese/Japanese: `2026/05/07 22:30`
+- All languages now use 24-hour time.
+- Without changing font size, adjusted English mobile metadata label width so:
+  - `Citizen ID` value stays on one line
+  - `Timestamp` value stays on one line
+- Current English metadata label width:
+  - `w-[118px] sm:w-[150px]`
+- Citizen ID and timestamp values now use `whitespace-nowrap`.
+
+Verification checks completed:
+
+- `npm run typecheck` passed repeatedly after the final verification page changes.
+- Local browser page was refreshed after changes.
+- Mobile-size layout was checked with a 390px viewport for the English Citizen ID and Timestamp rows.
+
+Important product decision:
+
+- `Proof Status` currently does not navigate to a separate details page.
+- It opens a status explanation alert.
+- Reason:
+  - There is not yet a dedicated proof-details page suitable for non-technical users.
+  - Avoid exposing low-level implementation details prematurely.
+  - Avoid confusing users with external technical proof pages.
+- If a future proof-details page is built, the external-link icon can be restored then.
+
+Current next area:
+
+- User asked to move from verification page work to the card page.
+- Local card page route:
+  - `http://127.0.0.1:5175/card-generator`
+
+## 2026-05-20 Card Generator preview and download guide archive
+
+Card page / card-generator work completed in this pass:
+
+- Added a local-only preview path for the card page:
+  - `http://127.0.0.1:5175/card-generator?preview=1`
+  - This preview bypass is guarded by `import.meta.env.DEV`, so it only works in local development.
+  - Production builds do not enter this preview path, even if `?preview=1` is present.
+  - Purpose: allow UI inspection of the card page without consuming credits, uploading images, registering a certificate, or calling backend functions.
+
+- Added local preview avatar asset:
+  - Source image provided by user: `/Users/yan/Downloads/未命名文件夹 2/VAID Logo/Avta.png`
+  - Copied into project as: `public/card-preview-avatar.png`
+  - In local preview mode, the card page uses this image as the avatar.
+  - Normal user flow still uses the actual uploaded avatar stored in `localStorage`.
+
+- Adjusted card page preview initialization:
+  - Preview mode uses fixed demo values:
+    - character name: `Preview Character`
+    - creator name: `VAID Preview`
+  - Preview mode generates a local serial ID and QR content for visual inspection only.
+  - Preview mode skips `uploadImageToStorage` and skips `v-id-register`, so it does not touch Storage, Supabase functions, database records, or user credits.
+
+- Card page background experiments:
+  - Tried a Runway-inspired gray background.
+  - User rejected the gray direction.
+  - Restored the card page outer background to the verification-page-style deep blue gradient and grid treatment.
+  - Important: these background experiments affected only the web page background around the card canvas, not the certificate card canvas itself.
+
+- Card canvas mist/glow adjustment:
+  - User identified that the global card mist layer made the circular avatar look dim.
+  - Updated `drawCardMistBlur()` so the global mist/glow layer excludes the avatar circle area.
+  - Other card mist/glow areas remain unchanged.
+  - This preserves the overall card atmosphere while keeping the avatar clearer.
+
+Download package guide update:
+
+- Updated the `Proof_Verification_Guide.txt` template generated by the card page download package.
+- Old downloaded guide was no longer aligned with current product positioning because it mentioned:
+  - `V-ID`
+  - `SHA-256`
+  - `OpenTimestamps.org`
+  - low-level verification instructions
+- New guide removes explicit low-level technical exposure and uses product-facing VAID language.
+- Important product wording decision:
+  - VAID means `Virtual Asset ID`, explained as `Virtual Asset Identity`.
+  - Chinese meaning: `虚拟资产身份`.
+  - Avoid calling it a digital seal / digital stamp in the guide, because that can sound like an electronic signature or official seal and may confuse the product positioning.
+
+Current `Proof_Verification_Guide.txt` structure:
+
+- English section:
+  - `WHAT IS VAID?`
+  - `VAID stands for Virtual Asset ID, meaning "Virtual Asset Identity".`
+  - Explains that a VAID record gives a digital asset, virtual character, or original digital work a unique and verifiable identity.
+  - Explains chain-based time archive in product language without naming specific algorithms or external timestamp providers.
+
+- Chinese section:
+  - `什么是 VAID？`
+  - `VAID 是 Virtual Asset ID 的缩写，意思是“虚拟资产身份”。`
+  - Explains that VAID records create a unique and verifiable identity for digital assets, virtual characters, or original digital works.
+
+- Japanese section:
+  - `VAID とは？`
+  - Explains VAID as `Virtual Asset ID` and uses Japanese wording for virtual asset identity.
+
+- All three sections include:
+  - character name
+  - Citizen ID / 公民编号 / シチズン ID
+  - issue date
+  - VAID proof code
+  - public verification URL
+  - instructions to compare certificate information and keep the package as a local proof archive
+
+Validation completed:
+
+- `npm run typecheck` passed after card page preview changes.
+- `npm run typecheck` passed after the three-language guide template update.
+- Local Vite server was restarted on `127.0.0.1:5175` after it stopped during the session.
+- Local preview page was opened/refreshed in the in-app browser:
+  - `http://127.0.0.1:5175/card-generator?preview=1`
+
+Important caution:
+
+- The local preview bypass is useful for UI work, but should remain development-only.
+- Before final production deployment, review whether to keep or remove `public/card-preview-avatar.png` and the `?preview=1` local preview branch.
+- It is safe for production functionality as currently written because it is gated behind `import.meta.env.DEV`.
+
+### Correction after preview safety review
+
+- Removed the duplicate local preview asset `public/card-preview-avatar.png` before commit.
+- Reason: it was byte-for-byte identical to existing `public/hero_figure.png`, so keeping it would add an unnecessary public asset.
+- Card generator local preview now reuses `public/hero_figure.png`.
+- The `?preview=1` bypass remains guarded by `import.meta.env.DEV`, so production builds do not use it.

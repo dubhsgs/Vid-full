@@ -209,6 +209,7 @@ function App() {
     : heroSubtitleLines;
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [croppedAvatarPreview, setCroppedAvatarPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
@@ -238,7 +239,6 @@ function App() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [shareNotice, setShareNotice] = useState('');
 
 
   const refreshAccessDashboard = useCallback(async (preferredCode?: string) => {
@@ -345,6 +345,7 @@ function App() {
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
       setImageFile(null);
       setImagePreview(null);
+      setCroppedAvatarPreview(null);
       setGenerationError(t('errors.unsupportedImageType'));
       return;
     }
@@ -352,46 +353,20 @@ function App() {
     if (file.size > MAX_IMAGE_FILE_BYTES) {
       setImageFile(null);
       setImagePreview(null);
+      setCroppedAvatarPreview(null);
       setGenerationError(t('errors.imageTooLarge', { size: `${MAX_IMAGE_FILE_MB}MB` }));
       return;
     }
 
     setGenerationError('');
     setImageFile(file);
+    setCroppedAvatarPreview(null);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
-
-  const copyShareLink = useCallback(async (channel: string) => {
-    const shareUrl = 'https://vaid.top/';
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setShareNotice(t('footer.shareCopied', { channel }));
-      window.setTimeout(() => setShareNotice(''), 3200);
-    } catch {
-      setShareNotice(t('footer.shareCopyFailed'));
-      window.setTimeout(() => setShareNotice(''), 3200);
-    }
-  }, [t]);
-
-  const handleShare = useCallback((channel: 'weibo' | 'xiaohongshu' | 'wechat') => {
-    const shareUrl = 'https://vaid.top/';
-    const shareTitle = t('footer.shareText');
-
-    if (channel === 'weibo') {
-      const url = new URL('https://service.weibo.com/share/share.php');
-      url.searchParams.set('url', shareUrl);
-      url.searchParams.set('title', shareTitle);
-      window.open(url.toString(), '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    const channelName = channel === 'xiaohongshu' ? t('footer.xiaohongshu') : t('footer.wechatMoments');
-    copyShareLink(channelName);
-  }, [copyShareLink, t]);
 
   const handleContactSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -574,6 +549,7 @@ function App() {
         ctx.restore();
 
         const croppedAvatar = canvas.toDataURL('image/png');
+        setCroppedAvatarPreview(croppedAvatar);
         localStorage.setItem('vid_uploaded_avatar', croppedAvatar);
         localStorage.setItem('vid_character_name', characterName);
         localStorage.setItem('vid_creator_name', creatorName);
@@ -883,6 +859,7 @@ function App() {
                             onClick={() => {
                               setImagePreview(null);
                               setImageFile(null);
+                              setCroppedAvatarPreview(null);
                             }}
                             className="text-sm text-blue-400 hover:text-blue-300"
                           >
@@ -972,20 +949,24 @@ function App() {
                           {t('form.termsPrefix')}{' '}
                           <a
                             href="/terms"
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigate('/terms');
+                            }}
                           >
                             {t('form.terms')}
                           </a>
                           {' '}{t('form.and')}{' '}
                           <a
                             href="/privacy"
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigate('/privacy');
+                            }}
                           >
                             {t('form.privacy')}
                           </a>
@@ -1097,36 +1078,6 @@ function App() {
                 {t('footer.contact')}
               </button>
 
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="text-xs uppercase tracking-[0.24em] text-slate-600">
-                  {t('footer.share')}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleShare('weibo')}
-                  className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900/55 text-xs text-slate-300 hover:text-cyan-100 hover:border-cyan-500/40 transition-colors"
-                >
-                  {t('footer.weibo')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleShare('xiaohongshu')}
-                  className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900/55 text-xs text-slate-300 hover:text-cyan-100 hover:border-cyan-500/40 transition-colors"
-                >
-                  {t('footer.xiaohongshu')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleShare('wechat')}
-                  className="px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900/55 text-xs text-slate-300 hover:text-cyan-100 hover:border-cyan-500/40 transition-colors"
-                >
-                  {t('footer.wechatMoments')}
-                </button>
-              </div>
-
-              {shareNotice && (
-                <p className="text-xs text-cyan-200/80">{shareNotice}</p>
-              )}
             </div>
 
             <div className="text-center text-slate-600 text-sm pt-6 space-y-2">
@@ -1216,7 +1167,7 @@ function App() {
 
       {showForgingAnimation && (
         <ForgingAnimation
-          avatarUrl={imagePreview || undefined}
+          avatarUrl={croppedAvatarPreview || imagePreview || undefined}
           characterName={characterName}
           onComplete={handleAnimationComplete}
         />

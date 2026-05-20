@@ -38,7 +38,7 @@ const resources = {
       about: {
         title: 'About VAID Platform',
         description: 'A digital asset archival and identity recognition technology demonstration platform for developers.',
-        purpose: 'This platform showcases digital fingerprinting, cryptographic hashing, and immutable record-keeping technologies for educational and development purposes.'
+        purpose: 'This platform showcases digital identity sealing, trusted archival, and immutable record-keeping for educational and development purposes.'
       },
       process: {
         title: 'How It Works',
@@ -48,7 +48,7 @@ const resources = {
         },
         step2: {
           title: '02. Generate',
-          desc: 'Extract a unique fingerprint using advanced cryptography. Anchor your work with a digital genetic signature and a unique identity.'
+          desc: 'Create a unique digital seal for your work. Anchor your creation with a trusted identity mark and a permanent record.'
         },
         step3: {
           title: '03. Receive',
@@ -67,7 +67,7 @@ const resources = {
         verifyActivation: 'Redeem Code',
         verifying: 'Redeeming...',
         privacyGuard: 'Privacy Guard:',
-        privacyText: 'Your original file stays on your device. We only generate a digital fingerprint.',
+        privacyText: 'Your original file stays on your device. We only generate a VAID digital seal.',
         dragDrop: 'Drag and drop your character image here',
         or: 'or',
         selectFile: 'Select File for Local Encryption',
@@ -114,14 +114,14 @@ const resources = {
       },
       progress: {
         reading: 'Reading file locally...',
-        hashing: 'Calculating SHA-256 Fingerprint...',
+        hashing: 'Generating Digital Seal...',
         ready: 'Ready for Registry.'
       },
       hash: {
-        title: 'Digital Fingerprint (SHA-256)',
-        copy: 'Copy Hash',
+        title: 'VAID Digital Seal',
+        copy: 'Copy Seal',
         copied: 'Copied',
-        verify: 'Verify Identity',
+        verify: 'Proof Status',
         characterName: 'Character Name',
         creator: 'Creator'
       },
@@ -179,7 +179,7 @@ const resources = {
       hero: {
         title: '您的数字身份',
         titleHighlight: '永久存证',
-        titleLines: ['您的数字资产永久存证', '将数字灵魂锚定', '物理世界'],
+        titleLines: ['将您的数字资产永久存证', '将数字灵魂锚定于', '物理世界'],
         mobileTitleLines: ['您的数字资产永久存证', '将数字灵魂锚定物理世界'],
         subtitle: 'VAID 为数字资产、虚拟角色与原创设定提供存在证明与时间锚点。\n从作品诞生的那一刻起，为创作留下一份可追溯、可验证、不可篡改的数字记录。',
         mobileSubtitleLines: ['VAID 为数字资产、虚拟角色与原创设定提供存在证明与时间锚点。', '从作品诞生的那一刻起，为创作留下一份可追溯、可验证、', '不可篡改的数字记录。'],
@@ -283,14 +283,14 @@ const resources = {
       },
       progress: {
         reading: '本地读取文件中...',
-        hashing: '计算 SHA-256 指纹中...',
+        hashing: '生成数字存证印记中...',
         ready: '已准备好注册。'
       },
       hash: {
-        title: '数字指纹 (SHA-256)',
-        copy: '复制哈希',
+        title: 'VAID 数字存证印记',
+        copy: '复制印记',
         copied: '已复制',
-        verify: '验证身份',
+        verify: '查看存证状态',
         characterName: '角色名称',
         creator: '创作者'
       },
@@ -451,14 +451,14 @@ const resources = {
       },
       progress: {
         reading: 'ファイルをローカルで読み込み中...',
-        hashing: 'SHA-256指紋を計算中...',
+        hashing: 'デジタル証明シールを生成中...',
         ready: '登録準備完了。'
       },
       hash: {
-        title: 'デジタル指紋 (SHA-256)',
-        copy: 'ハッシュをコピー',
+        title: 'VAID デジタル証明シール',
+        copy: 'シールをコピー',
         copied: 'コピー済み',
-        verify: 'アイデンティティを検証',
+        verify: '証明ステータス',
         characterName: 'キャラクター名',
         creator: 'クリエイター'
       },

@@ -266,7 +266,7 @@ export function VIDCard({
               className="text-[#6b8a9a] mb-1"
               style={{ fontSize: 'clamp(5px, 0.55vw, 8px)' }}
             >
-              HASH: {hash.substring(0, 16)}...
+              SEAL: {hash.substring(0, 16)}...
             </div>
             <div
               className="text-[#6b8a9a]"
@@ -305,10 +305,10 @@ export function VIDCard({
           <div className="relative">
             <Shield className="w-12 h-12 text-white/90 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" strokeWidth={1.5} />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold tracking-tighter text-white">
-              V-ID
+              VAID
             </div>
           </div>
-          <div className="text-[10px] tracking-[0.5em] text-cyan-400/60 mt-2 font-mono">V-ID PROTOCOL</div>
+          <div className="text-[10px] tracking-[0.5em] text-cyan-400/60 mt-2 font-mono">VAID PROTOCOL</div>
         </div>
 
         <div className="relative z-10 flex items-center justify-between px-6">
@@ -330,7 +330,7 @@ export function VIDCard({
 
           <div className="flex-1 space-y-5 font-mono">
             <div>
-              <p className="text-[10px] text-zinc-500 tracking-widest uppercase mb-1">V-ID Name</p>
+              <p className="text-[10px] text-zinc-500 tracking-widest uppercase mb-1">VAID Name</p>
               <h2 className="text-2xl text-white font-medium tracking-tight">[{characterName.toUpperCase()}]</h2>
             </div>
             <div>
@@ -363,7 +363,7 @@ export function VIDCard({
               </div>
             </div>
             <p className="text-[7px] text-zinc-500 leading-[1.2] text-center font-mono">
-              HASH: {hash.substring(0, 10)}...
+              SEAL: {hash.substring(0, 10)}...
               <br />
               VERIFIED BY BLOCKCHAIN
             </p>
@@ -372,7 +372,7 @@ export function VIDCard({
 
         <div className="absolute bottom-6 left-0 w-full text-center px-12">
           <p className="text-[8px] text-zinc-500 tracking-[0.3em] font-mono leading-loose">
-            THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY ANCHORED ON THE IMMUTABLE V-ID LEDGER.
+            THIS DOCUMENT CONSTITUTES FINAL PROOF OF A UNIQUE DIGITAL IDENTITY ANCHORED ON THE IMMUTABLE VAID LEDGER.
           </p>
         </div>
       </div>

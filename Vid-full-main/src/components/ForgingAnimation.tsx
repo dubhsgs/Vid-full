@@ -68,7 +68,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
       }, 30);
       return () => clearInterval(interval);
     } else if (stage === 'hashing') {
-      setLogs(['> INJECTING SEED...', '> GENERATING CRYPTOGRAPHIC HASH...', '> SHA-256 PROTOCOL ACTIVE...']);
+      setLogs(['> INJECTING SEED...', '> GENERATING VAID SEAL...', '> IDENTITY PROTOCOL ACTIVE...']);
     } else if (stage === 'anchoring') {
       setLogs(['> ESTABLISHING AD-HOC NODE...', '> BROADCASTING TO NETWORK...', '> PROTOCOL SECURED.']);
     } else if (stage === 'secured') {
@@ -112,9 +112,9 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
       case 'scanning':
         return 'SCANNING DATA';
       case 'hashing':
-        return 'GENERATING SHA-256 HASH';
+        return 'GENERATING VAID SEAL';
       case 'anchoring':
-        return 'ANCHORING TO BITCOIN NETWORK';
+        return 'ANCHORING TO BLOCKCHAIN NETWORK';
       case 'secured':
         return 'TIMESTAMP SECURED';
       default:
@@ -344,7 +344,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
 
           <div className="font-mono text-slate-500 text-sm tracking-wider">
             {stage === 'scanning' && '[ ANALYZING IDENTITY DATA ]'}
-            {stage === 'hashing' && '[ CREATING CRYPTOGRAPHIC FINGERPRINT ]'}
+            {stage === 'hashing' && '[ CREATING DIGITAL PROOF SEAL ]'}
             {stage === 'anchoring' && '[ BROADCASTING TO BLOCKCHAIN NETWORK ]'}
             {stage === 'secured' && '[ IDENTITY SUCCESSFULLY FORGED AND SECURED ]'}
           </div>
