@@ -3,6 +3,7 @@ import { Upload, Shield, FileCheck, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
+import { uploadImageToStorage, uploadOriginalFileToStorage } from './utils/imageUpload';
 import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -361,6 +362,10 @@ function App() {
     setGenerationError('');
     setImageFile(file);
     setCroppedAvatarPreview(null);
+    localStorage.removeItem('vid_original_file_hash');
+    localStorage.removeItem('vid_original_file_path');
+    localStorage.removeItem('vid_registered_friendly_id');
+    localStorage.removeItem('vid_registered_hash');
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
@@ -556,7 +561,6 @@ function App() {
 
         try {
           const hash = await calculateSHA256(imageFile);
-          localStorage.setItem('vid_original_file_hash', hash);
 
           let refreshedState = await refreshAccessDashboard(normalizedInput);
 
@@ -577,7 +581,39 @@ function App() {
             return;
           }
 
-          setRemainingCredits(refreshedState.freeRemaining);
+          const originalFilePath = await uploadOriginalFileToStorage(imageFile);
+          if (!originalFilePath) {
+            setGenerationError(t('errors.generationFlowFailed'));
+            return;
+          }
+
+          const uploadedAvatarUrl = await uploadImageToStorage(croppedAvatar);
+          if (!uploadedAvatarUrl) {
+            setGenerationError(t('errors.generationFlowFailed'));
+            return;
+          }
+
+          const { data: registerData, error: registerError } = await supabase.functions.invoke('v-id-register', {
+            body: {
+              character_name: characterName,
+              creator_name: creatorName,
+              sha256_hash: hash,
+              image_url: uploadedAvatarUrl,
+              original_file_path: originalFilePath,
+            },
+          });
+
+          if (registerError || !registerData?.success || !registerData?.friendly_id) {
+            console.error('Failed to register VAID before card preview:', registerError || registerData);
+            setGenerationError(t('errors.generationFlowFailed'));
+            return;
+          }
+
+          localStorage.setItem('vid_original_file_hash', hash);
+          localStorage.setItem('vid_original_file_path', originalFilePath);
+          localStorage.setItem('vid_registered_friendly_id', registerData.friendly_id);
+          localStorage.setItem('vid_registered_hash', hash);
+          setRemainingCredits(Number(registerData.free_credits || 0) + Number(registerData.paid_credits || 0));
           setActivationCodeInfo(refreshedState.savedCodeInfo);
           setActivationCodeError('');
           setGenerationError('');

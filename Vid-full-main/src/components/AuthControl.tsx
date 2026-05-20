@@ -42,30 +42,42 @@ function getEmailRedirectTo(): string {
 function clearAuthParamsFromUrl() {
   const url = new URL(window.location.href);
   url.searchParams.delete('code');
+  url.searchParams.delete('error');
+  url.searchParams.delete('error_code');
+  url.searchParams.delete('error_description');
   url.hash = '';
   window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
 }
 
-async function completeAuthFromUrl() {
+async function completeAuthFromUrl(): Promise<string | null> {
   const searchParams = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const code = searchParams.get('code');
   const accessToken = hashParams.get('access_token');
   const refreshToken = hashParams.get('refresh_token');
+  const authError = searchParams.get('error_description') || hashParams.get('error_description');
+
+  if (authError) {
+    clearAuthParamsFromUrl();
+    return authError;
+  }
 
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
     clearAuthParamsFromUrl();
-    return;
+    return error?.message ?? null;
   }
 
   if (accessToken && refreshToken) {
-    await supabase.auth.setSession({
+    const { error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
     window.history.replaceState({}, document.title, window.location.pathname || '/');
+    return error?.message ?? null;
   }
+
+  return null;
 }
 
 export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) {
@@ -93,10 +105,14 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
     let isMounted = true;
 
     const loadUser = async () => {
-      await completeAuthFromUrl();
+      const callbackError = await completeAuthFromUrl();
       const { data } = await supabase.auth.getSession();
       if (!isMounted) return;
       setUser(data.session?.user ?? null);
+      if (callbackError && !data.session?.user) {
+        setError(t('auth.magicLinkInvalid'));
+        setIsOpen(true);
+      }
       setLoading(false);
     };
 
@@ -111,7 +127,7 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
       isMounted = false;
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (openSignal > 0) {

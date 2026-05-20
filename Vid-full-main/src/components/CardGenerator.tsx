@@ -90,6 +90,7 @@ export function CardGenerator() {
   const [textureImg, setTextureImg] = useState<HTMLImageElement | null>(null);
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const formatIssuedDate = useCallback((date = new Date()) => {
     const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
@@ -153,30 +154,47 @@ export function CardGenerator() {
             return;
           }
 
+          const registeredFriendlyId = localStorage.getItem('vid_registered_friendly_id') || '';
+          const registeredHash = localStorage.getItem('vid_registered_hash') || '';
+          if (registeredFriendlyId && registeredHash) {
+            setCitizenId(registeredFriendlyId);
+            setSha256Hash(registeredHash);
+            setForm(prev => ({
+              ...prev,
+              serialId: registeredFriendlyId,
+              qrContent: `${siteOrigin}/verify/${registeredFriendlyId}`,
+            }));
+            return;
+          }
+
           let imageUrl = '';
           let hashValue = '';
           const originalFileHash = localStorage.getItem('vid_original_file_hash') || '';
+          const originalFilePath = localStorage.getItem('vid_original_file_path') || '';
 
-          if (savedAvatar) {
-            console.log('[CardGenerator] Uploading thumbnail to Storage...');
-            const uploadedUrl = await uploadImageToStorage(savedAvatar, `${serialId}.png`);
-
-            if (uploadedUrl) {
-              imageUrl = uploadedUrl;
-              console.log('[CardGenerator] Thumbnail uploaded successfully:', imageUrl);
-            } else {
-              console.warn('[CardGenerator] Failed to upload thumbnail, using base64 fallback');
-              imageUrl = savedAvatar;
-            }
-
-            hashValue = originalFileHash || await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${imageUrl}`);
-            setSha256Hash(hashValue);
+          if (!originalFileHash || !originalFilePath) {
+            setAccessError('缺少原始文件校验信息，请返回首页重新发起生成。');
+            return;
           }
 
-          if (!hashValue) {
-            hashValue = await calculateSHA256(`${savedName}:${creatorName}:${issuedDate}:${serialId}`);
-            setSha256Hash(hashValue);
+          if (!savedAvatar) {
+            setAccessError('缺少证书头像，请返回首页重新发起生成。');
+            return;
           }
+
+          console.log('[CardGenerator] Uploading thumbnail to Storage...');
+          const uploadedUrl = await uploadImageToStorage(savedAvatar, `${serialId}.png`);
+
+          if (!uploadedUrl) {
+            setAccessError('证书图片上传失败，请返回首页重试。');
+            return;
+          }
+
+          imageUrl = uploadedUrl;
+          console.log('[CardGenerator] Thumbnail uploaded successfully:', imageUrl);
+
+          hashValue = originalFileHash;
+          setSha256Hash(hashValue);
 
           const { data, error } = await supabase.functions.invoke('v-id-register', {
             body: {
@@ -184,6 +202,7 @@ export function CardGenerator() {
               creator_name: creatorName,
               sha256_hash: hashValue,
               image_url: imageUrl,
+              original_file_path: originalFilePath,
             },
           });
 
@@ -203,6 +222,9 @@ export function CardGenerator() {
               qrContent: `${siteOrigin}/verify/${friendlyId}`,
             }));
             localStorage.removeItem('vid_original_file_hash');
+            localStorage.removeItem('vid_original_file_path');
+            localStorage.setItem('vid_registered_friendly_id', friendlyId);
+            localStorage.setItem('vid_registered_hash', hashValue);
           } else {
             console.error('VAID registration returned no friendly_id:', data);
             setAccessError('证书注册没有返回有效编号，请返回首页重试。');
@@ -988,29 +1010,44 @@ export function CardGenerator() {
   }, [avatarImg, bgImg, form, logoImg, qrImg, textureImg]);
 
   const exportPNG = async () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = REAL_W;
-    canvas.height = REAL_H;
-    const ctx = canvas.getContext('2d')!;
-    ctx.scale(DPR, DPR);
+    if (isDownloading) return;
+    setIsDownloading(true);
 
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    if (bgImg) {
-      drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
-    }
-    drawPanel(ctx);
-    drawTechTexture(ctx);
-    drawLogo(ctx);
-    drawAvatar(ctx);
-    drawDividerLine(ctx);
-    drawTextFields(ctx);
-    drawDescription(ctx);
-    drawQRCode(ctx);
-    drawCardMistBlur(ctx);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = REAL_W;
+      canvas.height = REAL_H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas context unavailable');
+      }
+      ctx.scale(DPR, DPR);
 
-    const imageDataUrl = canvas.toDataURL('image/png');
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      if (bgImg) {
+        drawCover(ctx, bgImg, 0, 0, CANVAS_W, CANVAS_H);
+      }
+      drawPanel(ctx);
+      drawTechTexture(ctx);
+      drawLogo(ctx);
+      drawAvatar(ctx);
+      drawDividerLine(ctx);
+      drawTextFields(ctx);
+      drawDescription(ctx);
+      drawQRCode(ctx);
+      drawCardMistBlur(ctx);
 
-    const verificationGuide = `VAID VERIFICATION GUIDE
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Card image export failed'));
+          }
+        }, 'image/png');
+      });
+
+      const verificationGuide = `VAID VERIFICATION GUIDE
 =======================
 
 ENGLISH
@@ -1081,28 +1118,43 @@ VAID 証明コード：${sha256Hash}
 © VAID Protocol
 `;
 
-    const zip = new JSZip();
+      const zip = new JSZip();
 
-    const imageBlob = await (await fetch(imageDataUrl)).blob();
-    zip.file('VAID_Certificate.png', imageBlob);
-    zip.file('Proof_Verification_Guide.txt', verificationGuide);
+      zip.file('VAID_Certificate.png', imageBlob);
+      zip.file('Proof_Verification_Guide.txt', verificationGuide);
 
-    if (citizenId) {
-      const { data: otsData } = await supabase.storage
-        .from('v-id-images')
-        .download(`ots/${citizenId}.ots`);
-      if (otsData) {
-        zip.file(`${citizenId}.ots`, otsData);
+      if (citizenId) {
+        try {
+          const { data: otsData, error: otsError } = await supabase.storage
+            .from('v-id-images')
+            .download(`ots/${citizenId}.ots`);
+          if (otsData) {
+            zip.file(`${citizenId}.ots`, otsData);
+          } else if (otsError) {
+            console.warn('[CardGenerator] OTS file unavailable, continuing without it:', otsError);
+          }
+        } catch (error) {
+          console.warn('[CardGenerator] OTS file download failed, continuing without it:', error);
+        }
       }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.download = `VAID_${form.serialId}_Complete.zip`;
+      link.href = url;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('[CardGenerator] Failed to create download bundle:', error);
+      alert('Download failed. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const link = document.createElement('a');
-    link.download = `VAID_${form.serialId}_Complete.zip`;
-    link.href = URL.createObjectURL(zipBlob);
-    link.click();
-
-    setTimeout(() => URL.revokeObjectURL(link.href), 100);
   };
 
   if (accessError) {
@@ -1156,7 +1208,13 @@ VAID 証明コード：${sha256Hash}
       <div className="relative z-10 max-w-[1200px] w-full p-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Identity Preview</h1>
         <div className="flex gap-4">
-          <button onClick={exportPNG} className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Download</button>
+          <button
+            onClick={exportPNG}
+            disabled={isDownloading}
+            className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 disabled:cursor-wait disabled:opacity-70"
+          >
+            {isDownloading ? 'Downloading...' : 'Download'}
+          </button>
         </div>
       </div>
       <canvas ref={canvasRef} className="relative z-10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />

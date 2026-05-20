@@ -12,13 +12,59 @@ interface RegisterRequest {
   creator_name: string;
   sha256_hash: string;
   image_url: string;
+  original_file_path: string;
 }
+
+const IMAGE_STORAGE_BUCKET = 'v-id-images';
+const ORIGINAL_STORAGE_BUCKET = 'v-id-originals';
+const MAX_ORIGINAL_FILE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_ORIGINAL_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function normalizeStoragePath(path: string): string {
+  return path.trim().replace(/^\/+/, '');
+}
+
+function isOwnedStoragePath(path: string, userId: string, folder: string): boolean {
+  const parts = normalizeStoragePath(path).split('/');
+  return parts.length >= 3
+    && parts[0] === folder
+    && parts[1] === userId
+    && !parts.some(part => part === '' || part === '.' || part === '..');
+}
+
+function extractPublicStoragePath(imageUrl: string): string | null {
+  try {
+    const supabaseOrigin = new URL(Deno.env.get('SUPABASE_URL')!).origin;
+    const parsedUrl = new URL(imageUrl);
+    if (parsedUrl.origin !== supabaseOrigin) {
+      return null;
+    }
+
+    const prefix = `/storage/v1/object/public/${IMAGE_STORAGE_BUCKET}/`;
+    if (!parsedUrl.pathname.startsWith(prefix)) {
+      return null;
+    }
+
+    return decodeURIComponent(parsedUrl.pathname.slice(prefix.length));
+  } catch {
+    return null;
+  }
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Blob(blob: Blob): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+  return bytesToHex(new Uint8Array(digest));
 }
 
 Deno.serve(async (req: Request) => {
@@ -45,6 +91,7 @@ Deno.serve(async (req: Request) => {
     const creatorName = String(body.creator_name || '').trim();
     const sha256Hash = String(body.sha256_hash || '').trim().toLowerCase();
     const imageUrl = String(body.image_url || '').trim();
+    const originalFilePath = normalizeStoragePath(String(body.original_file_path || ''));
 
     if (!characterName || !creatorName) {
       return jsonResponse({ success: false, error: 'NAME_REQUIRED' }, 400);
@@ -58,12 +105,43 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'IMAGE_URL_REQUIRED' }, 400);
     }
 
+    const imagePath = extractPublicStoragePath(imageUrl);
+    if (!imagePath || !isOwnedStoragePath(imagePath, user.id, 'avatars')) {
+      return jsonResponse({ success: false, error: 'INVALID_IMAGE_URL' }, 400);
+    }
+
+    if (!originalFilePath || !isOwnedStoragePath(originalFilePath, user.id, 'originals')) {
+      return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_PATH' }, 400);
+    }
+
     const supabase = createServiceClient();
+    const { data: originalFile, error: originalFileError } = await supabase.storage
+      .from(ORIGINAL_STORAGE_BUCKET)
+      .download(originalFilePath);
+
+    if (originalFileError || !originalFile) {
+      console.error('[v-id-register] Original file download error:', originalFileError);
+      return jsonResponse({ success: false, error: 'ORIGINAL_FILE_NOT_FOUND' }, 400);
+    }
+
+    if (originalFile.size <= 0 || originalFile.size > MAX_ORIGINAL_FILE_BYTES) {
+      return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_SIZE' }, 400);
+    }
+
+    if (originalFile.type && !ALLOWED_ORIGINAL_IMAGE_TYPES.has(originalFile.type)) {
+      return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_TYPE' }, 400);
+    }
+
+    const verifiedSha256Hash = await sha256Blob(originalFile);
+    if (verifiedSha256Hash !== sha256Hash) {
+      return jsonResponse({ success: false, error: 'ORIGINAL_HASH_MISMATCH' }, 400);
+    }
+
     const { data: resultRows, error } = await supabase.rpc('register_v_id', {
       p_user_id: user.id,
       p_character_name: characterName,
       p_creator_name: creatorName,
-      p_sha256_hash: sha256Hash,
+      p_sha256_hash: verifiedSha256Hash,
       p_image_url: imageUrl,
     });
 

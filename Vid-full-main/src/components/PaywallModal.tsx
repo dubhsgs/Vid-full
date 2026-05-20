@@ -40,6 +40,15 @@ const pricingTiers = [
   },
 ];
 
+function getPaymentReturnUrl(): string {
+  const { hostname, origin } = window.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${origin}/payment-success`;
+  }
+
+  return 'https://vaid.top/payment-success';
+}
+
 export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
   const { t } = useTranslation();
   const [purchasingPackSize, setPurchasingPackSize] = useState<number | null>(null);
@@ -63,7 +72,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
     setPurchaseError('');
 
     try {
-      const returnUrl = `${window.location.origin}/payment-success`;
+      const returnUrl = getPaymentReturnUrl();
 
       const { data, error } = await supabase.functions.invoke('alipay-create-order', {
         body: {

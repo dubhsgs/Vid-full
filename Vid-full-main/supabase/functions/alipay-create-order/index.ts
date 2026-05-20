@@ -18,12 +18,16 @@ const PACK_PRICES: Record<number, number> = {
 };
 
 const DEFAULT_ALLOWED_RETURN_ORIGINS = new Set<string>([
+  'https://vaid.top',
+  'https://www.vaid.top',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:4173',
   'http://127.0.0.1:4173',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'http://localhost:5175',
+  'http://127.0.0.1:5175',
 ]);
 
 function getBeijingTimestamp(): string {

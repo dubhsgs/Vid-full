@@ -2,6 +2,13 @@ import { supabase } from './supabase';
 
 const MAX_UPLOAD_BYTES = 200 * 1024;
 const MAX_DIMENSION = 1024;
+const ORIGINAL_STORAGE_BUCKET = 'v-id-originals';
+const ORIGINAL_FILE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
 
 export async function compressImageDataUrl(dataUrl: string): Promise<string> {
   return new Promise((resolve) => {
@@ -79,6 +86,41 @@ export async function uploadImageToStorage(dataUrl: string, filename?: string): 
     return publicUrl;
   } catch (error) {
     console.error('[ImageUpload] Error:', error);
+    return null;
+  }
+}
+
+export async function uploadOriginalFileToStorage(file: File): Promise<string | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      console.error('[ImageUpload] Original upload requires an authenticated user');
+      return null;
+    }
+
+    const extension = ORIGINAL_FILE_EXTENSIONS[file.type];
+    if (!extension) {
+      console.error('[ImageUpload] Unsupported original image type:', file.type);
+      return null;
+    }
+
+    const filePath = `originals/${user.id}/${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from(ORIGINAL_STORAGE_BUCKET)
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('[ImageUpload] Original upload failed:', error);
+      return null;
+    }
+
+    return filePath;
+  } catch (error) {
+    console.error('[ImageUpload] Original upload error:', error);
     return null;
   }
 }
