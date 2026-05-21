@@ -13,7 +13,7 @@ interface CreateOrderRequest {
 }
 
 const PACK_PRICES: Record<number, number> = {
-  1: 0.01,
+  1: 9.9,
   5: 39.9,
   10: 69.9,
 };

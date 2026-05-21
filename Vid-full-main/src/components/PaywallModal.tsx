@@ -19,7 +19,7 @@ interface PaywallModalProps {
 const pricingTiers = [
   {
     nameKey: 'paywall.pack1',
-    price: '¥0.01',
+    price: '¥9.9',
     certificates: 1,
     popular: false,
     packSize: 1,

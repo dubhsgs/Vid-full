@@ -11,6 +11,8 @@
     width: 100%;
     min-width: 0;
     overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   * {
@@ -77,6 +79,7 @@
   font-weight: 700;
   line-height: 0.98;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
   color: #9ceeff;
   text-shadow:
     0 0 1px rgba(228, 253, 255, 0.95),
@@ -330,6 +333,8 @@
     align-items: flex-start;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
     padding: 0.98rem 0.8rem 0.88rem 0.96rem;
     border: 1px solid rgba(117, 159, 221, 0.18);
     border-radius: 10px;
@@ -389,7 +394,36 @@
     display: flex;
   }
 
-  .vaid-hero-title--latin span:first-child {
+  .vaid-hero-title--mobile span {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--cjk span {
+    white-space: nowrap;
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--latin {
+    font-size: clamp(1.45rem, 6.3vw, 1.78rem);
+    line-height: 1.08;
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--latin span:first-child {
+    white-space: normal;
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--zh {
+    font-size: clamp(1.42rem, 6.25vw, 1.7rem);
+    line-height: 1.08;
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--ja {
+    font-size: clamp(1.36rem, 5.9vw, 1.62rem);
+    line-height: 1.12;
+  }
+
+  .vaid-hero-title--desktop.vaid-hero-title--latin span:first-child {
     white-space: nowrap;
   }
 
@@ -727,9 +761,69 @@
     padding: 1.5rem;
   }
 
+  .vaid-upload-zone p {
+    overflow-wrap: anywhere;
+  }
+
+  .vaid-upload-button {
+    display: inline-flex;
+    max-width: 100%;
+    justify-content: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+    line-height: 1.22;
+  }
+
+  .vaid-activation-input {
+    min-width: 0;
+    font-size: 0.92rem;
+  }
+
+  .vaid-activation-button {
+    min-width: 0;
+    text-align: center;
+    line-height: 1.22;
+    white-space: normal;
+  }
+
   .vaid-avatar-editor {
     width: min(80vw, 20rem);
     height: min(80vw, 20rem);
+  }
+
+  .vaid-site-header {
+    gap: 0.75rem;
+  }
+
+  .vaid-site-logo {
+    max-width: min(7rem, 31vw);
+  }
+
+  .vaid-site-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .vaid-header-button {
+    max-width: 100%;
+    gap: 0.4rem;
+    padding: 0.5rem 0.62rem;
+  }
+
+  .vaid-header-button span {
+    min-width: 0;
+    max-width: 5.7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 639px) {
+  .vaid-activation-button {
+    width: 100%;
   }
 }
 
@@ -755,7 +849,19 @@
 
   .vaid-hero-title {
     max-width: min(21.7rem, calc(100vw - 1.6rem));
-    font-size: clamp(1.74rem, 7.55vw, 2.12rem);
+    font-size: clamp(1.5rem, 6.8vw, 1.9rem);
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--latin {
+    font-size: clamp(1.32rem, 5.9vw, 1.55rem);
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--zh {
+    font-size: clamp(1.34rem, 6vw, 1.58rem);
+  }
+
+  .vaid-hero-title--mobile.vaid-hero-title--ja {
+    font-size: clamp(1.28rem, 5.72vw, 1.5rem);
   }
 
   .vaid-hero-subtitle {

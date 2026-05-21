@@ -707,15 +707,15 @@ function App() {
       <AnimatedGrid />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="pt-8 pb-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
+        <header className="vaid-site-header pt-8 pb-4 flex items-start justify-between">
+          <div className="flex min-w-0 items-center gap-3">
             <img
               src="/vaid-logo-top.png"
               alt="VAID Logo"
-              className="h-8 sm:h-10 md:h-[48px] w-auto max-w-[280px] mix-blend-screen"
+              className="vaid-site-logo h-8 sm:h-10 md:h-[48px] w-auto max-w-[280px] mix-blend-screen"
             />
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="vaid-site-actions flex items-center gap-2 sm:gap-3">
             <AuthControl
               openSignal={authOpenSignal}
               onAuthChange={setAuthState}
@@ -848,12 +848,12 @@ function App() {
                         setGenerationError('');
                       }}
                       placeholder={t('form.activationPlaceholder')}
-                      className="flex-1 px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="vaid-activation-input flex-1 px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                     <button
                       onClick={() => handleRedeemActivationCode()}
                       disabled={isCheckingActivationCode || !activationCodeInput.trim()}
-                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all"
+                      className="vaid-activation-button px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all sm:w-auto"
                     >
                       {isCheckingActivationCode ? t('form.verifying') : t('form.verifyActivation')}
                     </button>
@@ -911,8 +911,8 @@ function App() {
                             {t('form.dragDrop')}
                           </p>
                           <p className="text-sm text-slate-500 mb-4">{t('form.or')}</p>
-                          <label className="inline-block">
-                            <span className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer font-medium">
+                          <label className="block">
+                            <span className="vaid-upload-button px-5 py-2.5 sm:px-6 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer font-medium">
                               {t('form.selectFile')}
                             </span>
                             <input

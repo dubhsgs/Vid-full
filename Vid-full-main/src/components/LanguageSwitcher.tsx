@@ -18,7 +18,7 @@ export function LanguageSwitcher() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-blue-500/50 transition-colors"
+        className="vaid-header-button flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-blue-500/50 transition-colors"
       >
         <Globe className="w-4 h-4 text-blue-400" />
         <span className="text-sm text-slate-300">{currentLanguage.name}</span>
