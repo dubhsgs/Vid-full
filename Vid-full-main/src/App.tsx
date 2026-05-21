@@ -424,8 +424,9 @@ function App() {
     setImagePosition({ x: 0, y: 0 });
   };
 
-  const handleImageMouseDown = (e: React.MouseEvent) => {
+  const handleImagePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
     setIsDraggingImage(true);
     setDragStart({
       x: e.clientX - imagePosition.x,
@@ -433,15 +434,19 @@ function App() {
     });
   };
 
-  const handleImageMouseMove = (e: React.MouseEvent) => {
+  const handleImagePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDraggingImage) return;
+    e.preventDefault();
     setImagePosition({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y
     });
   };
 
-  const handleImageMouseUp = () => {
+  const handleImagePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     setIsDraggingImage(false);
   };
 
@@ -1020,9 +1025,11 @@ function App() {
                   <div className="space-y-6">
                     <div
                       className="vaid-avatar-editor relative w-80 h-80 mx-auto"
-                      onMouseMove={handleImageMouseMove}
-                      onMouseUp={handleImageMouseUp}
-                      onMouseLeave={handleImageMouseUp}
+                      onPointerDown={handleImagePointerDown}
+                      onPointerMove={handleImagePointerMove}
+                      onPointerUp={handleImagePointerUp}
+                      onPointerCancel={handleImagePointerUp}
+                      style={{ touchAction: 'none' }}
                     >
                       <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-blue-500 shadow-2xl">
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -1037,7 +1044,6 @@ function App() {
                               height: 'auto',
                               transition: isDraggingImage ? 'none' : 'transform 0.1s ease-out'
                             }}
-                            onMouseDown={handleImageMouseDown}
                             draggable={false}
                           />
                         </div>
@@ -1126,8 +1132,8 @@ function App() {
       </div>
 
       {showContactForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/72 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-cyan-400/20 bg-slate-950/95 p-6 shadow-2xl shadow-cyan-950/40">
+        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/72 px-4 py-4 backdrop-blur-sm sm:items-center">
+          <div className="max-h-[calc(100svh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-cyan-400/20 bg-slate-950/95 p-5 shadow-2xl shadow-cyan-950/40 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-white">{t('footer.contactTitle')}</h2>

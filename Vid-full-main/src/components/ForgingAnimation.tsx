@@ -123,7 +123,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0a0f1a] flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden bg-[#0a0f1a] px-4 py-6">
       {/* Blueprint Grid Background */}
       <div
         className="absolute inset-0 opacity-20"
@@ -190,7 +190,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
       />
 
       {/* Log Console */}
-      <div className="absolute top-8 left-8 font-mono text-xs text-green-400/60 space-y-1 max-w-md">
+      <div className="absolute top-8 left-8 hidden max-w-md space-y-1 font-mono text-xs text-green-400/60 sm:block">
         {logs.map((log, i) => (
           <div key={i} className="animate-[slideIn_0.3s_ease-out] opacity-0" style={{ animationDelay: `${i * 0.2}s`, animationFillMode: 'forwards' }}>
             {log}
@@ -198,7 +198,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
         ))}
       </div>
 
-      <div className="relative z-10 flex flex-col items-center max-w-4xl px-4">
+      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center">
         <div className="mb-8">
           {stage === 'scanning' && avatarUrl && (
             <div className="relative w-64 h-64">
@@ -242,9 +242,9 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
           )}
 
           {(stage === 'hashing' || stage === 'anchoring' || stage === 'secured') && (
-            <div className="w-[600px] h-64 flex items-center justify-center">
+            <div className="flex h-64 w-full max-w-[600px] items-center justify-center">
               <div
-                className="font-mono text-base tracking-[0.3em] break-all leading-relaxed text-center transition-all duration-500"
+                className="break-all text-center font-mono text-[0.66rem] leading-relaxed tracking-[0.16em] transition-all duration-500 sm:text-base sm:tracking-[0.3em]"
                 style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace" }}
               >
                 {hashChars.split('').map((char, i) => {
@@ -266,7 +266,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
           )}
 
           {stage === 'anchoring' && (
-            <div className="mt-8 relative w-80 h-32 mx-auto">
+            <div className="relative mx-auto mt-8 h-32 w-full max-w-80">
               <svg className="w-full h-full" viewBox="0 0 320 128">
                 {[...Array(9)].map((_, i) => (
                   <g key={i}>
@@ -331,7 +331,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
 
         <div className="text-center">
           <div
-            className={`font-mono text-2xl font-bold tracking-[0.3em] mb-4 transition-all duration-500 ${
+            className={`mb-4 break-words font-mono text-lg font-bold tracking-[0.16em] transition-all duration-500 sm:text-2xl sm:tracking-[0.3em] ${
               stage === 'secured' ? 'text-green-400' : 'text-blue-400'
             }`}
             style={{
@@ -342,7 +342,7 @@ export function ForgingAnimation({ avatarUrl, characterName, onComplete }: Forgi
             {getStageText()}
           </div>
 
-          <div className="font-mono text-slate-500 text-sm tracking-wider">
+          <div className="px-2 font-mono text-xs tracking-wider text-slate-500 sm:text-sm">
             {stage === 'scanning' && '[ ANALYZING IDENTITY DATA ]'}
             {stage === 'hashing' && '[ CREATING DIGITAL PROOF SEAL ]'}
             {stage === 'anchoring' && '[ BROADCASTING TO BLOCKCHAIN NETWORK ]'}

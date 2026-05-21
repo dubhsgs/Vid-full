@@ -983,11 +983,8 @@ export function CardGenerator() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 【锁定显示尺寸，防止挤压变形】
     canvas.width = REAL_W;
     canvas.height = REAL_H;
-    canvas.style.width = CANVAS_W + 'px';
-    canvas.style.height = CANVAS_H + 'px';
     ctx.scale(DPR, DPR);
 
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
@@ -1187,7 +1184,7 @@ VAID 証明コード：${sha256Hash}
   }
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden bg-[#030713] flex flex-col items-center">
+    <div className="min-h-screen text-white relative overflow-x-hidden bg-[#030713] flex flex-col items-center px-4">
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
         <div
           className="absolute inset-0"
@@ -1214,8 +1211,8 @@ VAID 証明コード：${sha256Hash}
         <div className="absolute inset-x-0 top-0 h-px bg-slate-400/22" />
       </div>
 
-      <div className="relative z-10 max-w-[1200px] w-full p-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Identity Preview</h1>
+      <div className="relative z-10 max-w-[1200px] w-full py-4 sm:p-6 flex justify-between items-center gap-4">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Identity Preview</h1>
         <div className="flex gap-4">
           <button
             onClick={exportPNG}
@@ -1226,7 +1223,16 @@ VAID 証明コード：${sha256Hash}
           </button>
         </div>
       </div>
-      <canvas ref={canvasRef} className="relative z-10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
+      <canvas
+        ref={canvasRef}
+        className="relative z-10 block rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        style={{
+          width: 'auto',
+          height: 'auto',
+          maxWidth: '100%',
+          maxHeight: 'calc(100svh - 9rem)',
+        }}
+      />
       <p className="relative z-10 mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
         * PROOF OF IDENTITY RECORDED BY VAID
       </p>

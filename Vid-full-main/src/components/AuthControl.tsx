@@ -243,9 +243,9 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-4 sm:items-center">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
-          <div className="relative w-full max-w-md rounded-2xl border border-blue-500/30 bg-slate-950 p-6 shadow-2xl">
+          <div className="relative max-h-[calc(100svh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-blue-500/30 bg-slate-950 p-5 shadow-2xl sm:p-6">
             <button
               type="button"
               onClick={() => setIsOpen(false)}

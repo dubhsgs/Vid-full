@@ -9,6 +9,7 @@ const corsHeaders = {
 interface CreateOrderRequest {
   pack_size: number;
   return_url?: string;
+  is_mobile?: boolean;
 }
 
 const PACK_PRICES: Record<number, number> = {
@@ -137,6 +138,10 @@ function resolveReturnUrl(returnUrl?: string): string {
   return parsedUrl.toString();
 }
 
+function isMobileUserAgent(userAgent: string): boolean {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Mobi/i.test(userAgent);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -167,7 +172,7 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createServiceClient();
 
-    const { pack_size, return_url }: CreateOrderRequest = await req.json();
+    const { pack_size, return_url, is_mobile }: CreateOrderRequest = await req.json();
 
     if (!pack_size || !PACK_PRICES[pack_size]) {
       return new Response(
@@ -203,6 +208,9 @@ Deno.serve(async (req: Request) => {
 
     const amount = PACK_PRICES[pack_size];
     const outTradeNo = `VID_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const useMobilePayment = is_mobile === true || isMobileUserAgent(req.headers.get('user-agent') || '');
+    const alipayMethod = useMobilePayment ? 'alipay.trade.wap.pay' : 'alipay.trade.page.pay';
+    const productCode = useMobilePayment ? 'QUICK_WAP_WAY' : 'FAST_INSTANT_TRADE_PAY';
 
     const { data: order, error: orderError } = await supabase
       .from('alipay_orders')
@@ -229,12 +237,12 @@ Deno.serve(async (req: Request) => {
       out_trade_no: outTradeNo,
       total_amount: amount.toFixed(2),
       subject: `VAID 证书生成次数包 x${pack_size}`,
-      product_code: 'FAST_INSTANT_TRADE_PAY',
+      product_code: productCode,
     };
 
     const params: Record<string, string> = {
       app_id: appId,
-      method: 'alipay.trade.page.pay',
+      method: alipayMethod,
       format: 'JSON',
       charset: 'utf-8',
       sign_type: 'RSA2',

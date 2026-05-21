@@ -49,6 +49,12 @@ function getPaymentReturnUrl(): string {
   return 'https://vaid.top/payment-success';
 }
 
+function isMobilePaymentClient(): boolean {
+  const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Mobi/i.test(navigator.userAgent);
+  const compactTouchScreen = navigator.maxTouchPoints > 1 && window.matchMedia('(max-width: 900px)').matches;
+  return mobileUserAgent || compactTouchScreen;
+}
+
 export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
   const { t } = useTranslation();
   const [purchasingPackSize, setPurchasingPackSize] = useState<number | null>(null);
@@ -78,6 +84,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
         body: {
           pack_size: packSize,
           return_url: returnUrl,
+          is_mobile: isMobilePaymentClient(),
         },
       });
 
