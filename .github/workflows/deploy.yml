@@ -1,0 +1,68 @@
+name: Deploy VAID
+
+on:
+  push:
+    branches:
+      - codex/security-architecture-refactor
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Vid-full-main
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Vid-full-main/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VAID_DEPLOY_SSH_KEY }}" > ~/.ssh/vaid_deploy_key
+          chmod 600 ~/.ssh/vaid_deploy_key
+          ssh-keyscan -H 47.93.232.20 >> ~/.ssh/known_hosts
+
+      - name: Upload build
+        run: |
+          tar -czf /tmp/vaid-dist.tgz -C dist .
+          scp -i ~/.ssh/vaid_deploy_key /tmp/vaid-dist.tgz root@47.93.232.20:/tmp/vaid-dist-${GITHUB_SHA}.tgz
+
+      - name: Activate release
+        run: |
+          ssh -i ~/.ssh/vaid_deploy_key root@47.93.232.20 "GITHUB_SHA=${GITHUB_SHA} bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          BASE=/srv/www/vaid.top
+          RELEASE="$BASE/releases/$GITHUB_SHA"
+          CURRENT="$BASE/current"
+          PACKAGE="/tmp/vaid-dist-$GITHUB_SHA.tgz"
+
+          mkdir -p "$BASE/releases"
+          rm -rf "$RELEASE"
+          mkdir -p "$RELEASE"
+          tar -xzf "$PACKAGE" -C "$RELEASE"
+
+          if [ -e "$CURRENT" ] && [ ! -L "$CURRENT" ]; then
+            mv "$CURRENT" "$BASE/current.backup-$(date +%Y%m%d%H%M%S)"
+          fi
+
+          ln -sfn "$RELEASE" "$CURRENT"
+          nginx -t
+          systemctl reload nginx
+          rm -f "$PACKAGE"
+          REMOTE
