@@ -1071,6 +1071,9 @@ HOW TO VERIFY:
 3. Check the proof status shown on the verification page.
 4. Keep this package as your local proof archive.
 
+ABOUT THE .OTS FILE:
+The .ots file is a timestamp proof file. Keep it together with your VAID certificate image. It can be used later to verify that the certificate hash existed at the recorded time.
+
 
 中文
 ----
@@ -1093,6 +1096,9 @@ VAID 证明码：${sha256Hash}
 3. 查看验证页显示的存证状态。
 4. 请妥善保存本下载包，作为本地证明档案。
 
+关于 .ots 文件：
+.ots 文件是时间戳证明文件。请与 VAID 证书图片一起保存。它可用于日后验证该证书哈希在记录时间点已经存在。
+
 
 日本語
 ------
@@ -1114,6 +1120,9 @@ VAID 証明コード：${sha256Hash}
 2. 検証ページの証明書情報と、このダウンロードパッケージの内容を照合します。
 3. 検証ページに表示される証明ステータスを確認します。
 4. このパッケージをローカルの証明アーカイブとして安全に保管してください。
+
+.ots ファイルについて：
+.ots ファイルはタイムスタンプ証明ファイルです。VAID 証明書画像と一緒に保存してください。後日、その証明書ハッシュが記録された時点で存在していたことを確認するために使用できます。
 
 © VAID Protocol
 `;

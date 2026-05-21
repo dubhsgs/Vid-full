@@ -86,6 +86,8 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -135,8 +137,7 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
     }
   }, [openSignal]);
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
+  const handleSendCode = async () => {
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
       setError(t('auth.emailRequired'));
@@ -161,7 +162,63 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
       return;
     }
 
-    setMessage(t('auth.magicLinkSent'));
+    setEmail(normalizedEmail);
+    setOtpEmail(normalizedEmail);
+    setOtpCode('');
+    setMessage(t('auth.otpSent', { email: normalizedEmail }));
+  };
+
+  const handleVerifyCode = async () => {
+    const normalizedCode = otpCode.trim().replace(/\s+/g, '');
+    if (!otpEmail) {
+      setError(t('auth.emailRequired'));
+      return;
+    }
+
+    if (!normalizedCode) {
+      setError(t('auth.otpRequired'));
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    setMessage('');
+
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      email: otpEmail,
+      token: normalizedCode,
+      type: 'email',
+    });
+
+    setIsSubmitting(false);
+
+    if (verifyError) {
+      setError(t('auth.otpInvalid'));
+      return;
+    }
+
+    setUser(data.user ?? data.session?.user ?? null);
+    setOtpCode('');
+    setOtpEmail('');
+    setMessage('');
+    setIsOpen(false);
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (otpEmail) {
+      await handleVerifyCode();
+      return;
+    }
+
+    await handleSendCode();
+  };
+
+  const handleChangeEmail = () => {
+    setOtpEmail('');
+    setOtpCode('');
+    setMessage('');
+    setError('');
   };
 
   const handleSignOut = async () => {
@@ -228,23 +285,48 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-300">{t('auth.email')}</span>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(event) => {
-                        setEmail(event.target.value);
-                        setError('');
-                        setMessage('');
-                      }}
-                      placeholder={t('auth.emailPlaceholder')}
-                      className="w-full rounded-lg border border-slate-700 bg-[#0a0a0a] py-3 pl-10 pr-4 text-white placeholder:text-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                {!otpEmail ? (
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-slate-300">{t('auth.email')}</span>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(event) => {
+                          setEmail(event.target.value);
+                          setError('');
+                          setMessage('');
+                        }}
+                        placeholder={t('auth.emailPlaceholder')}
+                        className="w-full rounded-lg border border-slate-700 bg-[#0a0a0a] py-3 pl-10 pr-4 text-white placeholder:text-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </label>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
+                      <p className="text-sm text-slate-500">{t('auth.codeSentTo')}</p>
+                      <p className="mt-1 break-all text-white">{otpEmail}</p>
+                    </div>
+
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-medium text-slate-300">{t('auth.otpCode')}</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={otpCode}
+                        onChange={(event) => {
+                          setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6));
+                          setError('');
+                        }}
+                        placeholder={t('auth.otpPlaceholder')}
+                        className="w-full rounded-lg border border-slate-700 bg-[#0a0a0a] px-4 py-3 text-center text-xl font-semibold tracking-[0.36em] text-white placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </label>
                   </div>
-                </label>
+                )}
 
                 {error && (
                   <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
@@ -263,8 +345,31 @@ export function AuthControl({ openSignal = 0, onAuthChange }: AuthControlProps) 
                   disabled={isSubmitting}
                   className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSubmitting ? t('auth.sending') : t('auth.sendMagicLink')}
+                  {isSubmitting
+                    ? (otpEmail ? t('auth.verifyingCode') : t('auth.sending'))
+                    : (otpEmail ? t('auth.verifyCode') : t('auth.sendCode'))}
                 </button>
+
+                {otpEmail && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      disabled={isSubmitting}
+                      className="rounded-lg border border-slate-700 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {t('auth.resendCode')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleChangeEmail}
+                      disabled={isSubmitting}
+                      className="rounded-lg border border-slate-700 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {t('auth.changeEmail')}
+                    </button>
+                  </div>
+                )}
               </form>
             )}
           </div>

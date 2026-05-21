@@ -14,7 +14,7 @@ This runbook exists because deploying the database migration, Edge Functions, an
 
 Implemented locally:
 
-- Auth UI with Magic Link login.
+- Auth UI with email verification code login.
 - Frontend blocks generation unless logged in and email-confirmed.
 - Frontend certificate generation calls `v-id-register`.
 - Verification page reads `public_v_ids`.
@@ -39,9 +39,9 @@ Not deployed:
 2. Run `docs/production_precheck_auth_security_2026-05-02.sql` against production.
 3. Review precheck output before continuing.
 4. Configure Supabase Auth:
-   - Enable email Magic Link / OTP login.
+   - Enable email OTP login.
    - Set allowed redirect URLs for production domain and local dev.
-   - Confirm email templates use the correct production URL.
+   - Confirm the Magic Link email template shows `{{ .Token }}` as the login code and does not show `{{ .ConfirmationURL }}` as the primary login action.
 5. Apply database migration:
    - `supabase/migrations/20260502093000_auth_security_refactor.sql`
 6. Deploy Edge Functions:
@@ -104,8 +104,8 @@ Auth:
 
 - Open homepage signed out.
 - Confirm top-right login button appears beside language switcher.
-- Send Magic Link to a test email.
-- Complete login.
+- Send a verification code to a test email.
+- Complete login by entering the code on the VAID login form.
 - Confirm account button shows signed-in state.
 
 Credits:
