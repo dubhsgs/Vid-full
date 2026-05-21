@@ -55,11 +55,26 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (insertError) {
-        console.error('[quota-check] Error initializing credits:', insertError);
-        return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
-      }
+        if (insertError.code === '23505') {
+          const { data: racedCredits, error: rereadError } = await supabase
+            .from('user_credits')
+            .select('free_credits, paid_credits, total_used')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-      credits = insertedCredits;
+          if (rereadError || !racedCredits) {
+            console.error('[quota-check] Error loading raced credits:', rereadError);
+            return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
+          }
+
+          credits = racedCredits;
+        } else {
+          console.error('[quota-check] Error initializing credits:', insertError);
+          return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
+        }
+      } else {
+        credits = insertedCredits;
+      }
     }
 
     const freeCredits = Number(credits?.free_credits || 0);

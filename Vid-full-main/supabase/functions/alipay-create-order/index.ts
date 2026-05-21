@@ -194,14 +194,9 @@ Deno.serve(async (req: Request) => {
     const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/alipay-notify`;
 
     if (!appId || !privateKey) {
+      console.error('Alipay payment configuration missing');
       return new Response(
-        JSON.stringify({
-          error: 'Payment configuration missing',
-          details: {
-            has_app_id: Boolean(appId),
-            has_private_key: Boolean(privateKey),
-          },
-        }),
+        JSON.stringify({ error: 'PAYMENT_CONFIG_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

@@ -14,6 +14,9 @@ interface ContactRequest {
   language?: string;
 }
 
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const RATE_LIMIT_MAX_PER_WINDOW = 3;
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -23,6 +26,29 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 320;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function getClientIp(req: Request): string {
+  const forwardedFor = req.headers.get('x-forwarded-for') || '';
+  return (
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-real-ip') ||
+    forwardedFor.split(',')[0] ||
+    ''
+  ).trim();
+}
+
+async function getClientIpHash(req: Request): Promise<string | null> {
+  const clientIp = getClientIp(req);
+  if (!clientIp) return null;
+
+  const salt = Deno.env.get('CONTACT_RATE_LIMIT_SALT') || Deno.env.get('SUPABASE_URL') || 'vaid-contact';
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}:${clientIp}`));
+  return bytesToHex(new Uint8Array(digest));
 }
 
 async function forwardEmail(input: Required<Pick<ContactRequest, 'name' | 'email' | 'message'>>) {
@@ -81,8 +107,28 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'INVALID_MESSAGE' }, 400);
     }
 
-    const deliveryStatus = await forwardEmail({ name, email, message });
     const supabase = createServiceClient();
+    const clientIpHash = await getClientIpHash(req);
+
+    if (clientIpHash) {
+      const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+      const { count, error: limitError } = await supabase
+        .from('contact_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_ip_hash', clientIpHash)
+        .gte('created_at', since);
+
+      if (limitError) {
+        console.error('Failed to check contact rate limit:', limitError);
+        return jsonResponse({ success: false, error: 'RATE_LIMIT_CHECK_FAILED' }, 500);
+      }
+
+      if ((count || 0) >= RATE_LIMIT_MAX_PER_WINDOW) {
+        return jsonResponse({ success: false, error: 'RATE_LIMITED' }, 429);
+      }
+    }
+
+    const deliveryStatus = await forwardEmail({ name, email, message });
     const { error } = await supabase.from('contact_messages').insert({
       name,
       reply_email: email,
@@ -90,6 +136,7 @@ Deno.serve(async (req: Request) => {
       page_url: pageUrl || null,
       language: language || null,
       user_agent: req.headers.get('user-agent') || null,
+      client_ip_hash: clientIpHash,
       delivery_status: deliveryStatus,
     });
 

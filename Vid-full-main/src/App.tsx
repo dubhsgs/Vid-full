@@ -280,7 +280,6 @@ function App() {
       refreshAccessDashboard(preferredCode);
     };
 
-    const intervalId = window.setInterval(syncDashboard, 5000);
     const handleFocus = () => syncDashboard();
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -292,7 +291,6 @@ function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -610,7 +608,6 @@ function App() {
           }
 
           localStorage.setItem('vid_original_file_hash', hash);
-          localStorage.setItem('vid_original_file_path', originalFilePath);
           localStorage.setItem('vid_registered_friendly_id', registerData.friendly_id);
           localStorage.setItem('vid_registered_hash', hash);
           setRemainingCredits(Number(registerData.free_credits || 0) + Number(registerData.paid_credits || 0));
@@ -672,7 +669,7 @@ function App() {
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           poster={HERO_LIGHT_BG_SRC}
         >
           <source src={HERO_BACKGROUND_VIDEO_SRC} type="video/mp4" />

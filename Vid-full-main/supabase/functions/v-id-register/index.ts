@@ -159,6 +159,13 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'REGISTRATION_FAILED' }, 500);
     }
 
+    const { error: cleanupError } = await supabase.storage
+      .from(ORIGINAL_STORAGE_BUCKET)
+      .remove([originalFilePath]);
+    if (cleanupError) {
+      console.warn('[v-id-register] Original file cleanup failed:', cleanupError);
+    }
+
     return jsonResponse({
       success: true,
       result_status: result.result_status,

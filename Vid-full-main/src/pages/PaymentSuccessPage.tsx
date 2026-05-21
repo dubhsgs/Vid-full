@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Clock, RefreshCw } from 'lucide-react';
-import { getOrderStatus, supabase, type OrderStatusInfo } from '../utils/licenseManager';
+import { supabase, type OrderStatusInfo } from '../utils/licenseManager';
 
 type PaymentPageStatus = 'checking' | 'success' | 'pending';
 
@@ -47,14 +47,6 @@ export function PaymentSuccessPage() {
     if (!outTradeNo) {
       setPageStatus('pending');
       return false;
-    }
-
-    const order = await getOrderStatus(outTradeNo);
-    setOrderInfo(order);
-
-    if (order?.status === 'paid') {
-      setPageStatus('success');
-      return true;
     }
 
     const { data, error } = await supabase.functions.invoke('alipay-query-order', {

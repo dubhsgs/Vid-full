@@ -1004,7 +1004,7 @@ For more information, visit: ${window.location.origin}
                       <div className={`shrink-0 ${type.metaLabelBox}`}>
                         <div className={`${langKey === 'en' ? 'uppercase' : ''} text-slate-400 ${type.metaLabel}`}>{label}</div>
                       </div>
-                      <div className={`min-w-0 flex-1 text-left font-semibold leading-snug text-white ${(mono || long) ? 'whitespace-nowrap' : ''} ${long ? type.metaValueLong : type.metaValue} ${mono ? 'font-mono' : ''}`}>
+                      <div className={`min-w-0 flex-1 text-left font-semibold leading-snug text-white ${(mono || long) ? 'overflow-hidden text-ellipsis whitespace-nowrap' : ''} ${long ? type.metaValueLong : type.metaValue} ${mono ? 'font-mono' : ''}`}>
                         {value}
                       </div>
                     </div>

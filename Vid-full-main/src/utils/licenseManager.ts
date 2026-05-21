@@ -333,30 +333,6 @@ export async function getUserOrders(): Promise<UserOrderRecord[]> {
   }
 }
 
-export async function getOrderStatus(
-  outTradeNo: string
-): Promise<OrderStatusInfo | null> {
-  try {
-    const baseSelect = 'out_trade_no, status, pack_size, amount, paid_at';
-
-    const { data, error } = await supabase
-      .from('alipay_orders')
-      .select(baseSelect)
-      .eq('out_trade_no', outTradeNo)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching order status:', error);
-      return null;
-    }
-
-    return (data as OrderStatusInfo | null) ?? null;
-  } catch (error) {
-    console.error('Unexpected error fetching order status:', error);
-    return null;
-  }
-}
-
 export function markGenerationReady(): void {
   sessionStorage.setItem(GENERATION_READY_KEY, String(Date.now()));
 }

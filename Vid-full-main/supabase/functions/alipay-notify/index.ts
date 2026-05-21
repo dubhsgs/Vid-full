@@ -1,12 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
-
 function toAmount(value?: string): number | null {
   if (!value) return null;
   const parsed = Number(value);
@@ -57,10 +51,10 @@ async function verifySignature(params: Record<string, string>, sign: string, pub
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
+  if (req.method !== 'POST') {
+    return new Response('fail', {
+      status: 405,
+      headers: { 'Content-Type': 'text/plain' },
     });
   }
 
@@ -86,7 +80,7 @@ Deno.serve(async (req: Request) => {
       console.error('ALIPAY_PUBLIC_KEY is not configured — refusing to process order');
       return new Response('fail', {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -94,7 +88,7 @@ Deno.serve(async (req: Request) => {
       console.error('Missing signature in notification — refusing to process order');
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -103,7 +97,7 @@ Deno.serve(async (req: Request) => {
       console.error('Signature verification failed — refusing to process order');
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -121,7 +115,7 @@ Deno.serve(async (req: Request) => {
       console.error('Missing out_trade_no or trade_no in notification');
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -129,7 +123,7 @@ Deno.serve(async (req: Request) => {
       console.log('Trade not successful yet:', trade_status);
       return new Response('success', {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -141,7 +135,7 @@ Deno.serve(async (req: Request) => {
       console.error('ALIPAY_APP_ID is not configured — refusing to process order');
       return new Response('fail', {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -149,7 +143,7 @@ Deno.serve(async (req: Request) => {
       console.error('ALIPAY_SELLER_ID or ALIPAY_SELLER_EMAIL must be configured — refusing to process order');
       return new Response('fail', {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -157,7 +151,7 @@ Deno.serve(async (req: Request) => {
       console.error('app_id mismatch in notification:', { got: app_id, expected: expectedAppId, out_trade_no });
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -165,7 +159,7 @@ Deno.serve(async (req: Request) => {
       console.error('seller_id mismatch in notification:', { got: seller_id, expected: expectedSellerId, out_trade_no });
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -179,7 +173,7 @@ Deno.serve(async (req: Request) => {
         });
         return new Response('fail', {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+          headers: { 'Content-Type': 'text/plain' },
         });
       }
     }
@@ -189,7 +183,7 @@ Deno.serve(async (req: Request) => {
       console.error('Invalid total_amount in notification:', { total_amount, out_trade_no });
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -203,7 +197,7 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to load order for amount verification:', orderLookupError);
       return new Response('fail', {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -211,7 +205,7 @@ Deno.serve(async (req: Request) => {
       console.error('Order not found while verifying amount:', out_trade_no);
       return new Response('fail', {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -220,7 +214,7 @@ Deno.serve(async (req: Request) => {
       console.error('Order amount is invalid in database:', { out_trade_no, amount: orderRow.amount });
       return new Response('fail', {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -232,7 +226,7 @@ Deno.serve(async (req: Request) => {
       });
       return new Response('fail', {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -246,7 +240,7 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to mark order as paid safely:', markError);
       return new Response('fail', {
         status: markError.message?.includes('ORDER_NOT_FOUND') ? 404 : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -255,7 +249,7 @@ Deno.serve(async (req: Request) => {
       console.error('Order processing returned no result:', out_trade_no);
       return new Response('fail', {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -263,7 +257,7 @@ Deno.serve(async (req: Request) => {
       console.log('Order already processed:', out_trade_no);
       return new Response('success', {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
@@ -271,13 +265,13 @@ Deno.serve(async (req: Request) => {
 
     return new Response('success', {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' },
     });
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response('fail', {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' },
     });
   }
 });
