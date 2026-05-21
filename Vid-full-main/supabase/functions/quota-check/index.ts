@@ -1,10 +1,15 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
+import { FREE_TRIAL_CREDITS, getClientIpHash, getDeviceFingerprintHash } from '../_shared/freeCredits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
+
+interface QuotaCheckRequest {
+  device_fingerprint?: string;
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -29,6 +34,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createServiceClient();
+    let body: QuotaCheckRequest = {};
+    if (req.method === 'POST') {
+      body = await req.json().catch(() => ({} as QuotaCheckRequest)) as QuotaCheckRequest;
+    }
 
     const { data: existingCredits, error: readError } = await supabase
       .from('user_credits')
@@ -43,38 +52,29 @@ Deno.serve(async (req: Request) => {
 
     let credits = existingCredits;
     if (!credits) {
-      const { data: insertedCredits, error: insertError } = await supabase
-        .from('user_credits')
-        .insert({
-          user_id: user.id,
-          free_credits: 3,
-          paid_credits: 0,
-          total_used: 0,
-        })
-        .select('free_credits, paid_credits, total_used')
-        .single();
+      const [clientIpHash, deviceFingerprintHash] = await Promise.all([
+        getClientIpHash(req),
+        getDeviceFingerprintHash(body.device_fingerprint),
+      ]);
 
-      if (insertError) {
-        if (insertError.code === '23505') {
-          const { data: racedCredits, error: rereadError } = await supabase
-            .from('user_credits')
-            .select('free_credits, paid_credits, total_used')
-            .eq('user_id', user.id)
-            .maybeSingle();
+      const { data: claimRows, error: claimError } = await supabase.rpc('claim_free_credits', {
+        p_user_id: user.id,
+        p_ip_hash: clientIpHash,
+        p_device_fingerprint_hash: deviceFingerprintHash,
+        p_granted_credits: FREE_TRIAL_CREDITS,
+      });
 
-          if (rereadError || !racedCredits) {
-            console.error('[quota-check] Error loading raced credits:', rereadError);
-            return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
-          }
-
-          credits = racedCredits;
-        } else {
-          console.error('[quota-check] Error initializing credits:', insertError);
-          return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
-        }
-      } else {
-        credits = insertedCredits;
+      if (claimError) {
+        console.error('[quota-check] Error claiming free credits:', claimError);
+        return jsonResponse({ success: false, error: 'DATABASE_ERROR' }, 500);
       }
+
+      const claimResult = Array.isArray(claimRows) ? claimRows[0] : null;
+      credits = {
+        free_credits: Number(claimResult?.free_credits || 0),
+        paid_credits: Number(claimResult?.paid_credits || 0),
+        total_used: Number(claimResult?.total_used || 0),
+      };
     }
 
     const freeCredits = Number(credits?.free_credits || 0);

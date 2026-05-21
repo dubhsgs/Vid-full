@@ -152,8 +152,9 @@ export async function getClientQuotaInfo(): Promise<{
   client_id: string;
 }> {
   try {
+    const deviceFingerprint = await getClientId();
     const { data, error } = await supabase.functions.invoke('quota-check', {
-      body: {},
+      body: { device_fingerprint: deviceFingerprint },
     });
 
     if (error) {
