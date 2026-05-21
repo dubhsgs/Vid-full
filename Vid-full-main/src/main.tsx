@@ -6,7 +6,10 @@ import { VerifyPage } from './pages/VerifyPage.tsx';
 import { PrivacyPage } from './pages/PrivacyPage.tsx';
 import { TermsPage } from './pages/TermsPage.tsx';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage.tsx';
+import { initializeAnalytics } from './utils/analytics.ts';
 import './index.css';
+
+initializeAnalytics();
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
