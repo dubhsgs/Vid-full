@@ -4,7 +4,6 @@ import QRCode from 'qrcode';
 import JSZip from 'jszip';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
-import { uploadImageToStorage } from '../utils/imageUpload';
 import { consumeGenerationReady } from '../utils/licenseManager';
 
 // --- 高清渲染基准 ---
@@ -167,71 +166,10 @@ export function CardGenerator() {
             return;
           }
 
-          let imageUrl = '';
-          let hashValue = '';
-          const originalFileHash = localStorage.getItem('vid_original_file_hash') || '';
-          const originalFilePath = localStorage.getItem('vid_original_file_path') || '';
-
-          if (!originalFileHash || !originalFilePath) {
-            setAccessError('缺少原始文件校验信息，请返回首页重新发起生成。');
-            return;
-          }
-
-          if (!savedAvatar) {
-            setAccessError('缺少证书头像，请返回首页重新发起生成。');
-            return;
-          }
-
-          console.log('[CardGenerator] Uploading thumbnail to Storage...');
-          const uploadedUrl = await uploadImageToStorage(savedAvatar, `${serialId}.png`);
-
-          if (!uploadedUrl) {
-            setAccessError('证书图片上传失败，请返回首页重试。');
-            return;
-          }
-
-          imageUrl = uploadedUrl;
-          console.log('[CardGenerator] Thumbnail uploaded successfully:', imageUrl);
-
-          hashValue = originalFileHash;
-          setSha256Hash(hashValue);
-
-          const { data, error } = await supabase.functions.invoke('v-id-register', {
-            body: {
-              character_name: savedName,
-              creator_name: creatorName,
-              sha256_hash: hashValue,
-              image_url: imageUrl,
-              original_file_path: originalFilePath,
-            },
-          });
-
-          if (error) {
-            console.error('Error registering VAID:', error);
-            setAccessError('证书注册失败，请返回首页重试。若问题持续，请检查登录状态和剩余额度。');
-            return;
-          }
-
-          if (data?.success && data?.friendly_id) {
-            console.log('Successfully registered VAID, friendly_id:', data.friendly_id);
-            const friendlyId = data.friendly_id;
-            setCitizenId(friendlyId);
-            setForm(prev => ({
-              ...prev,
-              serialId: friendlyId,
-              qrContent: `${siteOrigin}/verify/${friendlyId}`,
-            }));
-            localStorage.removeItem('vid_original_file_hash');
-            localStorage.removeItem('vid_original_file_path');
-            localStorage.setItem('vid_registered_friendly_id', friendlyId);
-            localStorage.setItem('vid_registered_hash', hashValue);
-          } else {
-            console.error('VAID registration returned no friendly_id:', data);
-            setAccessError('证书注册没有返回有效编号，请返回首页重试。');
-          }
+          setAccessError('缺少已注册的证书编号，请返回首页重新发起生成。');
         } catch (err) {
           console.error('Unexpected error:', err);
-          setAccessError('证书注册过程中发生异常，请返回首页重试。');
+          setAccessError('证书初始化过程中发生异常，请返回首页重试。');
         }
       })();
     };
@@ -1184,7 +1122,7 @@ VAID 証明コード：${sha256Hash}
   }
 
   return (
-    <div className="min-h-screen text-white relative overflow-x-hidden bg-[#030713] flex flex-col items-center px-4">
+    <div className="min-h-screen text-white relative overflow-x-hidden bg-[#030713] flex flex-col items-center px-2 sm:px-4">
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
         <div
           className="absolute inset-0"
@@ -1227,10 +1165,11 @@ VAID 証明コード：${sha256Hash}
         ref={canvasRef}
         className="relative z-10 block rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
         style={{
-          width: 'auto',
+          width: '100%',
           height: 'auto',
-          maxWidth: '100%',
+          maxWidth: `${CANVAS_W}px`,
           maxHeight: 'calc(100svh - 9rem)',
+          display: 'block',
         }}
       />
       <p className="relative z-10 mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">

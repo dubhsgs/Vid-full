@@ -118,10 +118,10 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative my-auto w-full max-w-4xl max-h-[calc(100svh-1.5rem)] overflow-hidden rounded-xl border border-blue-500/30 bg-[#0a0a0a] shadow-2xl sm:max-h-[min(90vh,52rem)] sm:rounded-2xl">
+      <div className="relative my-auto w-full max-w-[22rem] max-h-[calc(100svh-2rem)] overflow-hidden rounded-xl border border-blue-500/30 bg-[#0a0a0a] shadow-2xl sm:max-w-4xl sm:max-h-[min(90vh,52rem)] sm:rounded-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-green-500/5" />
 
         <button
@@ -131,7 +131,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
           <X className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
 
-        <div className="relative max-h-[calc(100svh-1.5rem)] overflow-y-auto overscroll-contain p-4 sm:max-h-[min(90vh,52rem)] sm:p-8">
+        <div className="relative max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain p-3 sm:max-h-[min(90vh,52rem)] sm:p-8">
           {inIframe && (
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 sm:mb-6 sm:rounded-xl sm:p-4">
               <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
@@ -141,14 +141,14 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
             </div>
           )}
 
-          <h2 className="mb-2 text-center text-2xl font-bold text-white sm:text-3xl">
+          <h2 className="mb-1.5 text-center text-xl font-bold leading-tight text-white sm:mb-2 sm:text-3xl">
             {t('paywall.title')}
           </h2>
-          <p className="mx-auto mb-5 max-w-[18rem] text-center text-sm text-slate-400 sm:mb-8 sm:max-w-none sm:text-base">
+          <p className="mx-auto mb-4 max-w-[16rem] text-center text-xs text-slate-400 sm:mb-8 sm:max-w-none sm:text-base">
             {t('paywall.subtitle')}
           </p>
 
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:mb-8 sm:gap-6 md:grid-cols-3">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-8 sm:gap-6 md:grid-cols-3">
             {pricingTiers.map((tier) => {
               const isThisPurchasing = purchasingPackSize === tier.packSize;
               const isAnyPurchasing = purchasingPackSize !== null;
@@ -156,7 +156,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
               return (
                 <div
                   key={tier.packSize}
-                  className={`relative rounded-lg border p-4 transition-all sm:rounded-xl sm:p-6 ${
+                  className={`relative rounded-lg border p-3 transition-all sm:rounded-xl sm:p-6 ${
                     tier.popular
                       ? 'border-blue-500 bg-blue-500/5 md:scale-105'
                       : 'border-slate-700 bg-slate-900/50 hover:border-blue-500/50'
@@ -169,16 +169,16 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
                   )}
 
                   <div className="text-center">
-                    <h3 className="mb-2 text-lg font-bold text-white sm:text-xl">{t(tier.nameKey)}</h3>
-                    <div className="mb-3 text-[2.25rem] font-bold leading-none text-blue-400 sm:mb-4 sm:text-3xl">{tier.price}</div>
-                    <div className="mb-5 flex items-center justify-center gap-2 text-sm text-slate-300 sm:mb-6 sm:text-base">
-                      <Check className="h-5 w-5 text-green-400" />
+                    <h3 className="mb-1.5 text-base font-bold text-white sm:mb-2 sm:text-xl">{t(tier.nameKey)}</h3>
+                    <div className="mb-2 text-[1.75rem] font-bold leading-none text-blue-400 sm:mb-4 sm:text-3xl">{tier.price}</div>
+                    <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-300 sm:mb-6 sm:text-base">
+                      <Check className="h-4 w-4 text-green-400 sm:h-5 sm:w-5" />
                       <span>{t('paywall.certificates', { count: tier.certificates })}</span>
                     </div>
                     <button
                       onClick={() => handlePurchase(tier.packSize)}
                       disabled={isAnyPurchasing}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:py-3 sm:text-base"
                     >
                       <ShoppingCart className="h-4 w-4" />
                       {isThisPurchasing ? t('form.processing') : t('paywall.buyNow')}
@@ -212,7 +212,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
             </div>
           )}
 
-          <div className="mt-4 border-t border-slate-700 pt-4 sm:mt-6 sm:pt-6">
+          <div className="mt-3 border-t border-slate-700 pt-3 sm:mt-6 sm:pt-6">
             <p className="text-center text-xs text-slate-500">
               {t('paywall.securityNote')}
             </p>
