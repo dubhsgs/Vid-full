@@ -22,8 +22,9 @@ import {
 } from './utils/licenseManager';
 import './i18n/config';
 
-const HERO_LIGHT_BG_SRC = '/hero_light_bg.png';
-const HERO_FIGURE_SRC = '/hero_figure.png';
+const HERO_LIGHT_BG_SRC = '/hero_light_bg.webp';
+const HERO_FIGURE_SRC = '/hero_figure.webp';
+const HERO_FIGURE_MOBILE_SRC = '/hero_figure_mobile.webp';
 const HERO_BACKGROUND_VIDEO_SRC = '/hero-background-video.mp4';
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
@@ -771,6 +772,8 @@ function App() {
 
             <img
               src={HERO_FIGURE_SRC}
+              srcSet={`${HERO_FIGURE_MOBILE_SRC} 768w, ${HERO_FIGURE_SRC} 1280w`}
+              sizes="(max-width: 768px) 82vw, (max-width: 1280px) 60vw, 880px"
               alt="Cyber character portrait"
               className="vaid-hero-figure"
               loading="eager"

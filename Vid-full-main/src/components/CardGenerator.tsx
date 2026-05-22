@@ -109,7 +109,7 @@ export function CardGenerator() {
   useEffect(() => {
     const initializeCard = async () => {
       const isLocalPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === '1';
-      const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.png') : localStorage.getItem('vid_uploaded_avatar');
+      const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.webp') : localStorage.getItem('vid_uploaded_avatar');
       const savedName = isLocalPreview ? 'Preview Character' : localStorage.getItem('vid_character_name');
       const creatorName = isLocalPreview ? 'VAID Preview' : localStorage.getItem('vid_creator_name');
       const hasCardSession = isLocalPreview || sessionStorage.getItem(CARD_GENERATOR_SESSION_KEY) === '1';
@@ -283,7 +283,7 @@ export function CardGenerator() {
       }
 
       const isLocalPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === '1';
-      const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.png') : localStorage.getItem('vid_uploaded_avatar');
+      const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.webp') : localStorage.getItem('vid_uploaded_avatar');
       if (!savedAvatar) {
         setAvatarImg(null);
         return;
