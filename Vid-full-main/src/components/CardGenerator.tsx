@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
 import { consumeGenerationReady } from '../utils/licenseManager';
-import { CERTIFICATE_CANVAS_WIDTH, renderCertificateCanvas } from '../utils/certificateCanvas';
+import { CERTIFICATE_CANVAS_WIDTH, formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
 
 const ASSET_BASE_URL = import.meta.env.BASE_URL || '/';
 
@@ -52,13 +52,6 @@ export function CardGenerator() {
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const formatIssuedDate = useCallback((date = new Date()) => {
-    const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${month} ${day}, ${year}`;
-  }, []);
-
   const generateSerialId = useCallback(() => {
     const now = Date.now();
     const ts = now.toString(36).toUpperCase().slice(-6);
@@ -89,7 +82,7 @@ export function CardGenerator() {
 
       sessionStorage.setItem(CARD_GENERATOR_SESSION_KEY, '1');
 
-      const issuedDate = formatIssuedDate();
+      const issuedDate = formatCertificateIssuedDate();
 
       setForm(prev => ({
         ...prev,
@@ -136,14 +129,24 @@ export function CardGenerator() {
     };
 
     initializeCard();
-  }, [CARD_GENERATOR_SESSION_KEY, formatIssuedDate, generateSerialId, navigate, siteOrigin, t]);
+  }, [CARD_GENERATOR_SESSION_KEY, generateSerialId, navigate, siteOrigin, t]);
 
-  const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
+  const loadImage = useCallback((src: string, timeout = 10000): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Image load failed: ${src}`));
+      const timeoutId = window.setTimeout(() => {
+        img.src = '';
+        reject(new Error(`Image load timeout: ${src}`));
+      }, timeout);
+      img.onload = () => {
+        window.clearTimeout(timeoutId);
+        resolve(img);
+      };
+      img.onerror = () => {
+        window.clearTimeout(timeoutId);
+        reject(new Error(`Image load failed: ${src}`));
+      };
       img.src = src;
     });
   }, []);
@@ -227,7 +230,9 @@ export function CardGenerator() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    renderCertificateCanvas(canvas, {
+    let cancelled = false;
+
+    void renderCertificateCanvas(canvas, {
       fields: form,
       assets: {
         backgroundImage: bgImg,
@@ -236,7 +241,19 @@ export function CardGenerator() {
         avatarImage: avatarImg,
         qrImage: qrImg,
       },
+    }).then((rendered) => {
+      if (!cancelled && !rendered) {
+        console.error('[CardGenerator] Canvas context unavailable');
+      }
+    }).catch((err) => {
+      if (!cancelled) {
+        console.error('[CardGenerator] Failed to render certificate:', err);
+      }
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [avatarImg, bgImg, form, logoImg, qrImg, textureImg]);
 
   const exportPNG = async () => {
@@ -245,7 +262,7 @@ export function CardGenerator() {
 
     try {
       const canvas = document.createElement('canvas');
-      const rendered = renderCertificateCanvas(canvas, {
+      const rendered = await renderCertificateCanvas(canvas, {
         fields: form,
         assets: {
           backgroundImage: bgImg,
@@ -254,7 +271,7 @@ export function CardGenerator() {
           avatarImage: avatarImg,
           qrImage: qrImg,
         },
-      });
+      }, { dpr: 2 });
       if (!rendered) {
         throw new Error('Canvas context unavailable');
       }

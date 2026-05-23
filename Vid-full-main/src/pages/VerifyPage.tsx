@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Download, Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
 import { supabase, supabaseAnonKey, supabaseUrl } from '../utils/supabase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { renderCertificateCanvas } from '../utils/certificateCanvas';
+import { formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
 
 interface VIDRecord {
   id: string;
@@ -330,12 +330,8 @@ export function VerifyPage() {
         console.error('[VerifyPage] Failed to generate/load QR code:', err);
       }
 
-      const issueDate = new Date(record.created_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric'
-      }).toUpperCase();
-      const rendered = renderCertificateCanvas(canvas, {
+      const issueDate = formatCertificateIssuedDate(new Date(record.created_at));
+      const rendered = await renderCertificateCanvas(canvas, {
         fields: {
           name: record.character_name,
           status: 'VERIFIED',

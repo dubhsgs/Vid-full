@@ -1,7 +1,6 @@
 export const CERTIFICATE_CANVAS_WIDTH = 1024;
 export const CERTIFICATE_CANVAS_HEIGHT = 576;
 
-const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2;
 const AVATAR_COLOR_START = '#b8dce8';
 const AVATAR_COLOR_END = '#e040a0';
 const PANEL_W = 880;
@@ -55,6 +54,33 @@ export interface CertificateCanvasAssets {
 export interface CertificateCanvasRenderInput {
   fields: CertificateCanvasFields;
   assets: CertificateCanvasAssets;
+}
+
+export interface CertificateCanvasRenderOptions {
+  dpr?: number;
+}
+
+export function formatCertificateIssuedDate(date = new Date()) {
+  const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month} ${day}, ${year}`;
+}
+
+function getCanvasDpr(dpr?: number) {
+  const fallback = typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2;
+  const value = dpr ?? fallback;
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+async function waitForFontsReady() {
+  if (typeof document === 'undefined' || !document.fonts?.ready) return;
+
+  try {
+    await document.fonts.ready;
+  } catch {
+    // If the browser cannot report font readiness, draw with the available fonts.
+  }
 }
 
 function hexToRgba(hex: string, alpha = 1) {
@@ -648,13 +674,20 @@ function drawDescription(ctx: CanvasRenderingContext2D, description: string) {
   ctx.restore();
 }
 
-export function renderCertificateCanvas(canvas: HTMLCanvasElement, input: CertificateCanvasRenderInput) {
+export async function renderCertificateCanvas(
+  canvas: HTMLCanvasElement,
+  input: CertificateCanvasRenderInput,
+  options: CertificateCanvasRenderOptions = {}
+) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return false;
 
-  canvas.width = CERTIFICATE_CANVAS_WIDTH * DPR;
-  canvas.height = CERTIFICATE_CANVAS_HEIGHT * DPR;
-  ctx.scale(DPR, DPR);
+  await waitForFontsReady();
+
+  const dpr = getCanvasDpr(options.dpr);
+  canvas.width = CERTIFICATE_CANVAS_WIDTH * dpr;
+  canvas.height = CERTIFICATE_CANVAS_HEIGHT * dpr;
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
 
   const { assets, fields } = input;
