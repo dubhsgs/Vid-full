@@ -11,7 +11,7 @@ const ORIGINAL_FILE_EXTENSIONS: Record<string, string> = {
 };
 
 export async function compressImageDataUrl(dataUrl: string): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -36,6 +36,7 @@ export async function compressImageDataUrl(dataUrl: string): Promise<string> {
       }
       resolve(result);
     };
+    img.onerror = () => reject(new Error('Failed to load image for compression.'));
     img.src = dataUrl;
   });
 }
@@ -64,8 +65,6 @@ export async function uploadImageToStorage(dataUrl: string, filename?: string): 
 
     const filePath = `avatars/${user.id}/${fileName}`;
 
-    console.log('[ImageUpload] Uploading to storage:', filePath);
-
     const { error } = await supabase.storage
       .from('v-id-images')
       .upload(filePath, blob, {
@@ -82,7 +81,6 @@ export async function uploadImageToStorage(dataUrl: string, filename?: string): 
       .from('v-id-images')
       .getPublicUrl(filePath);
 
-    console.log('[ImageUpload] Upload successful:', publicUrl);
     return publicUrl;
   } catch (error) {
     console.error('[ImageUpload] Error:', error);

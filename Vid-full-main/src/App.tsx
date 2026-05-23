@@ -644,9 +644,7 @@ function App() {
   };
 
   const handleAnimationComplete = useCallback(() => {
-    console.log('handleAnimationComplete called');
     setShowForgingAnimation(false);
-    console.log('Navigating to /card-generator');
     navigate('/card-generator');
   }, [navigate]);
 

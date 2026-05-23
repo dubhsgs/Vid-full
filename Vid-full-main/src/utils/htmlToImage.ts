@@ -9,12 +9,14 @@ export async function convertTemplateToImage(element: HTMLElement): Promise<stri
     logging: false,
   });
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob);
         resolve(url);
+        return;
       }
+      reject(new Error('Failed to export template image.'));
     }, 'image/png', 1.0);
   });
 }

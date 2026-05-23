@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import QRCode from 'qrcode';
-import JSZip from 'jszip';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
 import { consumeGenerationReady } from '../utils/licenseManager';
@@ -25,6 +24,7 @@ interface FormData {
 }
 
 export function CardGenerator() {
+  const { t } = useTranslation();
   const CARD_GENERATOR_SESSION_KEY = 'v-id-card-generator-session';
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -76,13 +76,13 @@ export function CardGenerator() {
 
       if (!savedAvatar || !savedName || !creatorName) {
         sessionStorage.removeItem(CARD_GENERATOR_SESSION_KEY);
-        setAccessError('缺少生成证书所需的数据，请从首页重新开始。');
+        setAccessError(t('cardGenerator.errors.missingData'));
         navigate('/', { replace: true });
         return;
       }
 
       if (!hasCardSession && !consumeGenerationReady()) {
-        setAccessError('本次生成链接已失效，请返回首页重新发起生成。');
+        setAccessError(t('cardGenerator.errors.expiredSession'));
         navigate('/', { replace: true });
         return;
       }
@@ -127,16 +127,16 @@ export function CardGenerator() {
             return;
           }
 
-          setAccessError('缺少已注册的证书编号，请返回首页重新发起生成。');
+          setAccessError(t('cardGenerator.errors.missingRegisteredId'));
         } catch (err) {
           console.error('Unexpected error:', err);
-          setAccessError('证书初始化过程中发生异常，请返回首页重试。');
+          setAccessError(t('cardGenerator.errors.initializationFailed'));
         }
       })();
     };
 
     initializeCard();
-  }, [CARD_GENERATOR_SESSION_KEY, formatIssuedDate, generateSerialId, navigate, siteOrigin]);
+  }, [CARD_GENERATOR_SESSION_KEY, formatIssuedDate, generateSerialId, navigate, siteOrigin, t]);
 
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -203,8 +203,9 @@ export function CardGenerator() {
     try {
       const verifyUrl = citizenId
         ? `${siteOrigin}/verify/${citizenId}`
-        : 'https://www.baidu.com';
+        : siteOrigin;
 
+      const { default: QRCode } = await import('qrcode');
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
         width: 240,
         margin: 1,
@@ -348,6 +349,7 @@ VAID 証明コード：${sha256Hash}
 © VAID Protocol
 `;
 
+      const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
 
       zip.file('VAID_Certificate.png', imageBlob);
@@ -381,7 +383,7 @@ VAID 証明コード：${sha256Hash}
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (error) {
       console.error('[CardGenerator] Failed to create download bundle:', error);
-      alert('Download failed. Please try again.');
+      alert(t('cardGenerator.errors.downloadFailed'));
     } finally {
       setIsDownloading(false);
     }
@@ -391,7 +393,7 @@ VAID 証明コード：${sha256Hash}
     return (
       <div className="min-h-screen bg-[#0d0d1a] text-white flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4">
-          <h1 className="text-2xl font-bold">无法继续生成</h1>
+          <h1 className="text-2xl font-bold">{t('cardGenerator.cannotContinue')}</h1>
           <p className="text-slate-300 leading-relaxed">{accessError}</p>
           <button
             onClick={() => {
@@ -400,7 +402,7 @@ VAID 証明コード：${sha256Hash}
             }}
             className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all"
           >
-            返回首页
+            {t('cardGenerator.backHome')}
           </button>
         </div>
       </div>
@@ -436,14 +438,14 @@ VAID 証明コード：${sha256Hash}
       </div>
 
       <div className="relative z-10 max-w-[1200px] w-full py-4 sm:p-6 flex justify-between items-center gap-4">
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Identity Preview</h1>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{t('cardGenerator.identityPreview')}</h1>
         <div className="flex gap-4">
           <button
             onClick={exportPNG}
             disabled={isDownloading}
             className="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 disabled:cursor-wait disabled:opacity-70"
           >
-            {isDownloading ? 'Downloading...' : 'Download'}
+            {isDownloading ? t('cardGenerator.downloading') : t('cardGenerator.download')}
           </button>
         </div>
       </div>

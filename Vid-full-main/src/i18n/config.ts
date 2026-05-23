@@ -1,6 +1,24 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+const htmlLangByLanguage: Record<string, string> = {
+  en: 'en',
+  zh: 'zh-CN',
+  ja: 'ja',
+};
+
+function normalizeLanguage(language?: string): 'en' | 'zh' | 'ja' {
+  if (language?.startsWith('zh')) return 'zh';
+  if (language?.startsWith('ja')) return 'ja';
+  return 'en';
+}
+
+function syncHtmlLang(language: string): void {
+  if (typeof document === 'undefined') return;
+  const normalizedLanguage = normalizeLanguage(language);
+  document.documentElement.lang = htmlLangByLanguage[normalizedLanguage];
+}
+
 const resources = {
   en: {
     translation: {
@@ -153,6 +171,46 @@ const resources = {
         pendingPayment: 'If the Alipay page did not open automatically, click the button below.',
         openAlipay: 'Open Alipay in a new tab',
         securityNote: 'Payment is secured by Alipay • Credits are added directly to your VAID account after payment succeeds.'
+      },
+      paymentSuccess: {
+        missingOrder: 'No order number was detected. Please return home and start the purchase again.',
+        successStatus: 'Payment succeeded. Credits have been added to your VAID account. Returning you home.',
+        authRequiredStatus: 'The payment page did not bring back your login session. Log in here with the same email, then confirm again.',
+        errorStatus: 'Payment confirmation failed. Confirm again; your payment will not be lost.',
+        pendingStatus: 'Alipay may still be syncing the result. Wait a few seconds and confirm again. Do not purchase again.',
+        syncingStatus: 'Payment is complete. Syncing account credits, please wait.',
+        checkingStatus: 'Confirming payment result, please wait.',
+        successTitle: 'Purchase Successful',
+        authRequiredTitle: 'Login Required',
+        checkingTitle: 'Confirming Payment',
+        orderNumber: 'Order number: {{orderNumber}}',
+        packSize: 'Plan credits: {{count}}',
+        orderStatus: 'Order status: {{status}}',
+        statusPaid: 'Paid',
+        statusPending: 'Pending',
+        paidCredits: 'Current paid credits: {{count}}',
+        confirmAfterLogin: 'Confirm after login',
+        retry: 'Confirm again',
+        backHome: 'Back home'
+      },
+      cardGenerator: {
+        cannotContinue: 'Cannot Continue',
+        backHome: 'Back Home',
+        identityPreview: 'Identity Preview',
+        downloading: 'Downloading...',
+        download: 'Download',
+        errors: {
+          missingData: 'Required certificate data is missing. Please return home and start again.',
+          expiredSession: 'This generation link has expired. Please return home and start again.',
+          missingRegisteredId: 'The registered certificate ID is missing. Please return home and start again.',
+          initializationFailed: 'Certificate initialization failed. Please return home and try again.',
+          downloadFailed: 'Download failed. Please try again.'
+        }
+      },
+      notFound: {
+        title: 'Page Not Found',
+        message: 'The page you are looking for does not exist or has been moved.',
+        backHome: 'Back Home'
       },
       footer: {
         disclaimer: 'Legal Disclaimer',
@@ -335,6 +393,46 @@ const resources = {
         openAlipay: '在新标签页打开支付宝',
         securityNote: '支付由支付宝提供安全保障 • 支付成功后额度会直接充入您的 VAID 账户'
       },
+      paymentSuccess: {
+        missingOrder: '未检测到订单号，请返回首页重新发起购买。',
+        successStatus: '支付成功，额度已充入您的 VAID 账户，正在为你返回主页。',
+        authRequiredStatus: '支付页面没有带回登录状态。请在当前页面用同一个邮箱登录，再点重新确认。',
+        errorStatus: '支付确认请求失败。请点重新确认，款项不会丢失。',
+        pendingStatus: '支付宝可能还在同步结果。请稍等几秒后点重新确认，不要重复购买。',
+        syncingStatus: '支付已完成，正在同步账户额度，请稍候。',
+        checkingStatus: '正在确认支付结果，请稍候。',
+        successTitle: '购买成功',
+        authRequiredTitle: '需要重新登录',
+        checkingTitle: '支付确认中',
+        orderNumber: '订单号：{{orderNumber}}',
+        packSize: '套餐次数：{{count}} 次',
+        orderStatus: '订单状态：{{status}}',
+        statusPaid: '已支付',
+        statusPending: '待支付',
+        paidCredits: '当前付费额度：{{count}} 次',
+        confirmAfterLogin: '登录后确认到账',
+        retry: '重新确认',
+        backHome: '返回主页'
+      },
+      cardGenerator: {
+        cannotContinue: '无法继续生成',
+        backHome: '返回首页',
+        identityPreview: '身份预览',
+        downloading: '下载中...',
+        download: '下载',
+        errors: {
+          missingData: '缺少生成证书所需的数据，请从首页重新开始。',
+          expiredSession: '本次生成链接已失效，请返回首页重新发起生成。',
+          missingRegisteredId: '缺少已注册的证书编号，请返回首页重新发起生成。',
+          initializationFailed: '证书初始化过程中发生异常，请返回首页重试。',
+          downloadFailed: '下载失败，请重试。'
+        }
+      },
+      notFound: {
+        title: '页面不存在',
+        message: '您访问的页面不存在，或已被移动。',
+        backHome: '返回首页'
+      },
       footer: {
         disclaimer: '法律声明',
         disclaimerText: 'VAID 是面向开发者的数字存档平台，而非法律所有权凭证。我们为数字资产管理提供技术展示。此服务创建特定时间点的数字存在证明，但不建立法律所有权或版权。有关知识产权事宜，请咨询法律专业人士。',
@@ -515,6 +613,46 @@ const resources = {
         openAlipay: '新しいタブでAlipayを開く',
         securityNote: '決済はAlipayにより保護されます • 決済成功後、クレジットはVAIDアカウントに直接追加されます'
       },
+      paymentSuccess: {
+        missingOrder: '注文番号が検出されませんでした。ホームに戻って購入をやり直してください。',
+        successStatus: '決済が完了しました。クレジットはVAIDアカウントに追加されました。ホームに戻ります。',
+        authRequiredStatus: '決済ページでログイン状態を確認できませんでした。同じメールアドレスでログインしてから、もう一度確認してください。',
+        errorStatus: '決済確認に失敗しました。もう一度確認してください。お支払いは失われません。',
+        pendingStatus: 'Alipayの結果同期に時間がかかっている可能性があります。数秒待ってからもう一度確認してください。重複購入しないでください。',
+        syncingStatus: '決済は完了しています。アカウントのクレジットを同期しています。しばらくお待ちください。',
+        checkingStatus: '決済結果を確認しています。しばらくお待ちください。',
+        successTitle: '購入完了',
+        authRequiredTitle: 'ログインが必要です',
+        checkingTitle: '決済確認中',
+        orderNumber: '注文番号：{{orderNumber}}',
+        packSize: 'プラン回数：{{count}} 回',
+        orderStatus: '注文ステータス：{{status}}',
+        statusPaid: '支払い済み',
+        statusPending: '未支払い',
+        paidCredits: '現在の有料クレジット：{{count}} 回',
+        confirmAfterLogin: 'ログイン後に確認',
+        retry: 'もう一度確認',
+        backHome: 'ホームに戻る'
+      },
+      cardGenerator: {
+        cannotContinue: '生成を続行できません',
+        backHome: 'ホームに戻る',
+        identityPreview: 'アイデンティティプレビュー',
+        downloading: 'ダウンロード中...',
+        download: 'ダウンロード',
+        errors: {
+          missingData: '証明書生成に必要なデータが不足しています。ホームに戻ってやり直してください。',
+          expiredSession: 'この生成リンクは期限切れです。ホームに戻ってやり直してください。',
+          missingRegisteredId: '登録済みの証明書IDが見つかりません。ホームに戻ってやり直してください。',
+          initializationFailed: '証明書の初期化中にエラーが発生しました。ホームに戻ってもう一度お試しください。',
+          downloadFailed: 'ダウンロードに失敗しました。もう一度お試しください。'
+        }
+      },
+      notFound: {
+        title: 'ページが見つかりません',
+        message: 'お探しのページは存在しないか、移動された可能性があります。',
+        backHome: 'ホームに戻る'
+      },
       footer: {
         disclaimer: '法的免責事項',
         disclaimerText: 'VAIDは開発者向けのデジタルアーカイブプラットフォームであり、法的権利ではありません。デジタル資産管理のための技術的デモンストレーションを提供します。このサービスは特定時点での暗号的存在証明を作成しますが、法的所有権や著作権を確立するものではありません。知的財産権に関する事項については、法律専門家にご相談ください。',
@@ -555,5 +693,8 @@ i18n
       escapeValue: false
     }
   });
+
+syncHtmlLang(i18n.language);
+i18n.on('languageChanged', syncHtmlLang);
 
 export default i18n;

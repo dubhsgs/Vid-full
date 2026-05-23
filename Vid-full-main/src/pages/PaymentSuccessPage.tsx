@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { AuthControl, type AuthSessionState } from '../components/AuthControl';
 import { supabase, type OrderStatusInfo } from '../utils/licenseManager';
@@ -25,6 +26,7 @@ function isAuthError(error: unknown): boolean {
 }
 
 export function PaymentSuccessPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const outTradeNo = searchParams.get('out_trade_no');
   const [pageStatus, setPageStatus] = useState<PaymentPageStatus>('checking');
@@ -41,31 +43,31 @@ export function PaymentSuccessPage() {
 
   const statusLabel = useMemo(() => {
     if (!outTradeNo) {
-      return '未检测到订单号，请返回首页重新发起购买。';
+      return t('paymentSuccess.missingOrder');
     }
 
     if (pageStatus === 'success') {
-      return '支付成功，额度已充入您的 VAID 账户，正在为你返回主页。';
+      return t('paymentSuccess.successStatus');
     }
 
     if (pageStatus === 'auth_required') {
-      return '支付页面没有带回登录状态。请在当前页面用同一个邮箱登录，再点重新确认。';
+      return t('paymentSuccess.authRequiredStatus');
     }
 
     if (pageStatus === 'error') {
-      return '支付确认请求失败。请点重新确认，款项不会丢失。';
+      return t('paymentSuccess.errorStatus');
     }
 
     if (pageStatus === 'pending') {
-      return '支付宝可能还在同步结果。请稍等几秒后点重新确认，不要重复购买。';
+      return t('paymentSuccess.pendingStatus');
     }
 
     if (orderInfo?.status === 'paid') {
-      return '支付已完成，正在同步账户额度，请稍候。';
+      return t('paymentSuccess.syncingStatus');
     }
 
-    return '正在确认支付结果，请稍候。';
-  }, [orderInfo?.status, outTradeNo, pageStatus]);
+    return t('paymentSuccess.checkingStatus');
+  }, [orderInfo?.status, outTradeNo, pageStatus, t]);
 
   const checkPaymentStatus = useCallback(async (): Promise<CheckResult> => {
     if (!outTradeNo) {
@@ -179,6 +181,9 @@ export function PaymentSuccessPage() {
   const isSuccessful = pageStatus === 'success';
   const needsAuth = pageStatus === 'auth_required';
   const isChecking = pageStatus === 'checking';
+  const orderStatusLabel = orderInfo?.status === 'paid'
+    ? t('paymentSuccess.statusPaid')
+    : t('paymentSuccess.statusPending');
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
@@ -207,21 +212,25 @@ export function PaymentSuccessPage() {
           )}
 
           <h1 className="text-2xl font-bold text-white mb-3">
-            {isSuccessful ? '购买成功' : needsAuth ? '需要重新登录' : '支付确认中'}
+            {isSuccessful
+              ? t('paymentSuccess.successTitle')
+              : needsAuth
+                ? t('paymentSuccess.authRequiredTitle')
+                : t('paymentSuccess.checkingTitle')}
           </h1>
           <p className="text-slate-400 leading-relaxed">{statusLabel}</p>
 
           {outTradeNo && (
             <p className="mt-4 text-xs text-slate-500 break-all">
-              订单号：{outTradeNo}
+              {t('paymentSuccess.orderNumber', { orderNumber: outTradeNo })}
             </p>
           )}
 
           {orderInfo && (
             <div className="mt-4 text-sm text-slate-300 space-y-1">
-              <p>套餐次数：{orderInfo.pack_size} 次</p>
-              <p>订单状态：{orderInfo.status === 'paid' ? '已支付' : '待支付'}</p>
-              {paidCredits !== null && <p>当前付费额度：{paidCredits} 次</p>}
+              <p>{t('paymentSuccess.packSize', { count: orderInfo.pack_size })}</p>
+              <p>{t('paymentSuccess.orderStatus', { status: orderStatusLabel })}</p>
+              {paidCredits !== null && <p>{t('paymentSuccess.paidCredits', { count: paidCredits })}</p>}
             </div>
           )}
 
@@ -231,7 +240,7 @@ export function PaymentSuccessPage() {
                 onClick={() => setAuthOpenSignal((value) => value + 1)}
                 className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
               >
-                登录后确认到账
+                {t('paymentSuccess.confirmAfterLogin')}
               </button>
             )}
 
@@ -241,7 +250,7 @@ export function PaymentSuccessPage() {
                 className="flex items-center justify-center gap-2 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                重新确认
+                {t('paymentSuccess.retry')}
               </button>
             )}
 
@@ -250,7 +259,7 @@ export function PaymentSuccessPage() {
               className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              返回主页
+              {t('paymentSuccess.backHome')}
             </button>
           </div>
         </div>

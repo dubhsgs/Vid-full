@@ -128,7 +128,6 @@ export function toggleDevMode(): boolean {
   const currentMode = localStorage.getItem(DEV_MODE_KEY) === 'true';
   const newMode = !currentMode;
   localStorage.setItem(DEV_MODE_KEY, String(newMode));
-  console.log(`开发者模式 ${newMode ? '已启用' : '已禁用'} - 无限制生成证书`);
   return newMode;
 }
 
@@ -359,16 +358,17 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
     getActivationCodeInfo,
     clearSavedActivationCode,
     info: () => {
-      console.log('=== VAID 开发者工具 ===');
-      console.log('使用方法:');
-      console.log('  V_ID_DEV.toggleDevMode() - 切换开发者模式（无限制生成）');
-      console.log('  V_ID_DEV.isDevelopmentMode() - 检查当前是否为开发模式');
-      console.log('  V_ID_DEV.getClientId() - 获取当前浏览器指纹');
-      console.log('  V_ID_DEV.getQuotaInfo() - 获取免费额度信息');
-      console.log('  V_ID_DEV.getActivationCodeInfo(code) - 查询激活码状态');
-      console.log('当前状态:');
-      console.log(`  开发者模式: ${isDevelopmentMode() ? '✓ 已启用' : '✗ 未启用'}`);
-      console.log(`  已保存激活码: ${getSavedActivationCode() || '无'}`);
+      return {
+        commands: [
+          'V_ID_DEV.toggleDevMode()',
+          'V_ID_DEV.isDevelopmentMode()',
+          'V_ID_DEV.getClientId()',
+          'V_ID_DEV.getQuotaInfo()',
+          'V_ID_DEV.getActivationCodeInfo(code)',
+        ],
+        developmentMode: isDevelopmentMode(),
+        savedActivationCode: getSavedActivationCode() || null,
+      };
     },
   };
 }

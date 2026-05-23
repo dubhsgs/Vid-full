@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /card-generator
+Disallow: /payment-success
+Sitemap: https://vaid.top/sitemap.xml

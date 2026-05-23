@@ -2,10 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download, Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
-import { supabase } from '../utils/supabase';
+import { supabase, supabaseAnonKey, supabaseUrl } from '../utils/supabase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import QRCode from 'qrcode';
-import JSZip from 'jszip';
 import { renderCertificateCanvas } from '../utils/certificateCanvas';
 
 interface VIDRecord {
@@ -181,11 +179,8 @@ export function VerifyPage() {
         return;
       }
 
-      console.log('[VerifyPage] Fetching record for ID:', id);
-
       try {
         const normalizedId = id.toUpperCase();
-        console.log('[VerifyPage] Normalized ID:', normalizedId);
 
         const { data, error } = await supabase
           .from('public_v_ids')
@@ -193,15 +188,12 @@ export function VerifyPage() {
           .eq('friendly_id', normalizedId)
           .maybeSingle();
 
-        console.log('[VerifyPage] Query result:', { data, error });
-
         if (error) throw error;
 
         if (!data) {
           console.error('[VerifyPage] No record found for ID:', normalizedId);
           setError('No record found for this Citizen ID');
         } else {
-          console.log('[VerifyPage] Record found:', data);
           const rec = { ...data, id: data.friendly_id };
           setRecord(rec);
           setOtsStatus(data.ots_status || 'pending');
@@ -223,11 +215,11 @@ export function VerifyPage() {
 
     const verifyOTS = async () => {
       try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ots-verify`;
+        const url = `${supabaseUrl}/functions/v1/ots-verify`;
         const res = await fetch(url, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ friendly_id: record.id }),
@@ -287,15 +279,11 @@ export function VerifyPage() {
 
   const renderCertificate = useCallback(async () => {
     if (!record || !canvasRef.current) {
-      console.log('[VerifyPage] renderCertificate skipped:', { record: !!record, canvas: !!canvasRef.current });
       return;
     }
 
-    console.log('[VerifyPage] Starting certificate render for:', record.id);
-
     const canvas = canvasRef.current;
     try {
-      console.log('[VerifyPage] Loading images...');
       const loadPromises: Promise<HTMLImageElement | null>[] = [
         loadImage('/bg.jpg').catch(err => {
           console.warn('[VerifyPage] Failed to load background:', err);
@@ -326,13 +314,11 @@ export function VerifyPage() {
       }
 
       const [bgImg, logoImg, textureImg, avatarImg] = await Promise.all(loadPromises);
-      console.log('[VerifyPage] Images loaded:', { bg: !!bgImg, logo: !!logoImg, texture: !!textureImg, avatar: !!avatarImg });
 
-      console.log('[VerifyPage] Generating QR code for:', record.id);
       let qrImg: HTMLImageElement | null = null;
       try {
         const qrUrl = `${window.location.origin}/verify/${record.id}`;
-        console.log('[VerifyPage] QR URL:', qrUrl);
+        const { default: QRCode } = await import('qrcode');
         const qrDataUrl = await QRCode.toDataURL(qrUrl, {
           width: 240,
           margin: 1,
@@ -340,7 +326,6 @@ export function VerifyPage() {
           errorCorrectionLevel: 'M',
         });
         qrImg = await loadImage(qrDataUrl);
-        console.log('[VerifyPage] QR code loaded successfully');
       } catch (err) {
         console.error('[VerifyPage] Failed to generate/load QR code:', err);
       }
@@ -370,7 +355,6 @@ export function VerifyPage() {
         throw new Error('Canvas context unavailable');
       }
 
-      console.log('[VerifyPage] Certificate rendered successfully');
       setCertificateReady(true);
     } catch (err) {
       console.error('[VerifyPage] Failed to render certificate:', err);
@@ -440,6 +424,7 @@ VAID 协议：让虚拟，真实存在。
 For more information, visit: ${window.location.origin}
 `;
 
+      const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
 
       zip.file('VAID_Certificate.png', imageBlob);
@@ -549,7 +534,7 @@ For more information, visit: ${window.location.origin}
               className="hidden items-center gap-2 rounded-xl border border-transparent px-4 py-2 text-sm font-semibold text-cyan-100/80 transition-all hover:border-cyan-300/30 hover:bg-cyan-300/8 hover:text-cyan-100 sm:inline-flex"
             >
               <Home className="h-4 w-4" />
-              Back to Home
+              {copy.returnHome}
             </button>
             <LanguageSwitcher />
           </div>
