@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Shield, FileCheck, ChevronDown } from 'lucide-react';
+import { Upload, Shield, FileCheck, ChevronDown, X, Gift, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
@@ -29,6 +29,7 @@ const HERO_BACKGROUND_VIDEO_SRC = '/hero-background-video.mp4';
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const LAUNCH_BENEFIT_DISMISSED_KEY = 'vaid-launch-benefit-dismissed-v4';
 
 function HeroHudFrame() {
   const innerContainerFillPath =
@@ -241,6 +242,16 @@ function App() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [showLaunchBenefit, setShowLaunchBenefit] = useState(false);
+
+  useEffect(() => {
+    setShowLaunchBenefit(localStorage.getItem(LAUNCH_BENEFIT_DISMISSED_KEY) !== '1');
+  }, []);
+
+  const dismissLaunchBenefit = useCallback(() => {
+    localStorage.setItem(LAUNCH_BENEFIT_DISMISSED_KEY, '1');
+    setShowLaunchBenefit(false);
+  }, []);
 
 
   const refreshAccessDashboard = useCallback(async (preferredCode?: string) => {
@@ -705,6 +716,36 @@ function App() {
       </div>
       <AnimatedGrid />
 
+      {showLaunchBenefit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/36 px-4 backdrop-blur-md">
+          <div className="relative w-full max-w-[380px] overflow-hidden rounded-2xl border border-cyan-200/45 bg-[#07111f]/95 px-7 py-10 text-center shadow-[0_0_64px_rgba(34,211,238,0.22)] sm:px-8 sm:py-12">
+            <button
+              type="button"
+              onClick={dismissLaunchBenefit}
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded-full border border-cyan-100/25 bg-white/5 p-2 text-cyan-100 transition-colors hover:border-cyan-200/70 hover:bg-cyan-200/10"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100 to-transparent" />
+            <div className="mb-6 flex items-center justify-center gap-4 text-cyan-100" aria-hidden="true">
+              <Sparkles className="h-5 w-5 opacity-80" />
+              <span className="rounded-full border border-cyan-200/35 bg-cyan-200/10 p-3 shadow-[0_0_28px_rgba(125,249,255,0.18)]">
+                <Gift className="h-7 w-7" />
+              </span>
+              <Sparkles className="h-5 w-5 opacity-80" />
+            </div>
+            <h2 className="mx-auto pr-8 text-xl font-black leading-tight text-white sm:pr-0 sm:text-2xl">
+              Limited-Time Free Access: Create Your First VAID Digital ID
+            </h2>
+            <div className="mx-auto my-7 h-px w-32 bg-cyan-100/30" />
+            <p className="mx-auto text-2xl font-black leading-tight text-cyan-100 sm:text-3xl">
+              限时免费：免费生成你的第一份 VAID 数字身份证
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="vaid-site-header pt-8 pb-4 flex items-start justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -1119,6 +1160,12 @@ function App() {
               </button>
 
             </div>
+
+            <nav aria-label="Documentation" className="flex justify-center text-sm text-slate-500">
+              <button type="button" onClick={() => navigate('/docs')} className="hover:text-cyan-200 transition-colors">
+                {t('footer.docs')}
+              </button>
+            </nav>
 
             <div className="text-center text-slate-600 text-sm pt-6 space-y-2">
               <p>{t('footer.copyright')}</p>

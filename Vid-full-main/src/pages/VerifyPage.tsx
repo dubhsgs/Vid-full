@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Download, Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
 import { supabase, supabaseAnonKey, supabaseUrl } from '../utils/supabase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
@@ -34,7 +34,6 @@ const verifyCopy = {
     timestamp: 'Timestamp',
     digitalSeal: 'VAID Digital Seal',
     sealDescription: 'This digital seal has entered VAID chain-based time anchoring, forming traceable and tamper-resistant proof of existence.',
-    download: 'Download Bundle',
     proofStatus: 'Proof Status',
     aboutTitle: 'About This Verification',
     aboutText: 'This VAID record is part of the VAID digital identity archive. The system creates a unique digital seal for the original work and connects it to a blockchain-based time anchor, helping prove that this digital identity existed at a specific moment and remains traceable, verifiable, and tamper-resistant.',
@@ -67,7 +66,6 @@ const verifyCopy = {
     timestamp: '生成时间',
     digitalSeal: 'VAID 数字存证印记',
     sealDescription: '此数字存证印记已进入 VAID 的链上时间锚定流程，用于形成不可篡改、可追溯的存在证明。',
-    download: '下载证书包',
     proofStatus: '存证状态',
     aboutTitle: '关于此验证',
     aboutText: '此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。系统会为原始作品生成唯一的数字存证印记，并将其接入区块链时间锚定流程，用于证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、不可随意篡改。',
@@ -100,7 +98,6 @@ const verifyCopy = {
     timestamp: '発行日時',
     digitalSeal: 'VAID デジタル証明シール',
     sealDescription: 'このデジタル証明シールは、VAID のチェーンベース時間アンカー処理に入り、追跡可能で改ざん耐性のある存在証明を形成します。',
-    download: '証明書パッケージをダウンロード',
     proofStatus: '証明ステータス',
     aboutTitle: 'この検証について',
     aboutText: 'この VAID レコードは、VAID のデジタルアイデンティティアーカイブに記録されています。システムは原作品に固有のデジタル証明シールを生成し、ブロックチェーンベースの時間アンカーへ接続することで、このデジタルアイデンティティが特定の時点で存在していたことを示し、追跡・検証・改ざん耐性を高めます。',
@@ -393,63 +390,6 @@ export function VerifyPage() {
     window.alert(statusText);
   };
 
-  const handleDownloadBundle = async () => {
-    if (!record || !canvasRef.current) return;
-
-    try {
-      const canvas = canvasRef.current;
-      const imageBlob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => resolve(blob!), 'image/png');
-      });
-
-      const proofText = `VAID PROTOCOL - PROOF OF EXISTENCE
-
-Certificate ID: ${record.id}
-Character Name: ${record.character_name}
-Creator: ${record.creator_name}
-Timestamp: ${formatDate(record.created_at)}
-
-VAID DIGITAL SEAL:
-${record.sha256_hash}
-
-VERIFICATION GUIDE:
-此文件包含您的 VAID 数字存证印记。该印记用于证明证书内容的唯一性，并与链上时间锚点共同构成可验证的存在证明。
-
-VAID 协议：让虚拟，真实存在。
-
-For more information, visit: ${window.location.origin}
-`;
-
-      const { default: JSZip } = await import('jszip');
-      const zip = new JSZip();
-
-      zip.file('VAID_Certificate.png', imageBlob);
-      zip.file('Proof_of_Existence.txt', proofText);
-
-      if (record.ots_file_path || otsStatus === 'stamped' || otsStatus === 'confirmed') {
-        const otsPath = record.ots_file_path || `ots/${record.id}.ots`;
-        const { data: otsBlob } = await supabase.storage.from('v-id-images').download(otsPath);
-        if (otsBlob) {
-          zip.file(`${record.id}.ots`, otsBlob);
-        }
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `VAID_Bundle_${record.id}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Failed to create bundle:', err);
-      alert('Failed to create download bundle. Please try again.');
-    }
-  };
-
   const statusLabel =
     otsStatus === 'confirmed' ? copy.status.confirmed :
     otsStatus === 'stamped' ? copy.status.stamped :
@@ -632,14 +572,6 @@ For more information, visit: ${window.location.origin}
                 </div>
 
                 <div className="flex flex-col justify-center gap-4">
-                  <button
-                    onClick={handleDownloadBundle}
-                    disabled={!certificateReady}
-                    className="flex items-center justify-center gap-3 rounded-xl border border-cyan-100/30 bg-gradient-to-r from-cyan-500 to-blue-700 px-5 py-4 text-base font-bold text-white shadow-[0_0_30px_rgba(0,145,255,0.42)] transition-all hover:from-cyan-400 hover:to-blue-600 disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700"
-                  >
-                    <Download className="h-5 w-5" />
-                    {copy.download}
-                  </button>
                   <button
                     onClick={handleInspectProof}
                     className="flex items-center justify-center gap-3 rounded-xl border border-cyan-300/50 bg-black/18 px-5 py-4 text-base font-bold text-cyan-200 transition-all hover:border-cyan-200 hover:bg-cyan-300/10"

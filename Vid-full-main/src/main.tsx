@@ -9,6 +9,7 @@ const CardGenerator = lazy(() => import('./components/CardGenerator.tsx').then((
 const VerifyPage = lazy(() => import('./pages/VerifyPage.tsx').then((mod) => ({ default: mod.VerifyPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage.tsx').then((mod) => ({ default: mod.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage.tsx').then((mod) => ({ default: mod.TermsPage })));
+const DocsPage = lazy(() => import('./pages/DocsPage.tsx').then((mod) => ({ default: mod.DocsPage })));
 const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage.tsx').then((mod) => ({ default: mod.PaymentSuccessPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage.tsx').then((mod) => ({ default: mod.NotFoundPage })));
 
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/verify/:id" element={<VerifyPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/docs" element={<DocsPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
