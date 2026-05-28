@@ -71,22 +71,22 @@ const resources = {
         purpose: 'This platform showcases digital identity sealing, trusted archival, and immutable record-keeping for educational and development purposes.'
       },
       process: {
-        title: 'How It Works',
+        title: 'What VAID Does',
         step1: {
-          title: '01. Upload',
-          desc: 'Upload your digital assets or characters to initiate registration. The essential first step in securing a permanent record of your creativity.'
+          title: 'Virtual Asset ID',
+          desc: 'Register your virtual characters, digital props, or other virtual assets here, and establish a globally unique digital identity that confirms their independent existence online.'
         },
         step2: {
-          title: '02. Generate',
-          desc: 'Create a unique digital seal for your work. Anchor your creation with a trusted identity mark and a permanent record.'
+          title: 'Proof of Creation',
+          desc: 'Use core technology to precisely establish the initial ownership of your work, fully lock in your creative sovereignty at the system level, and technically ensure the work belongs to you.'
         },
         step3: {
-          title: '03. Receive',
-          desc: 'Obtain a tamper-proof certificate to anchor the digital soul. Declares your permanent ownership of the asset from this moment forward.'
+          title: 'Original Character Archive',
+          desc: 'Permanently preserve the full record of incubation, circulation, and commission delivery, building a transparent and long-term traceable digital asset archive for original characters.'
         },
         step4: {
-          title: '04. Verify',
-          desc: 'Enable instant, universal verification of authenticity. Ensures your creative legacy is traceable and backed by undeniable proof.'
+          title: 'Global Verification',
+          desc: 'Automatically generate public verification links and trusted credentials, so when malicious image theft, content laundering, or ownership disputes occur, you can instantly present clear evidence.'
         }
       },
       form: {
@@ -293,22 +293,22 @@ const resources = {
         purpose: '本平台展示数字指纹、加密散列和不可变记录保存技术，用于教育和开发目的。'
       },
       process: {
-        title: '工作原理',
+        title: 'VAID 的作用',
         step1: {
-          title: '01. 上传',
-          desc: '将您的数字资产或虚拟角色交托于此，为原创作品开启正式登记。这是把创意心血转化为长期记录的第一步。'
+          title: '虚拟资产 ID',
+          desc: '为您的虚拟角色、数字道具或各类虚拟资产登记，建立全球唯一的数字身份证，确信其在网络世界的独立存在。'
         },
         step2: {
-          title: '02. 生成',
-          desc: '利用加密技术提取作品指纹，并写入可验证的存证记录。为您的创作赋予唯一识别依据与数字基因。'
+          title: '创作证明',
+          desc: '依托核心技术精准确立作品的初始归属，在系统底层完完全全锁定您的创意主权，在技术上彻底确保作品归您个人所有。'
         },
         step3: {
-          title: '03. 接收',
-          desc: '获得一份不可篡改的数字化存证证书，让数字灵魂正式锚定于物理世界，宣告该虚拟资产从此永久属于您。'
+          title: '原创角色档案',
+          desc: '永久留存作品在孵化、流转与约稿交付中的全过程记录，为原创角色构建一套透明、可长期追溯的数字化独立资产档案。'
         },
         step4: {
-          title: '04. 验证',
-          desc: '任何人在任何时刻都可以核验这份存证的真实性，让您的创作记录始终有迹可循，并保留可靠依据。'
+          title: '全球公开验证',
+          desc: '自动生成全网公开的验证链接与可信凭证，在未来遭遇恶意盗图、洗稿或权属纠纷时，让您可以瞬间一键出示无争议铁证。'
         }
       },
       form: {
@@ -514,22 +514,22 @@ const resources = {
         purpose: 'このプラットフォームは、教育および開発目的のためのデジタル指紋、暗号ハッシュ、および不変記録保管技術を展示します。'
       },
       process: {
-        title: '仕組み',
+        title: 'VAIDの役割',
         step1: {
-          title: '01. アップロード',
-          desc: 'デジタル資産やバーチャルキャラクターをここに託し、オリジナル作品の正式な登録を始めます。これは、創作の情熱を長く残る記録へと変える第一歩です。'
+          title: '仮想資産 ID',
+          desc: '仮想キャラクター、デジタルアイテム、各種仮想資産を登録し、世界で一意のデジタル ID を構築して、ネットワーク上での独立した存在を明確にします。'
         },
         step2: {
-          title: '02. 生成',
-          desc: '暗号技術で作品のフィンガープリントを抽出し、検証可能な記録として刻みます。あなたの創作に、唯一の識別根拠とデジタル上の遺伝子を与えます。'
+          title: '創作証明',
+          desc: '中核技術によって作品の初期帰属を正確に確立し、システム基盤であなたの創作主権を完全に固定し、技術的に作品があなた個人に属することを確保します。'
         },
         step3: {
-          title: '03. 受け取り',
-          desc: '改ざん不可能なデジタル存証証明書を受け取り、デジタルの魂を物理世界へと正式に錨定します。この瞬間から、そのバーチャル資産が永続的にあなたのものであることを宣言します。'
+          title: 'オリジナルキャラクターアーカイブ',
+          desc: '作品の育成、流通、コミッション納品における全過程の記録を永続的に保存し、オリジナルキャラクターの透明で長期追跡可能なデジタル独立資産アーカイブを構築します。'
         },
         step4: {
-          title: '04. 検証',
-          desc: 'いつでも誰でもこの存証の真正性を検証でき、あなたの創作記録が常に追跡可能で、確かな根拠として残り続けます。'
+          title: 'グローバル公開検証',
+          desc: '全網公開の検証リンクと信頼できる証憑を自動生成し、将来の盗用、模倣、権利紛争に遭遇した際、瞬時に明確な証拠を提示できます。'
         }
       },
       form: {

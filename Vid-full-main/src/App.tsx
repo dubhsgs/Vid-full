@@ -1162,9 +1162,9 @@ function App() {
             </div>
 
             <nav aria-label="Documentation" className="flex justify-center text-sm text-slate-500">
-              <button type="button" onClick={() => navigate('/docs')} className="hover:text-cyan-200 transition-colors">
+              <a href="/docs" className="hover:text-cyan-200 transition-colors">
                 {t('footer.docs')}
-              </button>
+              </a>
             </nav>
 
             <div className="text-center text-slate-600 text-sm pt-6 space-y-2">
