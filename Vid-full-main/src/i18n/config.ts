@@ -6,11 +6,32 @@ const htmlLangByLanguage: Record<string, string> = {
   zh: 'zh-CN',
   ja: 'ja',
 };
+const LANGUAGE_STORAGE_KEY = 'vaid-language';
 
 function normalizeLanguage(language?: string): 'en' | 'zh' | 'ja' {
   if (language?.startsWith('zh')) return 'zh';
   if (language?.startsWith('ja')) return 'ja';
   return 'en';
+}
+
+function getInitialLanguage(): 'en' | 'zh' | 'ja' {
+  if (typeof window === 'undefined') return 'en';
+
+  try {
+    return normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY) || undefined);
+  } catch {
+    return 'en';
+  }
+}
+
+function persistLanguage(language: string): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalizeLanguage(language));
+  } catch {
+    // Ignore storage failures so language switching still works in memory.
+  }
 }
 
 function syncHtmlLang(language: string): void {
@@ -689,7 +710,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en',
+    lng: getInitialLanguage(),
     fallbackLng: 'en',
     supportedLngs: ['en', 'zh', 'ja'],
     interpolation: {
@@ -698,6 +719,9 @@ i18n
   });
 
 syncHtmlLang(i18n.language);
-i18n.on('languageChanged', syncHtmlLang);
+i18n.on('languageChanged', (language) => {
+  syncHtmlLang(language);
+  persistLanguage(language);
+});
 
 export default i18n;

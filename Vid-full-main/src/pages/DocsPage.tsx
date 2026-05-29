@@ -457,14 +457,13 @@ export function DocsPage() {
 
         <section className="space-y-6">
           <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">{content.title}</h1>
-          <button
-            type="button"
-            onClick={() => navigate('/card-generator')}
+          <a
+            href="/#submission"
             className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-300"
           >
             {content.cta}
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </a>
         </section>
 
         <section className="mt-14 space-y-6">

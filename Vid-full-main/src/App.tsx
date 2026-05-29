@@ -659,6 +659,20 @@ function App() {
     navigate('/card-generator');
   }, [navigate]);
 
+  useEffect(() => {
+    const scrollToSubmission = () => {
+      if (window.location.hash !== '#submission') return;
+
+      window.requestAnimationFrame(() => {
+        document.getElementById('submission')?.scrollIntoView({ behavior: 'smooth' });
+      });
+    };
+
+    scrollToSubmission();
+    window.addEventListener('hashchange', scrollToSubmission);
+    return () => window.removeEventListener('hashchange', scrollToSubmission);
+  }, []);
+
   const usableActivationRemaining =
     activationCodeInfo && activationCodeInfo.status === 'active' && activationCodeInfo.remaining_uses > 0
       ? activationCodeInfo.remaining_uses
@@ -678,8 +692,12 @@ function App() {
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
+        <div
+          className="absolute inset-0 bg-cover bg-center sm:hidden"
+          style={{ backgroundImage: `url(${HERO_LIGHT_BG_SRC})` }}
+        />
         <video
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 hidden h-full w-full object-cover sm:block"
           autoPlay
           loop
           muted
