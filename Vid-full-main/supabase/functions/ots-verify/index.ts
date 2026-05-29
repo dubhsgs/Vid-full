@@ -1,31 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { upgradeDetachedOTS } from '../_shared/ots.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
-
-async function upgradeOTSProof(otsBytes: Uint8Array, calendarUrl: string): Promise<{ upgraded: boolean; confirmed: boolean }> {
-  try {
-    const upgradeUrl = `${calendarUrl}/timestamp/upgrade`;
-    const response = await fetch(upgradeUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: otsBytes,
-    });
-
-    if (response.status === 200) {
-      return { upgraded: true, confirmed: true };
-    }
-    if (response.status === 304) {
-      return { upgraded: false, confirmed: false };
-    }
-    return { upgraded: false, confirmed: false };
-  } catch {
-    return { upgraded: false, confirmed: false };
-  }
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -67,7 +47,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (record.ots_status !== 'stamped' || !record.ots_file_path) {
+    if (!record.ots_file_path) {
       return new Response(
         JSON.stringify({ success: true, ots_status: record.ots_status }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -86,24 +66,18 @@ Deno.serve(async (req: Request) => {
     }
 
     const otsBytes = new Uint8Array(await otsData.arrayBuffer());
+    const upgraded = await upgradeDetachedOTS(otsBytes, record.sha256_hash);
 
-    const calendarUrls = [
-      'https://a.pool.opentimestamps.org',
-      'https://b.pool.opentimestamps.org',
-      'https://c.pool.opentimestamps.org',
-    ];
-
-    let confirmed = false;
-
-    for (const calUrl of calendarUrls) {
-      const result = await upgradeOTSProof(otsBytes, calUrl);
-      if (result.confirmed) {
-        confirmed = true;
-        break;
-      }
+    if (upgraded.changed) {
+      await supabase.storage
+        .from('v-id-images')
+        .upload(record.ots_file_path, upgraded.upgradedBytes, {
+          contentType: 'application/octet-stream',
+          upsert: true,
+        });
     }
 
-    if (confirmed) {
+    if (upgraded.confirmed) {
       await supabase
         .from('v_ids')
         .update({ ots_status: 'confirmed' })
