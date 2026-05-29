@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, AlertCircle, Calendar, User, Hash, Lock, Home, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Calendar, User, Hash, Home, ShieldCheck } from 'lucide-react';
 import { supabase, supabaseAnonKey, supabaseUrl } from '../utils/supabase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
@@ -32,23 +32,16 @@ const verifyCopy = {
     creator: 'Creator Name',
     citizenId: 'Citizen ID',
     timestamp: 'Timestamp',
-    digitalSeal: 'VAID Digital Seal',
     sealDescription: 'This digital seal has entered VAID chain-based time anchoring, forming traceable and tamper-resistant proof of existence.',
-    proofStatus: 'Proof Status',
     aboutTitle: 'About This Verification',
     aboutText: 'This VAID record is part of the VAID digital identity archive. The system creates a unique digital seal for the original work and connects it to a blockchain-based time anchor, helping prove that this digital identity existed at a specific moment and remains traceable, verifiable, and tamper-resistant.',
     status: {
-      confirmed: 'Blockchain archive confirmed',
-      stamped: 'VAID digital seal active, archive in progress',
-      failed: 'Chain archive submission failed',
-      pending: 'VAID archive running in the background',
+      confirmed: 'VAID digital identity archived',
+      stamped: 'VAID digital identity archive in progress',
+      failed: 'VAID digital identity archive failed',
+      pending: 'VAID digital identity archive in progress',
     },
-    alert: {
-      confirmed: 'Blockchain archive confirmed. This VAID digital seal has been confirmed by the blockchain network.',
-      stamped: 'VAID digital seal is active. Chain archive confirmation is running in the background and will update automatically when completed.',
-      failed: 'Chain archive submission failed. Please try again later or contact VAID.',
-      pending: 'VAID archive is running in the background. The verification record is already available and the archive status will update after completion.',
-    },
+    archiveHint: 'Archive confirmation usually completes within 24 hours.',
   },
   zh: {
     loading: '正在验证 VAID 记录...',
@@ -64,23 +57,16 @@ const verifyCopy = {
     creator: '创作者名称',
     citizenId: '公民编号',
     timestamp: '生成时间',
-    digitalSeal: 'VAID 数字存证印记',
     sealDescription: '此数字存证印记已进入 VAID 的链上时间锚定流程，用于形成不可篡改、可追溯的存在证明。',
-    proofStatus: '存证状态',
     aboutTitle: '关于此验证',
     aboutText: '此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。系统会为原始作品生成唯一的数字存证印记，并将其接入区块链时间锚定流程，用于证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、不可随意篡改。',
     status: {
-      confirmed: '链上存证已确认',
-      stamped: 'VAID 数字印记已生效，链上归档进行中',
-      failed: '链上存证提交失败',
-      pending: 'VAID 存证归档后台处理中',
+      confirmed: 'VAID 数字身份归档成功',
+      stamped: 'VAID 数字身份链上归档中',
+      failed: 'VAID 数字身份归档失败',
+      pending: 'VAID 数字身份链上归档中',
     },
-    alert: {
-      confirmed: '链上存证已确认。此 VAID 的数字存证印记已获得区块链网络确认。',
-      stamped: 'VAID 数字存证印记已生效。链上归档确认会在后台继续完成，完成后验证页状态会自动更新。',
-      failed: '链上存证提交失败。请稍后重试或联系 VAID。',
-      pending: 'VAID 存证归档正在后台处理中。当前验证记录已经可用，归档完成后状态会自动更新。',
-    },
+    archiveHint: '链上归档通常会在 24 小时内完成。',
   },
   ja: {
     loading: 'VAID レコードを検証中...',
@@ -96,23 +82,16 @@ const verifyCopy = {
     creator: 'クリエイター名',
     citizenId: 'シチズン ID',
     timestamp: '発行日時',
-    digitalSeal: 'VAID デジタル証明シール',
     sealDescription: 'このデジタル証明シールは、VAID のチェーンベース時間アンカー処理に入り、追跡可能で改ざん耐性のある存在証明を形成します。',
-    proofStatus: '証明ステータス',
     aboutTitle: 'この検証について',
     aboutText: 'この VAID レコードは、VAID のデジタルアイデンティティアーカイブに記録されています。システムは原作品に固有のデジタル証明シールを生成し、ブロックチェーンベースの時間アンカーへ接続することで、このデジタルアイデンティティが特定の時点で存在していたことを示し、追跡・検証・改ざん耐性を高めます。',
     status: {
-      confirmed: 'チェーンアーカイブ確認済み',
-      stamped: 'VAID デジタルシール有効、アーカイブ進行中',
-      failed: 'チェーンアーカイブ送信失敗',
-      pending: 'VAID アーカイブをバックグラウンド処理中',
+      confirmed: 'VAID デジタルアイデンティティのアーカイブ完了',
+      stamped: 'VAID デジタルアイデンティティをアーカイブ中',
+      failed: 'VAID デジタルアイデンティティのアーカイブ失敗',
+      pending: 'VAID デジタルアイデンティティをアーカイブ中',
     },
-    alert: {
-      confirmed: 'チェーンアーカイブ確認済み。この VAID デジタル証明シールはブロックチェーンネットワークで確認されています。',
-      stamped: 'VAID デジタル証明シールは有効です。チェーンアーカイブ確認はバックグラウンドで継続され、完了後に状態が更新されます。',
-      failed: 'チェーンアーカイブ送信に失敗しました。時間をおいて再試行するか、VAID にお問い合わせください。',
-      pending: 'VAID アーカイブはバックグラウンドで処理中です。検証レコードはすでに利用可能で、完了後に状態が更新されます。',
-    },
+    archiveHint: 'アーカイブ確認は通常24時間以内に完了します。',
   },
 };
 
@@ -122,9 +101,8 @@ const verifyTypography = {
     metaLabel: 'text-[0.7rem] tracking-[0.18em]',
     metaValue: 'text-[0.95rem]',
     metaValueLong: 'text-[0.95rem]',
-    proofLabel: 'text-[0.74rem] tracking-[0.18em]',
-    proofTitle: 'text-[1rem]',
-    proofText: 'text-[0.84rem]',
+    proofText: 'text-[0.9rem]',
+    proofHint: 'text-[0.72rem]',
     aboutTitle: 'text-[1.55rem] tracking-[0.1em]',
     aboutText: 'text-[1.08rem] leading-10',
   },
@@ -133,9 +111,8 @@ const verifyTypography = {
     metaLabel: 'text-[0.82rem] tracking-[0.06em]',
     metaValue: 'text-[1.04rem]',
     metaValueLong: 'text-[1.04rem]',
-    proofLabel: 'text-[0.82rem] tracking-[0.06em]',
-    proofTitle: 'text-[1.05rem]',
-    proofText: 'text-[0.9rem]',
+    proofText: 'text-[1.02rem]',
+    proofHint: 'text-[0.78rem]',
     aboutTitle: 'text-[1.62rem] tracking-[0.08em]',
     aboutText: 'text-[1.05rem] leading-9',
   },
@@ -144,9 +121,8 @@ const verifyTypography = {
     metaLabel: 'text-[0.76rem] tracking-[0.03em]',
     metaValue: 'text-[0.98rem]',
     metaValueLong: 'text-[0.98rem]',
-    proofLabel: 'text-[0.76rem] tracking-[0.03em]',
-    proofTitle: 'text-[0.98rem]',
-    proofText: 'text-[0.82rem]',
+    proofText: 'text-[0.86rem]',
+    proofHint: 'text-[0.72rem]',
     aboutTitle: 'text-[1.42rem] tracking-[0.07em]',
     aboutText: 'text-[0.98rem] leading-9',
   },
@@ -377,24 +353,15 @@ export function VerifyPage() {
     return `${year}/${String(month + 1).padStart(2, '0')}/${day} ${hour}:${minute}`;
   };
 
-  const handleInspectProof = () => {
-    const statusText =
-      otsStatus === 'confirmed'
-        ? copy.alert.confirmed
-        : otsStatus === 'stamped'
-          ? copy.alert.stamped
-          : otsStatus === 'failed'
-            ? copy.alert.failed
-            : copy.alert.pending;
-
-    window.alert(statusText);
-  };
-
   const statusLabel =
     otsStatus === 'confirmed' ? copy.status.confirmed :
     otsStatus === 'stamped' ? copy.status.stamped :
     otsStatus === 'failed' ? copy.status.failed :
     copy.status.pending;
+  const isArchiveConfirmed = otsStatus === 'confirmed';
+  const archiveTextClass = isArchiveConfirmed
+    ? 'text-green-300 drop-shadow-[0_0_12px_rgba(74,222,128,0.38)]'
+    : 'text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.34)]';
 
   if (loading) {
     return (
@@ -537,15 +504,22 @@ export function VerifyPage() {
                   <div className="flex w-full items-center gap-3">
                     <ShieldCheck className="h-7 w-7 shrink-0 text-cyan-300" />
                     <div className="min-w-0 flex-1">
-                      <div className={`${langKey === 'en' ? 'uppercase' : ''} text-slate-400 ${type.proofLabel}`}>{copy.proofStatus}</div>
-                      <div className={`mt-1 font-black text-green-300 drop-shadow-[0_0_12px_rgba(74,222,128,0.38)] ${type.proofTitle}`}>
-                        {copy.digitalSeal}
+                      <div className={`font-black leading-snug ${archiveTextClass} ${type.proofText}`}>{statusLabel}</div>
+                      {!isArchiveConfirmed && (
+                        <div className={`mt-1 leading-snug text-amber-100/72 ${type.proofHint}`}>
+                          {copy.archiveHint}
+                        </div>
+                      )}
+                    </div>
+                    {isArchiveConfirmed ? (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-green-400 text-green-300 shadow-[0_0_18px_rgba(74,222,128,0.35)]">
+                        ✓
                       </div>
-                      <div className={`text-slate-300 ${type.proofText}`}>{statusLabel}</div>
-                    </div>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-green-400 text-green-300 shadow-[0_0_18px_rgba(74,222,128,0.35)]">
-                      ✓
-                    </div>
+                    ) : (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 text-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.3)]">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </aside>
@@ -560,7 +534,7 @@ export function VerifyPage() {
                 className="pointer-events-none absolute top-[12%] left-[36%] hidden w-[43%] max-w-[760px] opacity-[0.225] mix-blend-screen brightness-[0.72] contrast-[1.28] saturate-[1.55] hue-rotate-[8deg] lg:block"
               />
 
-              <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.34fr)]">
+              <div className="relative">
                 <div className="min-h-[150px]">
                   <div className="flex items-center gap-4">
                     <ShieldCheck className="h-8 w-8 text-cyan-300" />
@@ -569,16 +543,6 @@ export function VerifyPage() {
                   <p className={`mt-4 max-w-3xl text-slate-300/86 ${type.aboutText}`}>
                     {copy.aboutText}
                   </p>
-                </div>
-
-                <div className="flex flex-col justify-center gap-4">
-                  <button
-                    onClick={handleInspectProof}
-                    className="flex items-center justify-center gap-3 rounded-xl border border-cyan-300/50 bg-black/18 px-5 py-4 text-base font-bold text-cyan-200 transition-all hover:border-cyan-200 hover:bg-cyan-300/10"
-                  >
-                    <Lock className="h-5 w-5" />
-                    {copy.proofStatus}
-                  </button>
                 </div>
               </div>
             </section>
