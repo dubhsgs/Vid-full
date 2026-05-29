@@ -692,12 +692,8 @@ function App() {
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
-        <div
-          className="absolute inset-0 bg-cover bg-center sm:hidden"
-          style={{ backgroundImage: `url(${HERO_LIGHT_BG_SRC})` }}
-        />
         <video
-          className="absolute inset-0 hidden h-full w-full object-cover sm:block"
+          className="absolute inset-0 h-full w-full object-cover"
           autoPlay
           loop
           muted
