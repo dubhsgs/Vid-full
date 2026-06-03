@@ -1,10 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { isInternalRequest } from '../_shared/auth.ts';
 import { upgradeDetachedOTS } from '../_shared/ots.ts';
+
+const OTS_STORAGE_BUCKET = 'v-id-ots';
+const LEGACY_OTS_STORAGE_BUCKET = 'v-id-images';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, X-VAID-Internal-Secret, X-OTS-Worker-Secret',
 };
 
 Deno.serve(async (req: Request) => {
@@ -13,6 +17,15 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const bearerToken = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+    const apiKey = (req.headers.get('apikey') || '').trim();
+    if (!isInternalRequest(req) && !bearerToken && !apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -54,9 +67,17 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: otsData, error: downloadError } = await supabase.storage
-      .from('v-id-images')
+    let { data: otsData, error: downloadError } = await supabase.storage
+      .from(OTS_STORAGE_BUCKET)
       .download(record.ots_file_path);
+
+    if (downloadError || !otsData) {
+      const legacyResult = await supabase.storage
+        .from(LEGACY_OTS_STORAGE_BUCKET)
+        .download(record.ots_file_path);
+      otsData = legacyResult.data;
+      downloadError = legacyResult.error;
+    }
 
     if (downloadError || !otsData) {
       return new Response(
@@ -70,7 +91,7 @@ Deno.serve(async (req: Request) => {
 
     if (upgraded.changed) {
       await supabase.storage
-        .from('v-id-images')
+        .from(OTS_STORAGE_BUCKET)
         .upload(record.ots_file_path, upgraded.upgradedBytes, {
           contentType: 'application/octet-stream',
           upsert: true,

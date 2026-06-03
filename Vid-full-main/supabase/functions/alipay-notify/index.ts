@@ -8,6 +8,18 @@ function toAmount(value?: string): number | null {
   return parsed;
 }
 
+function logNotificationSummary(params: Record<string, string>): void {
+  console.log('Received Alipay notification:', {
+    out_trade_no: params.out_trade_no || null,
+    trade_status: params.trade_status || null,
+    app_id_present: Boolean(params.app_id),
+    seller_id_present: Boolean(params.seller_id),
+    seller_email_present: Boolean(params.seller_email),
+    total_amount: params.total_amount || null,
+    sign_present: Boolean(params.sign),
+  });
+}
+
 async function verifySignature(params: Record<string, string>, sign: string, publicKey: string): Promise<boolean> {
   try {
     const sortedParams = Object.keys(params)
@@ -71,7 +83,7 @@ Deno.serve(async (req: Request) => {
       params[key] = value.toString();
     }
 
-    console.log('Received notification:', params);
+    logNotificationSummary(params);
 
     const sign = params.sign;
     const publicKey = Deno.env.get('ALIPAY_PUBLIC_KEY');

@@ -10,11 +10,9 @@ interface VIDRecord {
   id: string;
   character_name: string;
   creator_name: string;
-  sha256_hash: string;
   image_url: string;
   created_at: string;
   ots_status: string;
-  ots_file_path: string | null;
 }
 
 const verifyCopy = {
@@ -30,8 +28,8 @@ const verifyCopy = {
     metadata: 'Identity Metadata',
     characterName: 'Character Name',
     creator: 'Creator Name',
-    citizenId: 'Citizen ID',
-    timestamp: 'Timestamp',
+    citizenId: 'Record ID',
+    timestamp: 'Created',
     sealDescription: 'This digital seal has entered VAID chain-based time anchoring, forming traceable and tamper-resistant proof of existence.',
     aboutTitle: 'About This Verification',
     aboutText: 'This VAID record is part of the VAID digital identity archive. The system creates a unique digital seal for the original work and connects it to a blockchain-based time anchor, helping prove that this digital identity existed at a specific moment and remains traceable, verifiable, and tamper-resistant.',
@@ -55,7 +53,7 @@ const verifyCopy = {
     metadata: '身份元数据',
     characterName: '角色名称',
     creator: '创作者名称',
-    citizenId: '公民编号',
+    citizenId: '档案编号',
     timestamp: '生成时间',
     sealDescription: '此数字存证印记已进入 VAID 的链上时间锚定流程，用于形成不可篡改、可追溯的存在证明。',
     aboutTitle: '关于此验证',
@@ -80,8 +78,8 @@ const verifyCopy = {
     metadata: 'アイデンティティ情報',
     characterName: 'キャラクター名',
     creator: 'クリエイター名',
-    citizenId: 'シチズン ID',
-    timestamp: '発行日時',
+    citizenId: 'Record ID',
+    timestamp: '生成日時',
     sealDescription: 'このデジタル証明シールは、VAID のチェーンベース時間アンカー処理に入り、追跡可能で改ざん耐性のある存在証明を形成します。',
     aboutTitle: 'この検証について',
     aboutText: 'この VAID レコードは、VAID のデジタルアイデンティティアーカイブに記録されています。システムは原作品に固有のデジタル証明シールを生成し、ブロックチェーンベースの時間アンカーへ接続することで、このデジタルアイデンティティが特定の時点で存在していたことを示し、追跡・検証・改ざん耐性を高めます。',
@@ -157,7 +155,7 @@ export function VerifyPage() {
 
         const { data, error } = await supabase
           .from('public_v_ids')
-          .select('friendly_id, character_name, creator_name, sha256_hash, image_url, created_at, ots_status, ots_file_path')
+          .select('friendly_id, character_name, creator_name, image_url, created_at, ots_status')
           .eq('friendly_id', normalizedId)
           .maybeSingle();
 
@@ -165,7 +163,7 @@ export function VerifyPage() {
 
         if (!data) {
           console.error('[VerifyPage] No record found for ID:', normalizedId);
-          setError('No record found for this Citizen ID');
+          setError('No record found for this Record ID');
         } else {
           const rec = { ...data, id: data.friendly_id };
           setRecord(rec);

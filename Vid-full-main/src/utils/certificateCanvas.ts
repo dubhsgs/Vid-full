@@ -578,8 +578,8 @@ function drawTextFields(ctx: CanvasRenderingContext2D, fields: CertificateCanvas
   const lines = [
     { label: 'NAME:', value: fields.name, y: PANEL_Y + PANEL_H * TEXT_NAME_Y_RATIO, valueColor: valueStyle },
     { label: 'STATUS:', value: fields.status, y: PANEL_Y + PANEL_H * TEXT_STATUS_Y_RATIO, valueColor: '#1fe06b' },
-    { label: 'ISSUED:', value: fields.issuedDate, y: PANEL_Y + PANEL_H * TEXT_ISSUED_Y_RATIO, valueColor: valueStyle },
-    { label: 'ID:', value: fields.serialId, y: PANEL_Y + PANEL_H * TEXT_ID_Y_RATIO, valueColor: valueStyle },
+    { label: 'CREATED:', value: fields.issuedDate, y: PANEL_Y + PANEL_H * TEXT_ISSUED_Y_RATIO, valueColor: valueStyle },
+    { label: 'RECORD ID:', value: fields.serialId, y: PANEL_Y + PANEL_H * TEXT_ID_Y_RATIO, valueColor: valueStyle },
   ];
 
   ctx.save();

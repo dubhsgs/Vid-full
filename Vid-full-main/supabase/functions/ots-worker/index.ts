@@ -1,6 +1,8 @@
 import { createServiceClient, isInternalRequest } from '../_shared/auth.ts';
 import { submitHashToOTS } from '../_shared/ots.ts';
 
+const OTS_STORAGE_BUCKET = 'v-id-ots';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -108,7 +110,7 @@ Deno.serve(async (req: Request) => {
     const filePath = `ots/${friendlyId}.ots`;
 
     const { error: uploadError } = await supabase.storage
-      .from('v-id-images')
+      .from(OTS_STORAGE_BUCKET)
       .upload(filePath, otsBytes, {
         contentType: 'application/octet-stream',
         upsert: true,

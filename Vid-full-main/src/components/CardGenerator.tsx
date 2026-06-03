@@ -54,9 +54,17 @@ export function CardGenerator() {
 
   const generateSerialId = useCallback(() => {
     const now = Date.now();
-    const ts = now.toString(36).toUpperCase().slice(-6);
-    const seq = String(Math.floor(Math.random() * 100)).padStart(2, '0');
-    return `V${ts.slice(0, 3)}-${ts.slice(3)}${seq.slice(0, 1)}-${seq.slice(1)}${now.toString(16).toUpperCase().slice(-3)}`;
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const seed = `${now.toString(36)}${Math.floor(Math.random() * 0x1000000).toString(36)}`.toUpperCase();
+    let code = '';
+
+    for (let i = 0; i < 8; i += 1) {
+      const charCode = seed.charCodeAt(i % seed.length) + now + i * 17;
+      code += alphabet[charCode % alphabet.length];
+    }
+
+    const recordId = `V${code}`;
+    return `${recordId.slice(0, 3)}-${recordId.slice(3, 6)}-${recordId.slice(6)}`;
   }, []);
 
   useEffect(() => {
@@ -299,8 +307,8 @@ A VAID record gives a digital asset, virtual character, or original digital work
 
 VAID DETAILS:
 Character Name: ${form.name}
-Citizen ID: ${form.serialId}
-Issue Date: ${form.issuedDate}
+Record ID: ${form.serialId}
+Created: ${form.issuedDate}
 VAID Proof Code: ${sha256Hash}
 
 HOW TO VERIFY:
@@ -324,8 +332,8 @@ VAID 记录为数字资产、虚拟角色或原创数字作品创建一个唯一
 
 VAID 信息：
 角色名称：${form.name}
-公民编号：${form.serialId}
-生成日期：${form.issuedDate}
+档案编号：${form.serialId}
+生成时间：${form.issuedDate}
 VAID 证明码：${sha256Hash}
 
 如何验证：
@@ -349,8 +357,8 @@ VAID レコードは、デジタル資産、仮想キャラクター、または
 
 VAID 情報：
 キャラクター名：${form.name}
-シチズン ID：${form.serialId}
-発行日時：${form.issuedDate}
+Record ID：${form.serialId}
+生成日時：${form.issuedDate}
 VAID 証明コード：${sha256Hash}
 
 確認方法：
@@ -374,13 +382,18 @@ VAID 証明コード：${sha256Hash}
 
       if (citizenId) {
         try {
-          const { data: otsData, error: otsError } = await supabase.storage
-            .from('v-id-images')
-            .download(`ots/${citizenId}.ots`);
-          if (otsData) {
-            zip.file(`${citizenId}.ots`, otsData);
-          } else if (otsError) {
-            console.warn('[CardGenerator] OTS file unavailable, continuing without it:', otsError);
+          const { data: otsData, error: otsError } = await supabase.functions.invoke('ots-download', {
+            body: { friendly_id: citizenId },
+          });
+          if (otsData?.ots_file_base64 && otsData?.file_name) {
+            const binary = atob(otsData.ots_file_base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            zip.file(otsData.file_name, bytes);
+          } else if (otsError || otsData?.error) {
+            console.warn('[CardGenerator] OTS file unavailable, continuing without it:', otsError || otsData?.error);
           }
         } catch (error) {
           console.warn('[CardGenerator] OTS file download failed, continuing without it:', error);
