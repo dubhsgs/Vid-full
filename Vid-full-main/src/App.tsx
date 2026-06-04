@@ -224,6 +224,7 @@ function App() {
   const [showForgingAnimation, setShowForgingAnimation] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showStrongProofInfo, setShowStrongProofInfo] = useState(false);
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
   const [activationCodeInput, setActivationCodeInput] = useState('');
   const [activationCodeInfo, setActivationCodeInfo] = useState<ActivationCodeInfo | null>(null);
@@ -1016,6 +1017,33 @@ function App() {
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                       </div>
+                    </div>
+
+                    <div className="mt-6 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.055] p-4 text-left">
+                      <button
+                        type="button"
+                        onClick={() => setShowStrongProofInfo((open) => !open)}
+                        className="flex w-full items-center justify-between gap-4 text-left"
+                      >
+                        <span className="flex min-w-0 items-center gap-3">
+                          <FileCheck className="h-5 w-5 shrink-0 text-cyan-300" />
+                          <span>
+                            <span className="block text-sm font-semibold text-cyan-100">
+                              {t('form.strongProof.title')}
+                            </span>
+                            <span className="mt-1 block text-xs leading-relaxed text-slate-400">
+                              {t('form.strongProof.summary')}
+                            </span>
+                          </span>
+                        </span>
+                        <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-200 transition-transform ${showStrongProofInfo ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showStrongProofInfo && (
+                        <div className="mt-4 rounded-lg border border-slate-700/70 bg-black/20 p-3 text-xs leading-relaxed text-slate-300">
+                          <p>{t('form.strongProof.description')}</p>
+                          <p className="mt-2 text-cyan-200/80">{t('form.strongProof.status')}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-8">
