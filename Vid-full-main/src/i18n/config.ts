@@ -127,12 +127,6 @@ const resources = {
         characterPlaceholder: 'e.g., Nova StarSeeker',
         creatorName: 'Creator Name',
         creatorPlaceholder: 'e.g., Alex Chen',
-        strongProof: {
-          title: 'Enhanced proof',
-          summary: 'Record creation process evidence for important works.',
-          description: 'Future mode: link screen recording, prompts, edits, and final output to the same evidence record.',
-          status: 'Current record: not provided.'
-        },
         termsPrefix: 'I have read and agree to the',
         terms: 'Terms of Service',
         and: 'and',
@@ -355,12 +349,6 @@ const resources = {
         characterPlaceholder: '例如：星辰探索者诺娃',
         creatorName: '创作者姓名',
         creatorPlaceholder: '例如：陈亚历克斯',
-        strongProof: {
-          title: '增强证明',
-          summary: '为重要作品录制创作过程证据。',
-          description: '后续将把录屏、提示词、修改过程和最终结果关联到同一份证据档案。',
-          status: '当前记录：未提供。'
-        },
         termsPrefix: '我已阅读并同意',
         terms: '用户协议',
         and: '和',
@@ -582,12 +570,6 @@ const resources = {
         characterPlaceholder: '例：ノヴァ・スターシーカー',
         creatorName: 'クリエイター名',
         creatorPlaceholder: '例：アレックス・チェン',
-        strongProof: {
-          title: '強化証明',
-          summary: '重要作品の制作過程を証拠として記録します。',
-          description: '今後、録画、プロンプト、修正過程、最終結果を同じ証拠レコードに結び付けます。',
-          status: '現在のレコード：未提供。'
-        },
         termsPrefix: '私は',
         terms: '利用規約',
         and: 'および',

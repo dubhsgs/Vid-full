@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, AlertCircle, Calendar, User, Hash, Home, ShieldCheck, FileCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Calendar, User, Hash, Home, ShieldCheck } from 'lucide-react';
 import { supabase, supabaseAnonKey, supabaseUrl } from '../utils/supabase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
@@ -31,8 +31,6 @@ const verifyCopy = {
     citizenId: 'Record ID',
     timestamp: 'Created',
     sealDescription: 'This digital seal has entered VAID chain-based time anchoring, supporting traceable and tamper-resistant proof of existence.',
-    creationProof: 'Creation Process Evidence',
-    creationProofMissing: 'Not provided',
     aboutTitle: 'About This Verification',
     aboutText: 'This VAID record is part of the VAID digital identity archive. The system creates a unique digital seal for the original work and connects it to a blockchain-based time anchor, helping show that this digital identity existed at a specific moment and remains traceable, verifiable, and tamper-resistant.',
     status: {
@@ -58,8 +56,6 @@ const verifyCopy = {
     citizenId: '档案编号',
     timestamp: '生成时间',
     sealDescription: '此数字存证印记已进入 VAID 的链上时间锚定流程，用于辅助形成可追溯、抗篡改的存在证明。',
-    creationProof: '创作过程证据',
-    creationProofMissing: '未提供',
     aboutTitle: '关于此验证',
     aboutText: '此 VAID 记录已写入 VAID 的数字身份存证体系，并生成公开可验证的证书档案。系统会为原始作品生成唯一的数字存证印记，并将其接入链上时间锚定流程，用于辅助证明该数字身份在特定时间已经存在，且后续记录可追溯、可核验、抗篡改。',
     status: {
@@ -85,8 +81,6 @@ const verifyCopy = {
     citizenId: 'Record ID',
     timestamp: '生成日時',
     sealDescription: 'このデジタル証明シールは、VAID のチェーンベース時間アンカー処理に入り、追跡可能で改ざん耐性のある存在証明を補助します。',
-    creationProof: '制作過程の証拠',
-    creationProofMissing: '未提供',
     aboutTitle: 'この検証について',
     aboutText: 'この VAID レコードは、VAID のデジタルアイデンティティアーカイブに記録されています。システムは原作品に固有のデジタル証明シールを生成し、チェーンベースの時間アンカーへ接続することで、このデジタルアイデンティティが特定の時点で存在していたことを示し、追跡・検証・改ざん耐性を高めます。',
     status: {
@@ -524,18 +518,6 @@ export function VerifyPage() {
                         <Loader2 className="h-5 w-5 animate-spin" />
                       </div>
                     )}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border-2 border-slate-200/45 bg-[#07172f]/62 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:flex md:flex-1 md:items-center">
-                  <div className="flex w-full items-center gap-3">
-                    <FileCheck className="h-5 w-5 shrink-0 text-cyan-300" />
-                    <div className={`shrink-0 ${type.metaLabelBox}`}>
-                      <div className={`${langKey === 'en' ? 'uppercase' : ''} text-slate-400 ${type.metaLabel}`}>{copy.creationProof}</div>
-                    </div>
-                    <div className={`min-w-0 flex-1 text-left font-semibold leading-snug text-amber-200/90 ${type.metaValue}`}>
-                      {copy.creationProofMissing}
-                    </div>
                   </div>
                 </div>
               </aside>
