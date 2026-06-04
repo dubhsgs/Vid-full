@@ -50,40 +50,40 @@ type FaqItem = {
 
 const zhScenarios: Scenario[] = [
   {
-    title: 'AI 时代艺术创作者的版权辅助盾牌',
-    description: '在生成式 AI 爆发的时代，创作者往往面临“无法证明原创首发”和“被恶意洗稿后反咬”的痛点。VAID 为 AI 作品锁定不可篡改的初始哈希。在您公开分享前，为您的创意心血盖上第一道时间戳。',
+    title: 'AI 时代创作者的电子存证辅助工具',
+    description: '在生成式 AI 爆发的时代，创作者往往面临“无法证明较早创作或公开”和“被恶意洗稿后反咬”的痛点。VAID 为 AI 作品锁定初始数字指纹。在您公开分享前，为您的创作留下可验证的时间记录。',
     columns: [
       {
         title: '抢占首次发表节点',
-        content: '全网公开的验证页面能够精确精确锁定作品的诞生时刻，在遭遇洗稿争议或恶意抢注时，为您提供强有力的首次发布时间辅助证明。'
+        content: '公开验证页面能够记录作品档案的生成时间，在遭遇洗稿争议或恶意抢注时，为您提供首次公开或较早持有的辅助证明。'
       },
       {
-        title: '独家作品确权',
-        content: '将饱含调优心血的生成作品与核心资产信息进行链上绑定，证明您对该技术产物的先发创作优势，让 AI 创意不再是无主之地。'
+        title: '创作过程留痕',
+        content: '将生成作品与核心档案信息进行链上时间锚定，帮助说明您在特定时间已经持有这份数字作品记录。'
       }
     ]
   },
   {
     title: '原创角色 (OC) 与约稿交付的数字化存证',
-    description: '针对独立画师、动漫创作者及独立 IP 运营方，VAID 是连接虚拟创作与权属交易的数字桥梁。它让数字画作、原创角色（Original Character）的每一次流转都有据可查。',
+    description: '针对独立画师、动漫创作者及独立 IP 运营方，VAID 是连接虚拟创作与可验证档案的数字工具。它让数字画作、原创角色（Original Character）的关键记录更容易留存和核验。',
     columns: [
       {
         title: '约稿安全交付凭证',
-        content: '在画师与买家（金主）交付时，随作品一同附带这枚全球可验证的数字存证，作为虚拟所有权正式、干净地转移给买家的可信留存依据。'
+        content: '在画师与买家交付时，随作品一同附带这份可验证的数字存证，作为交付内容、时间和档案编号的可信留存材料。'
       },
       {
         title: '跨平台防盗用追溯',
-        content: '为您的原创 OC 角色建立永久的数字档案。无论是用于后续的商业授权、周边制作还是跨平台联名合作，都能一键出示权属源头，斩断伸手党与恶意盗图。'
+        content: '为您的原创 OC 角色建立长期可验证的数字档案。用于商业授权、周边制作或跨平台合作时，可以更清楚地出示创作记录来源。'
       }
     ]
   },
   {
-    title: '虚拟资产权属档案锚定',
+    title: '虚拟资产档案锚定',
     description: '针对虚拟世界中的车辆、建筑、服装及数字道具。',
     columns: [
       {
         title: '资产身份化档案',
-        content: '赋予虚拟资产唯一的识别代码，让它们如同现实中的资产一样，拥有可追溯、可核验的“初始电子档案”，明确资产的技术归属。'
+        content: '赋予虚拟资产唯一的识别代码，让它们拥有可追溯、可核验的初始电子档案，便于后续展示、核验和管理。'
       }
     ]
   }
@@ -96,18 +96,18 @@ const zhTechCards: TechCard[] = [
   },
   {
     title: '分布式账本锚定',
-    content: '将指纹数据永久写入可验证的分布式账本。数据一旦生成，便不可逆转、不可被任何人（包括我们平台自身）抹除或篡改。'
+    content: '将指纹数据接入可验证的时间锚定流程。完成归档后，记录具备更强的可追溯性和抗篡改能力。'
   }
 ];
 
 const zhFaqs: FaqItem[] = [
   {
     question: '生成的证书真的具有法律或实际保护作用吗？',
-    answer: '不可篡改的分布式账本存证在当今的司法与行业实践中，正被越来越广泛地接受为“首次发布与确权”的强有力电子数据。在商业合作、授权展示或版权纠纷中，它能作为具备行业公信力的重要电子证据与辅助证明材料，但其最终法律效力需结合具体司法判定。'
+    answer: '可验证的时间锚定和数字指纹记录，可以作为证明作品在特定时间已经存在、内容未被随意篡改的电子数据材料。在商业合作、授权展示或版权纠纷中，它能作为辅助证明材料之一；最终证明力仍取决于具体事实、证据链完整性和司法判断。'
   },
   {
     question: '我需要理解复杂的加密算法才能使用吗？',
-    answer: '完全不需要。我们已经将底层的复杂技术无感封装。您只需像平时一样“上传作品、一键生成”，就能直接获得设计精美、全球可验证且具备辅助版权保护作用的电子存证证书。'
+    answer: '完全不需要。我们已经将底层技术封装成简单流程。您只需上传作品并生成记录，就能获得一份可分享、可核验的电子存证证书。'
   }
 ];
 
@@ -119,35 +119,35 @@ const localizedScenarios: Record<DocsLanguage, Scenario[]> = {
       columns: [
         {
           title: 'Secure the First Publication Point',
-          content: 'A public verification page can accurately record the creation moment of a work. When plagiarism disputes or malicious claims appear, it provides strong supporting proof of first publication.'
+          content: 'A public verification page records when the archive was created. When plagiarism disputes or malicious claims appear, it can support proof of earlier possession or publication.'
         },
         {
-          title: 'Anchor Exclusive Creative Work',
-          content: 'Bind generated works and core asset information on-chain to show your first-mover creative advantage over the technical output, so AI creativity is no longer treated as ownerless.'
+          title: 'Anchor the Creative Record',
+          content: 'Connect generated works and core archive information to a time anchor, helping show that you held this digital work record at a specific time.'
         }
       ]
     },
     {
       title: 'Digital Proof for Original Characters and Commission Delivery',
-      description: 'For independent artists, animation creators, and IP operators, VAID acts as a digital bridge between virtual creation and ownership transfer. It makes every handoff of digital artwork and original characters traceable.',
+      description: 'For independent artists, animation creators, and IP operators, VAID acts as a digital bridge between virtual creation and verifiable records. It makes key records for digital artwork and original characters easier to preserve and check.',
       columns: [
         {
           title: 'Safer Commission Delivery',
-          content: 'When an artist delivers work to a buyer, the globally verifiable digital record can be attached with the artwork as a trusted reference that the virtual ownership has been transferred cleanly.'
+          content: 'When an artist delivers work to a buyer, the verifiable digital record can be attached with the artwork as a trusted reference for delivery content, timing, and Record ID.'
         },
         {
           title: 'Cross-Platform Misuse Tracing',
-          content: 'Create a permanent digital archive for original characters. For commercial licensing, merchandise, or cross-platform collaborations, the ownership source can be shown clearly and quickly.'
+          content: 'Create a long-term verifiable archive for original characters. For commercial licensing, merchandise, or cross-platform collaborations, the creative record source can be shown clearly.'
         }
       ]
     },
     {
-      title: 'Virtual Asset Ownership Archive Anchoring',
+      title: 'Virtual Asset Archive Anchoring',
       description: 'For vehicles, buildings, clothing, and digital props in virtual worlds.',
       columns: [
         {
           title: 'Asset Identity Archive',
-          content: 'Assign a unique identification code to each virtual asset, giving it a traceable and verifiable initial electronic archive, similar to real-world assets with clear technical ownership records.'
+          content: 'Assign a unique identification code to each virtual asset, giving it a traceable and verifiable initial electronic archive for later display, checking, and management.'
         }
       ]
     }
@@ -164,31 +164,31 @@ const localizedScenarios: Record<DocsLanguage, Scenario[]> = {
         },
         {
           title: '独自作品の権利主張を補助',
-          content: '調整を重ねた生成作品と中核資産情報をオンチェーンで紐づけ、技術的成果物に対する先行創作の優位性を示します。'
+          content: '生成作品と中核アーカイブ情報を時間アンカーへ接続し、特定の時点でそのデジタル作品記録を保持していたことを示しやすくします。'
         }
       ]
     },
     {
       title: 'オリジナルキャラクターとコミッション納品のデジタル証跡',
-      description: '独立系イラストレーター、アニメーション制作者、IP 運営者にとって、VAID は仮想創作と権利移転をつなぐデジタルな橋渡しです。デジタル作品やオリジナルキャラクターの流通履歴を追跡しやすくします。',
+      description: '独立系イラストレーター、アニメーション制作者、IP 運営者にとって、VAID は仮想創作と検証可能な記録をつなぐデジタルツールです。デジタル作品やオリジナルキャラクターの重要な記録を残し、確認しやすくします。',
       columns: [
         {
           title: '安全なコミッション納品記録',
-          content: '制作者から購入者へ納品する際、作品と一緒に世界中で検証可能なデジタル証跡を添付し、仮想所有権が明確に移転したことの参考記録にできます。'
+          content: '制作者から購入者へ納品する際、作品と一緒に検証可能なデジタル証跡を添付し、納品内容・時刻・Record ID の参考記録にできます。'
         },
         {
           title: 'クロスプラットフォームでの盗用追跡',
-          content: 'オリジナルキャラクターに永続的なデジタルアーカイブを作成します。商用ライセンス、グッズ制作、他プラットフォーム連携でも権利の起点を提示しやすくなります。'
+          content: 'オリジナルキャラクターに長期的に検証可能なデジタルアーカイブを作成します。商用ライセンス、グッズ制作、他プラットフォーム連携でも創作記録の起点を提示しやすくなります。'
         }
       ]
     },
     {
-      title: '仮想資産の権利アーカイブ固定',
+    title: '仮想資産のアーカイブ固定',
       description: '仮想世界における車両、建築物、衣装、デジタルアイテム向けです。',
       columns: [
         {
           title: '資産 ID アーカイブ',
-          content: '仮想資産に一意の識別コードを付与し、現実の資産と同じように追跡・検証できる初期電子アーカイブを持たせ、技術的な帰属を明確にします。'
+          content: '仮想資産に一意の識別コードを付与し、追跡・検証できる初期電子アーカイブを持たせ、後日の表示・確認・管理に役立てます。'
         }
       ]
     }
@@ -197,8 +197,8 @@ const localizedScenarios: Record<DocsLanguage, Scenario[]> = {
 
 const localizedTechCopy: Record<DocsLanguage, { title: string; subtitle: string; cards: TechCard[] }> = {
   en: {
-    title: 'What ensures that it truly belongs to you?',
-    subtitle: 'We do not rely on verbal promises. The underlying technical certainty provides the evidence.',
+    title: 'What makes this record trustworthy?',
+    subtitle: 'We do not rely on verbal promises. VAID uses verifiable technical records to reduce the cost of proof.',
     cards: [
       {
         title: 'Advanced Encryption Technology',
@@ -206,18 +206,18 @@ const localizedTechCopy: Record<DocsLanguage, { title: string; subtitle: string;
       },
       {
         title: 'Distributed Ledger Anchoring',
-        content: 'Fingerprint data is permanently written to a verifiable distributed ledger. Once generated, it cannot be reversed, erased, or modified by anyone, including our own platform.'
+        content: 'Fingerprint data is connected to a verifiable time-anchoring process. After archival confirmation, the record becomes easier to trace and harder to tamper with.'
       }
     ]
   },
   zh: {
-    title: '凭什么，确保它确确实实属于您？',
-    subtitle: '我们不作口头承诺，一切交由底层的技术确定性来裁决。',
+    title: '凭什么，让这份记录更可信？',
+    subtitle: '我们不作口头承诺，而是用可核验的技术记录降低举证成本。',
     cards: zhTechCards
   },
   ja: {
-    title: 'なぜ、それが確かにあなたのものだと言えるのか？',
-    subtitle: '私たちは口約束に頼りません。すべては基盤技術の確実性によって示されます。',
+    title: 'なぜ、この記録は信頼しやすいのか？',
+    subtitle: '私たちは口約束に頼りません。検証可能な技術記録によって、証明の負担を下げます。',
     cards: [
       {
         title: '高度な暗号化技術',
@@ -225,7 +225,7 @@ const localizedTechCopy: Record<DocsLanguage, { title: string; subtitle: string;
       },
       {
         title: '分散型台帳への固定',
-        content: '指紋データを検証可能な分散型台帳へ永続的に記録します。一度生成されたデータは、私たちのプラットフォーム自身を含め、誰も消去や改ざんができません。'
+        content: '指紋データを検証可能な時間アンカー処理へ接続します。アーカイブ確認後、記録は追跡しやすく、改ざんされにくくなります。'
       }
     ]
   }
@@ -237,11 +237,11 @@ const localizedFaqCopy: Record<DocsLanguage, { title: string; items: FaqItem[] }
     items: [
       {
         question: 'Does the generated certificate provide legal or practical protection?',
-        answer: 'Immutable distributed-ledger records are increasingly accepted in judicial and industry practice as strong electronic data for first publication and ownership evidence. In commercial cooperation, licensing, or copyright disputes, they can serve as important electronic evidence and supporting proof, while final legal effect depends on the specific judicial decision.'
+        answer: 'Verifiable time anchoring and digital fingerprint records can serve as electronic data showing that a work existed at a specific time and that the recorded content was not casually altered. In commercial cooperation, licensing, or copyright disputes, they can support a broader evidence chain, while final legal effect depends on the facts, evidence completeness, and judicial decision.'
       },
       {
         question: 'Do I need to understand complex cryptographic algorithms to use it?',
-        answer: 'No. The underlying technical complexity is wrapped into a simple workflow. You only need to upload the work and generate the record to receive a polished, globally verifiable electronic certificate that can support copyright protection.'
+        answer: 'No. The underlying technical complexity is wrapped into a simple workflow. You only need to upload the work and generate the record to receive a shareable, verifiable electronic archive certificate.'
       }
     ]
   },
@@ -254,7 +254,7 @@ const localizedFaqCopy: Record<DocsLanguage, { title: string; items: FaqItem[] }
     items: [
       {
         question: '生成された証明書には法的または実務上の保護効果がありますか？',
-        answer: '改ざん困難な分散型台帳の証跡は、現在の司法および業界実務において、初回公開や権利主張を示す有力な電子データとして受け入れられる場面が増えています。商用提携、ライセンス表示、著作権紛争では重要な電子証拠や補助資料になり得ますが、最終的な法的効力は個別の司法判断によります。'
+        answer: '検証可能な時間アンカーとデジタル指紋記録は、作品が特定時点で存在していたこと、記録内容が容易に改変されていないことを示す電子データになり得ます。商用提携、ライセンス表示、著作権紛争では補助資料の一つになりますが、最終的な証明力は具体的事実、証拠全体の完整性、司法判断によります。'
       },
       {
         question: '複雑な暗号アルゴリズムを理解する必要がありますか？',
@@ -282,7 +282,7 @@ const docsContent: Record<DocsLanguage, DocsContent> = {
       {
         title: 'Virtual Asset ID',
         description: 'Build a permanent, cross-platform verifiable digital identity for virtual characters, virtual assets, and digital creators.',
-        audience: 'For artists, independent designers, AI creators, IP operators, game, film, and animation teams, and any individual or organization that wants to establish a copyright-protection foundation for virtual identities or digital works.',
+        audience: 'For artists, independent designers, AI creators, IP operators, game, film, and animation teams, and any individual or organization that wants verifiable records for virtual identities or digital works.',
         example: 'VAID generates a globally verifiable digital identity archive with a unique digital fingerprint and creator signature, plus a polished electronic certificate that can be initialized, embedded, and used across online and offline scenarios.',
         trust: ''
       },
@@ -319,9 +319,9 @@ const docsContent: Record<DocsLanguage, DocsContent> = {
       {
         title: '虚拟资产 ID',
         description: '为虚拟角色、虚拟资产及数字创作者，构建一份可永久留存、跨平台验证的数字身份证。',
-        audience: '适合艺术家、独立设计师、AI 创作者、IP 运营方、游戏及影视动画制作团队，以及所有希望为虚拟形象、数字作品建立版权保护基础的独立个人与机构。',
+        audience: '适合艺术家、独立设计师、AI 创作者、IP 运营方、游戏及影视动画制作团队，以及所有希望为虚拟形象、数字作品建立可验证记录的独立个人与机构。',
         example: '为您生成一套全球可验证的数字身份档案（包含独一无二的数字指纹与创作者专属签名），并附带一张设计精美、支持在线上线下多种场景中直接初始化和嵌入调用的电子证书。',
-        trust: '确立绝对的作品所有权归属。确保生成出来的虚拟资产在数字世界中只属于你。同时，不可篡改的存证证书为你提供强有力的数字版权保护。在作品首次发布、商业授权、合作沟通或版权纠纷中，它都将作为具备法律效力与行业公信力的终极原始依据。'
+        trust: '为虚拟资产建立可核验的档案编号、数字指纹和公开验证入口。在作品首次发布、商业授权、合作沟通或版权纠纷中，它可以作为电子证据链中的辅助材料。'
       },
       {
         title: 'AI 作品证明',
@@ -356,7 +356,7 @@ const docsContent: Record<DocsLanguage, DocsContent> = {
       {
         title: '仮想資産 ID',
         description: '仮想キャラクター、仮想資産、デジタルクリエイターのために、永続的に保存でき、プラットフォームをまたいで検証可能なデジタル ID を構築します。',
-        audience: 'アーティスト、独立系デザイナー、AI クリエイター、IP 運営者、ゲーム・映画・アニメ制作チーム、そして仮想イメージやデジタル作品に著作権保護の基盤を作りたい個人や組織向けです。',
+        audience: 'アーティスト、独立系デザイナー、AI クリエイター、IP 運営者、ゲーム・映画・アニメ制作チーム、そして仮想イメージやデジタル作品に検証可能な記録を残したい個人や組織向けです。',
         example: '一意のデジタル指紋とクリエイター署名を含む、世界中で検証可能なデジタル ID アーカイブを生成し、オンライン・オフラインのさまざまな場面で初期化や埋め込みに使える電子証明書を付与します。',
         trust: ''
       },

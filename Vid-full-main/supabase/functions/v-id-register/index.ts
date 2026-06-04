@@ -67,6 +67,19 @@ async function sha256Blob(blob: Blob): Promise<string> {
   return bytesToHex(new Uint8Array(digest));
 }
 
+async function cleanupOriginalFile(
+  supabase: ReturnType<typeof createServiceClient>,
+  originalFilePath: string
+): Promise<void> {
+  const { error } = await supabase.storage
+    .from(ORIGINAL_STORAGE_BUCKET)
+    .remove([originalFilePath]);
+
+  if (error) {
+    console.warn('[v-id-register] Original file cleanup failed:', error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -115,66 +128,63 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createServiceClient();
-    const { data: originalFile, error: originalFileError } = await supabase.storage
-      .from(ORIGINAL_STORAGE_BUCKET)
-      .download(originalFilePath);
+    try {
+      const { data: originalFile, error: originalFileError } = await supabase.storage
+        .from(ORIGINAL_STORAGE_BUCKET)
+        .download(originalFilePath);
 
-    if (originalFileError || !originalFile) {
-      console.error('[v-id-register] Original file download error:', originalFileError);
-      return jsonResponse({ success: false, error: 'ORIGINAL_FILE_NOT_FOUND' }, 400);
+      if (originalFileError || !originalFile) {
+        console.error('[v-id-register] Original file download error:', originalFileError);
+        return jsonResponse({ success: false, error: 'ORIGINAL_FILE_NOT_FOUND' }, 400);
+      }
+
+      if (originalFile.size <= 0 || originalFile.size > MAX_ORIGINAL_FILE_BYTES) {
+        return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_SIZE' }, 400);
+      }
+
+      if (originalFile.type && !ALLOWED_ORIGINAL_IMAGE_TYPES.has(originalFile.type)) {
+        return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_TYPE' }, 400);
+      }
+
+      const verifiedSha256Hash = await sha256Blob(originalFile);
+      if (verifiedSha256Hash !== sha256Hash) {
+        return jsonResponse({ success: false, error: 'ORIGINAL_HASH_MISMATCH' }, 400);
+      }
+
+      const { data: resultRows, error } = await supabase.rpc('register_v_id', {
+        p_user_id: user.id,
+        p_character_name: characterName,
+        p_creator_name: creatorName,
+        p_sha256_hash: verifiedSha256Hash,
+        p_image_url: imageUrl,
+      });
+
+      if (error) {
+        console.error('[v-id-register] RPC error:', error);
+        const message = String(error.message || 'DATABASE_ERROR');
+        const status = message.includes('EMAIL_NOT_CONFIRMED') || message.includes('AUTH_REQUIRED') ? 403
+          : message.includes('INSUFFICIENT_CREDITS') ? 402
+            : 500;
+        return jsonResponse({ success: false, error: message }, status);
+      }
+
+      const result = Array.isArray(resultRows) ? resultRows[0] : null;
+      if (!result?.friendly_id) {
+        return jsonResponse({ success: false, error: 'REGISTRATION_FAILED' }, 500);
+      }
+
+      return jsonResponse({
+        success: true,
+        result_status: result.result_status,
+        friendly_id: result.friendly_id,
+        free_credits: result.free_credits,
+        paid_credits: result.paid_credits,
+        total_used: result.total_used,
+        credit_consumed: result.credit_consumed,
+      });
+    } finally {
+      await cleanupOriginalFile(supabase, originalFilePath);
     }
-
-    if (originalFile.size <= 0 || originalFile.size > MAX_ORIGINAL_FILE_BYTES) {
-      return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_SIZE' }, 400);
-    }
-
-    if (originalFile.type && !ALLOWED_ORIGINAL_IMAGE_TYPES.has(originalFile.type)) {
-      return jsonResponse({ success: false, error: 'INVALID_ORIGINAL_FILE_TYPE' }, 400);
-    }
-
-    const verifiedSha256Hash = await sha256Blob(originalFile);
-    if (verifiedSha256Hash !== sha256Hash) {
-      return jsonResponse({ success: false, error: 'ORIGINAL_HASH_MISMATCH' }, 400);
-    }
-
-    const { data: resultRows, error } = await supabase.rpc('register_v_id', {
-      p_user_id: user.id,
-      p_character_name: characterName,
-      p_creator_name: creatorName,
-      p_sha256_hash: verifiedSha256Hash,
-      p_image_url: imageUrl,
-    });
-
-    if (error) {
-      console.error('[v-id-register] RPC error:', error);
-      const message = String(error.message || 'DATABASE_ERROR');
-      const status = message.includes('EMAIL_NOT_CONFIRMED') || message.includes('AUTH_REQUIRED') ? 403
-        : message.includes('INSUFFICIENT_CREDITS') ? 402
-          : 500;
-      return jsonResponse({ success: false, error: message }, status);
-    }
-
-    const result = Array.isArray(resultRows) ? resultRows[0] : null;
-    if (!result?.friendly_id) {
-      return jsonResponse({ success: false, error: 'REGISTRATION_FAILED' }, 500);
-    }
-
-    const { error: cleanupError } = await supabase.storage
-      .from(ORIGINAL_STORAGE_BUCKET)
-      .remove([originalFilePath]);
-    if (cleanupError) {
-      console.warn('[v-id-register] Original file cleanup failed:', cleanupError);
-    }
-
-    return jsonResponse({
-      success: true,
-      result_status: result.result_status,
-      friendly_id: result.friendly_id,
-      free_credits: result.free_credits,
-      paid_credits: result.paid_credits,
-      total_used: result.total_used,
-      credit_consumed: result.credit_consumed,
-    });
   } catch (error) {
     console.error('[v-id-register] Unexpected error:', error);
     return jsonResponse({ success: false, error: 'INTERNAL_SERVER_ERROR' }, 500);

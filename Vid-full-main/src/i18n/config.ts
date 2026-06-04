@@ -99,7 +99,7 @@ const resources = {
         },
         step2: {
           title: 'Proof of Creation',
-          desc: 'Use core technology to precisely establish the initial ownership of your work, fully lock in your creative sovereignty at the system level, and technically ensure the work belongs to you.'
+          desc: 'Use core technology to create a verifiable creation record for your work, preserving a digital fingerprint and timestamp for later checking.'
         },
         step3: {
           title: 'Original Character Archive',
@@ -107,7 +107,7 @@ const resources = {
         },
         step4: {
           title: 'Global Verification',
-          desc: 'Automatically generate public verification links and trusted credentials, so when malicious image theft, content laundering, or ownership disputes occur, you can instantly present clear evidence.'
+          desc: 'Automatically generate public verification links and supporting records, so when image theft, content laundering, or disputes occur, you can present clear reference evidence.'
         }
       },
       form: {
@@ -321,7 +321,7 @@ const resources = {
         },
         step2: {
           title: '创作证明',
-          desc: '依托核心技术精准确立作品的初始归属，在系统底层完完全全锁定您的创意主权，在技术上彻底确保作品归您个人所有。'
+          desc: '依托核心技术为作品生成可核验的创作记录，留存数字指纹与时间信息，便于后续核验和举证。'
         },
         step3: {
           title: '原创角色档案',
@@ -550,7 +550,7 @@ const resources = {
         },
         step4: {
           title: 'グローバル公開検証',
-          desc: '全網公開の検証リンクと信頼できる証憑を自動生成し、将来の盗用、模倣、権利紛争に遭遇した際、瞬時に明確な証拠を提示できます。'
+          desc: '公開検証リンクと補助記録を自動生成し、将来の盗用、模倣、紛争が発生した際に、明確な参考証拠を提示しやすくします。'
         }
       },
       form: {

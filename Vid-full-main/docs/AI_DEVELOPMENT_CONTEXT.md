@@ -29,7 +29,8 @@ legal determination of ownership.
    an OTS job.
 6. The user downloads a certificate package and can share the public
    `/verify/:id` page.
-7. The OTS worker creates a timestamp proof. Verification status later changes
+7. The original upload cleanup worker removes abandoned temporary originals.
+8. The OTS worker creates a timestamp proof. Verification status later changes
    from in progress to confirmed.
 
 ## 4. Technical Architecture
@@ -56,6 +57,8 @@ legal determination of ownership.
   - `v-id-originals`: temporary private original-file uploads
 - OTS dispatch: PostgreSQL trigger plus `pg_net` calls `ots-worker`
 - Payment: Alipay create-order, query-order, and signed notify functions
+- Original cleanup: PostgreSQL cron calls `original-cleanup` for abandoned
+  temporary original uploads
 
 ### Deployment
 
