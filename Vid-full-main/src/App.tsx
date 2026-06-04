@@ -4,15 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
 import { uploadImageToStorage, uploadOriginalFileToStorage } from './utils/imageUpload';
-import {
-  MAX_EVIDENCE_FILE_BYTES,
-  MAX_EVIDENCE_FILE_MB,
-  MAX_EVIDENCE_FILES,
-  formatEvidenceFileSize,
-  getEvidenceMaterialType,
-  isAllowedEvidenceFile,
-  uploadEvidenceMaterialToStorage,
-} from './utils/evidenceMaterials';
 import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -226,11 +217,6 @@ function App() {
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [showEvidenceStep, setShowEvidenceStep] = useState(false);
-  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-  const [isDraggingEvidence, setIsDraggingEvidence] = useState(false);
-  const [evidenceError, setEvidenceError] = useState('');
-  const [showSkipEvidenceWarning, setShowSkipEvidenceWarning] = useState(false);
   const [imageScale, setImageScale] = useState(1);
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [isDraggingImage, setIsDraggingImage] = useState(false);
@@ -371,8 +357,6 @@ function App() {
       setImageFile(null);
       setImagePreview(null);
       setCroppedAvatarPreview(null);
-      setEvidenceFiles([]);
-      setShowEvidenceStep(false);
       setGenerationError(t('errors.unsupportedImageType'));
       return;
     }
@@ -381,16 +365,11 @@ function App() {
       setImageFile(null);
       setImagePreview(null);
       setCroppedAvatarPreview(null);
-      setEvidenceFiles([]);
-      setShowEvidenceStep(false);
       setGenerationError(t('errors.imageTooLarge', { size: `${MAX_IMAGE_FILE_MB}MB` }));
       return;
     }
 
     setGenerationError('');
-    setEvidenceError('');
-    setEvidenceFiles([]);
-    setShowEvidenceStep(false);
     setImageFile(file);
     setCroppedAvatarPreview(null);
     localStorage.removeItem('vid_original_file_hash');
@@ -445,58 +424,6 @@ function App() {
     setIsDragging(false);
   };
 
-  const addEvidenceFiles = (incomingFiles: FileList | File[]) => {
-    const nextFiles = Array.from(incomingFiles);
-    if (nextFiles.length === 0) return;
-
-    const validFiles: File[] = [];
-    for (const file of nextFiles) {
-      if (!isAllowedEvidenceFile(file)) {
-        setEvidenceError(t('errors.unsupportedEvidenceType'));
-        return;
-      }
-      if (file.size <= 0 || file.size > MAX_EVIDENCE_FILE_BYTES) {
-        setEvidenceError(t('errors.evidenceTooLarge', { size: MAX_EVIDENCE_FILE_MB }));
-        return;
-      }
-      validFiles.push(file);
-    }
-
-    setEvidenceFiles((currentFiles) => {
-      const merged = [...currentFiles, ...validFiles];
-      if (merged.length > MAX_EVIDENCE_FILES) {
-        setEvidenceError(t('errors.evidenceTooMany', { count: MAX_EVIDENCE_FILES }));
-        return currentFiles;
-      }
-      setEvidenceError('');
-      return merged;
-    });
-  };
-
-  const handleEvidenceDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingEvidence(false);
-    addEvidenceFiles(e.dataTransfer.files);
-  };
-
-  const removeEvidenceFile = (index: number) => {
-    setEvidenceFiles((currentFiles) => currentFiles.filter((_, fileIndex) => fileIndex !== index));
-    setEvidenceError('');
-  };
-
-  const handleProceedToEvidence = () => {
-    setGenerationError('');
-    setEvidenceError('');
-    setShowEvidenceStep(true);
-  };
-
-  const handleSkipEvidence = () => {
-    setEvidenceFiles([]);
-    setEvidenceError('');
-    setShowSkipEvidenceWarning(false);
-    void handleNextToGenerator({ skipEvidence: true });
-  };
-
   const handleEditInfo = () => {
     if (!imagePreview || !imageFile) return;
     if (!characterName.trim() || !creatorName.trim()) {
@@ -504,7 +431,6 @@ function App() {
       return;
     }
     setGenerationError('');
-    setShowEvidenceStep(false);
     setIsEditing(true);
     setImageScale(1);
     setImagePosition({ x: 0, y: 0 });
@@ -540,7 +466,7 @@ function App() {
     setImageScale(Math.max(0.5, Math.min(3, newScale)));
   };
 
-  const handleNextToGenerator = async (options?: { skipEvidence?: boolean }) => {
+  const handleNextToGenerator = async () => {
     if (isSubmittingNext) return;
 
     if (!imagePreview || !imageFile) {
@@ -696,29 +622,6 @@ function App() {
             console.error('Failed to register VAID before card preview:', registerError || registerData);
             setGenerationError(t('errors.generationFlowFailed'));
             return;
-          }
-
-          const filesToRegister = options?.skipEvidence ? [] : evidenceFiles;
-          for (const evidenceFile of filesToRegister) {
-            const materialPath = await uploadEvidenceMaterialToStorage(evidenceFile);
-            if (!materialPath) {
-              setGenerationError(t('errors.evidenceUploadFailed'));
-              return;
-            }
-
-            const { data: evidenceData, error: evidenceRegisterError } = await supabase.functions.invoke('evidence-material-register', {
-              body: {
-                friendly_id: registerData.friendly_id,
-                material_path: materialPath,
-                file_name: evidenceFile.name,
-              },
-            });
-
-            if (evidenceRegisterError || !evidenceData?.success) {
-              console.error('Failed to register evidence material:', evidenceRegisterError || evidenceData);
-              setGenerationError(t('errors.evidenceRegisterFailed'));
-              return;
-            }
           }
 
           localStorage.setItem('vid_original_file_hash', hash);
@@ -1051,9 +954,6 @@ function App() {
                               setImagePreview(null);
                               setImageFile(null);
                               setCroppedAvatarPreview(null);
-                              setEvidenceFiles([]);
-                              setEvidenceError('');
-                              setShowEvidenceStep(false);
                             }}
                             className="text-sm text-blue-400 hover:text-blue-300"
                           >
@@ -1177,125 +1077,6 @@ function App() {
                       {t('form.editInfo')}
                     </button>
                   </>
-                ) : showEvidenceStep ? (
-                  <div className="space-y-6 text-left">
-                    <div className="text-center">
-                      <FileCheck className="mx-auto mb-4 h-10 w-10 text-cyan-300" />
-                      <h3 className="text-xl font-bold text-white">{t('form.evidence.title')}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                        {t('form.evidence.subtitle')}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/[0.055] p-4 text-sm leading-relaxed text-slate-300">
-                      <p className="font-semibold text-cyan-100">{t('form.evidence.guidanceTitle')}</p>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-400">
-                        <li>{t('form.evidence.guidancePlatform')}</li>
-                        <li>{t('form.evidence.guidancePrompt')}</li>
-                        <li>{t('form.evidence.guidanceTime')}</li>
-                        <li>{t('form.evidence.guidanceMatch')}</li>
-                      </ul>
-                    </div>
-
-                    <div
-                      onDrop={handleEvidenceDrop}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        setIsDraggingEvidence(true);
-                      }}
-                      onDragLeave={() => setIsDraggingEvidence(false)}
-                      className={`rounded-xl border-2 border-dashed p-8 text-center transition-all ${
-                        isDraggingEvidence
-                          ? 'border-cyan-300 bg-cyan-400/10'
-                          : 'border-slate-700 hover:border-cyan-400'
-                      }`}
-                    >
-                      <Upload className="mx-auto mb-4 h-10 w-10 text-slate-500" />
-                      <p className="text-slate-300">{t('form.evidence.dragDrop')}</p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {t('form.evidence.fileTypes', { count: MAX_EVIDENCE_FILES, size: MAX_EVIDENCE_FILE_MB })}
-                      </p>
-                      <label className="mt-4 inline-block">
-                        <span className="cursor-pointer rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white transition-colors hover:bg-blue-700">
-                          {t('form.evidence.selectFile')}
-                        </span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*,video/mp4,video/quicktime,video/webm,application/pdf"
-                          onChange={(event) => {
-                            if (event.target.files) addEvidenceFiles(event.target.files);
-                            event.target.value = '';
-                          }}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-
-                    {evidenceFiles.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-cyan-100">
-                          {t('form.evidence.added', { count: evidenceFiles.length })}
-                        </p>
-                        {evidenceFiles.map((file, index) => (
-                          <div key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-slate-700 bg-black/25 px-3 py-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-white">{file.name}</p>
-                              <p className="text-xs text-slate-500">
-                                {t(`form.evidence.types.${getEvidenceMaterialType(file)}`)} · {formatEvidenceFileSize(file.size)}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeEvidenceFile(index)}
-                              className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 transition-colors hover:border-red-400/50 hover:text-red-200"
-                            >
-                              {t('form.evidence.remove')}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {evidenceError && (
-                      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-                        {evidenceError}
-                      </div>
-                    )}
-
-                    {generationError && (
-                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
-                        {generationError}
-                      </div>
-                    )}
-
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowEvidenceStep(false)}
-                        disabled={isSubmittingNext}
-                        className="rounded-lg bg-slate-700 py-3 font-semibold text-white transition-all hover:bg-slate-600 disabled:cursor-not-allowed disabled:bg-slate-800"
-                      >
-                        {t('form.back')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowSkipEvidenceWarning(true)}
-                        disabled={isSubmittingNext}
-                        className="rounded-lg border border-slate-600 py-3 font-semibold text-slate-200 transition-all hover:border-amber-300/50 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {t('form.evidence.skip')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleNextToGenerator()}
-                        disabled={isSubmittingNext || evidenceFiles.length === 0}
-                        className="rounded-lg bg-blue-600 py-3 font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:bg-slate-700"
-                      >
-                        {isSubmittingNext ? t('form.processing') : t('form.evidence.continue')}
-                      </button>
-                    </div>
-                  </div>
                 ) : (
                   <div className="space-y-6">
                     <div
@@ -1367,11 +1148,11 @@ function App() {
                         {t('form.back')}
                       </button>
                       <button
-                        onClick={handleProceedToEvidence}
+                        onClick={handleNextToGenerator}
                         disabled={isSubmittingNext}
                         className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                       >
-                        {t('form.evidence.continue')}
+                        {isSubmittingNext ? t('form.processing') : t('form.next')}
                       </button>
                     </div>
                   </div>
@@ -1491,46 +1272,6 @@ function App() {
           characterName={characterName}
           onComplete={handleAnimationComplete}
         />
-      )}
-
-      {showSkipEvidenceWarning && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/72 px-4 py-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-md rounded-2xl border border-amber-300/25 bg-slate-950/95 p-5 text-left shadow-2xl shadow-amber-950/30 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">{t('form.evidence.skipTitle')}</h2>
-                <p className="mt-3 text-sm leading-relaxed text-slate-300">
-                  {t('form.evidence.skipMessage')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSkipEvidenceWarning(false)}
-                className="rounded-full border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:border-cyan-400/50 hover:text-cyan-100"
-              >
-                {t('auth.close')}
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setShowSkipEvidenceWarning(false)}
-                className="rounded-lg border border-cyan-400/30 px-5 py-3 font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/10"
-              >
-                {t('form.evidence.returnUpload')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSkipEvidence}
-                disabled={isSubmittingNext}
-                className="rounded-lg bg-amber-500/90 px-5 py-3 font-semibold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
-              >
-                {isSubmittingNext ? t('form.processing') : t('form.evidence.skipConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       <PaywallModal
