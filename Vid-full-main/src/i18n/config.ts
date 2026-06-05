@@ -151,7 +151,8 @@ const resources = {
         evidenceUploading: 'Uploading...',
         evidenceUploadingProgress: 'Uploading {{current}} / {{total}}...',
         generateProof: 'Generate Certificate',
-        processing: 'Processing...',
+        processing: 'Preparing...',
+        processingHint: 'Uploading and verifying the original image. Larger files may take a little longer.',
         download: 'Download VAID Certificate',
         certificateDownloaded: 'Certificate Generated Successfully!',
         createAnother: 'Create Another Certificate'
@@ -386,7 +387,8 @@ const resources = {
         evidenceUploading: '上传中...',
         evidenceUploadingProgress: '正在上传 {{current}} / {{total}}...',
         generateProof: '生成证书',
-        processing: '处理中...',
+        processing: '准备中...',
+        processingHint: '正在上传并校验原始图片，较大的图片可能需要稍等。',
         download: '下载 VAID 证书',
         certificateDownloaded: '证书生成成功！',
         createAnother: '创建另一个证书'
@@ -620,7 +622,8 @@ const resources = {
         evidenceUploading: 'アップロード中...',
         evidenceUploadingProgress: '{{current}} / {{total}} をアップロード中...',
         generateProof: '証明書を生成',
-        processing: '処理中...',
+        processing: '準備中...',
+        processingHint: '元画像をアップロードして確認しています。大きい画像は少し時間がかかる場合があります。',
         download: 'VAID証明書をダウンロード',
         certificateDownloaded: '証明書が正常に生成されました！',
         createAnother: '別の証明書を作成'

@@ -1162,7 +1162,7 @@ function App() {
                   </>
                 ) : showEvidenceStep ? (
                   <div className="space-y-6">
-                    <div className="rounded-xl border border-cyan-400/25 bg-slate-950/70 p-6">
+                    <div className="rounded-xl border border-slate-700 bg-black/25 p-6">
                       <h4 className="text-xl font-bold text-white">{t('form.evidenceTitle')}</h4>
                       <p className="mt-2 text-sm leading-6 text-slate-300">{t('form.evidenceSubtitle')}</p>
 
@@ -1324,6 +1324,11 @@ function App() {
                         {isSubmittingNext ? t('form.processing') : t('form.next')}
                       </button>
                     </div>
+                    {isSubmittingNext && (
+                      <p className="text-center text-sm text-slate-400">
+                        {t('form.processingHint')}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
