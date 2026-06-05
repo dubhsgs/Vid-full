@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Shield, FileCheck, ChevronDown, X, Gift, Sparkles, FileUp, Trash2 } from 'lucide-react';
+import { Upload, Shield, FileCheck, ChevronDown, X, Gift, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
@@ -241,7 +241,8 @@ function App() {
   const [showEvidenceStep, setShowEvidenceStep] = useState(false);
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
-  const [evidenceUploadProgress, setEvidenceUploadProgress] = useState('');
+  const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
+  const [evidenceUploadError, setEvidenceUploadError] = useState('');
   const [authOpenSignal, setAuthOpenSignal] = useState(0);
   const [authState, setAuthState] = useState<AuthSessionState>({
     user: null,
@@ -385,7 +386,8 @@ function App() {
     setCroppedAvatarPreview(null);
     setShowEvidenceStep(false);
     setEvidenceFiles([]);
-    setEvidenceUploadProgress('');
+    setEvidenceUploadProgress(0);
+    setEvidenceUploadError('');
     localStorage.removeItem('vid_original_file_hash');
     localStorage.removeItem('vid_original_file_path');
     localStorage.removeItem('vid_registered_friendly_id');
@@ -674,15 +676,18 @@ function App() {
   }, []);
 
   const handleEvidenceFilesChange = (files: FileList | File[]) => {
-    const nextFiles = Array.from(files).slice(0, MAX_EVIDENCE_FILES);
+    const incomingFiles = Array.from(files);
 
-    if (nextFiles.some(file => !isAllowedEvidenceFile(file))) {
-      setGenerationError(t('errors.evidenceInvalidFile', { size: `${MAX_EVIDENCE_FILE_MB}MB` }));
+    if (incomingFiles.some(file => !isAllowedEvidenceFile(file))) {
+      setEvidenceUploadError(t('errors.evidenceInvalidFile', { size: `${MAX_EVIDENCE_FILE_MB}MB` }));
       return;
     }
 
-    setGenerationError('');
-    setEvidenceFiles(nextFiles);
+    setEvidenceUploadError('');
+    setEvidenceFiles((currentFiles) => {
+      const mergedFiles = [...currentFiles, ...incomingFiles];
+      return mergedFiles.slice(0, MAX_EVIDENCE_FILES);
+    });
   };
 
   const removeEvidenceFile = (index: number) => {
@@ -710,23 +715,23 @@ function App() {
 
     setIsUploadingEvidence(true);
     setGenerationError('');
+    setEvidenceUploadError('');
+    setEvidenceUploadProgress(0);
 
     try {
       for (let index = 0; index < evidenceFiles.length; index += 1) {
         const file = evidenceFiles[index];
-        setEvidenceUploadProgress(t('form.evidenceUploadingProgress', {
-          current: index + 1,
-          total: evidenceFiles.length,
-        }));
+        setEvidenceUploadProgress(Math.round((index / evidenceFiles.length) * 100));
         await uploadEvidenceMaterial(friendlyId, file);
+        setEvidenceUploadProgress(Math.round(((index + 1) / evidenceFiles.length) * 100));
       }
 
       setEvidenceFiles([]);
-      setEvidenceUploadProgress('');
+      setEvidenceUploadProgress(0);
       finishGenerationFlow();
     } catch (error) {
       console.error('Failed to upload evidence materials:', error);
-      setGenerationError(t('errors.evidenceUploadFailed'));
+      setEvidenceUploadError(t('errors.evidenceUploadFailed'));
     } finally {
       setIsUploadingEvidence(false);
     }
@@ -1158,22 +1163,14 @@ function App() {
                 ) : showEvidenceStep ? (
                   <div className="space-y-6">
                     <div className="rounded-xl border border-cyan-400/25 bg-slate-950/70 p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-3 text-cyan-200">
-                          <FileUp className="h-6 w-6" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xl font-bold text-white">{t('form.evidenceTitle')}</h4>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{t('form.evidenceSubtitle')}</p>
-                        </div>
-                      </div>
+                      <h4 className="text-xl font-bold text-white">{t('form.evidenceTitle')}</h4>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">{t('form.evidenceSubtitle')}</p>
 
                       <div className="mt-6 rounded-lg border border-amber-400/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
                         {t('form.evidenceTips')}
                       </div>
 
                       <label className="mt-6 block rounded-xl border-2 border-dashed border-slate-700 bg-black/25 p-8 text-center transition-colors hover:border-cyan-400/50">
-                        <FileUp className="mx-auto mb-3 h-10 w-10 text-slate-400" />
                         <span className="block font-semibold text-white">{t('form.evidenceSelect')}</span>
                         <span className="mt-2 block text-sm text-slate-500">
                           {t('form.evidenceLimit', { count: MAX_EVIDENCE_FILES, size: `${MAX_EVIDENCE_FILE_MB}MB` })}
@@ -1214,8 +1211,21 @@ function App() {
                         </div>
                       )}
 
-                      {evidenceUploadProgress && (
-                        <p className="mt-4 text-sm text-cyan-200">{evidenceUploadProgress}</p>
+                      {evidenceUploadError && (
+                        <div className="mt-5 rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                          {evidenceUploadError}
+                        </div>
+                      )}
+
+                      {isUploadingEvidence && (
+                        <div className="mt-5">
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                            <div
+                              className="h-full rounded-full bg-cyan-300 transition-all duration-300"
+                              style={{ width: `${Math.max(evidenceUploadProgress, 8)}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
 
