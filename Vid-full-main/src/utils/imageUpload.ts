@@ -1,7 +1,8 @@
-import { supabase } from './supabase';
+import { supabase, supabaseAnonKey, supabaseUrl } from './supabase';
 
 const MAX_UPLOAD_BYTES = 200 * 1024;
 const MAX_DIMENSION = 1024;
+const RESUMABLE_ORIGINAL_THRESHOLD_BYTES = 6 * 1024 * 1024;
 const ORIGINAL_STORAGE_BUCKET = 'v-id-originals';
 const ORIGINAL_FILE_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -88,6 +89,45 @@ export async function uploadImageToStorage(dataUrl: string, filename?: string): 
   }
 }
 
+async function uploadOriginalFileResumable(file: File, filePath: string): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    console.error('[ImageUpload] Resumable original upload requires an authenticated session');
+    return false;
+  }
+
+  const { Upload: TusUpload } = await import('tus-js-client');
+
+  return new Promise((resolve) => {
+    const upload = new TusUpload(file, {
+      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+      chunkSize: RESUMABLE_ORIGINAL_THRESHOLD_BYTES,
+      retryDelays: [0, 1000, 3000, 5000],
+      removeFingerprintOnSuccess: true,
+      uploadDataDuringCreation: true,
+      metadata: {
+        bucketName: ORIGINAL_STORAGE_BUCKET,
+        objectName: filePath,
+        contentType: file.type,
+      },
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${session.access_token}`,
+        'x-upsert': 'false',
+      },
+      onError: (error) => {
+        console.error('[ImageUpload] Resumable original upload failed:', error);
+        resolve(false);
+      },
+      onSuccess: () => {
+        resolve(true);
+      },
+    });
+
+    upload.start();
+  });
+}
+
 export async function uploadOriginalFileToStorage(file: File): Promise<string | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,6 +143,11 @@ export async function uploadOriginalFileToStorage(file: File): Promise<string | 
     }
 
     const filePath = `originals/${user.id}/${crypto.randomUUID()}.${extension}`;
+
+    if (file.size > RESUMABLE_ORIGINAL_THRESHOLD_BYTES) {
+      const success = await uploadOriginalFileResumable(file, filePath);
+      return success ? filePath : null;
+    }
 
     const { error } = await supabase.storage
       .from(ORIGINAL_STORAGE_BUCKET)
