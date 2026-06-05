@@ -1163,7 +1163,7 @@ function App() {
                 ) : showEvidenceStep ? (
                   <div className="space-y-6">
                     <div>
-                      <label className="vaid-upload-zone block cursor-pointer rounded-xl border-2 border-dashed border-slate-700 p-12 text-center transition-all hover:border-blue-400">
+                      <label className="vaid-upload-zone flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700 p-12 text-center transition-all hover:border-blue-400">
                         <span className="block text-lg font-semibold text-white">{t('form.evidenceTitle')}</span>
                         <span className="mt-3 block text-sm leading-6 text-slate-400">{t('form.evidenceSubtitle')}</span>
                         <span className="mt-4 block text-sm text-slate-500">
