@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Shield, FileCheck, ChevronDown, X, Gift, Sparkles } from 'lucide-react';
+import { Upload, Shield, FileCheck, ChevronDown, X, Gift, Sparkles, FileUp, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
 import { uploadImageToStorage, uploadOriginalFileToStorage } from './utils/imageUpload';
+import {
+  isAllowedEvidenceFile,
+  MAX_EVIDENCE_FILE_BYTES,
+  MAX_EVIDENCE_FILES,
+  uploadEvidenceMaterial,
+} from './utils/evidenceUpload';
 import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -28,6 +34,7 @@ const HERO_FIGURE_MOBILE_SRC = '/hero_figure_mobile.webp';
 const HERO_BACKGROUND_VIDEO_SRC = '/hero-background-video.mp4';
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
+const MAX_EVIDENCE_FILE_MB = MAX_EVIDENCE_FILE_BYTES / (1024 * 1024);
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const LAUNCH_BENEFIT_DISMISSED_KEY = 'vaid-launch-benefit-dismissed-v4';
 
@@ -231,6 +238,10 @@ function App() {
   const [isCheckingActivationCode, setIsCheckingActivationCode] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [isSubmittingNext, setIsSubmittingNext] = useState(false);
+  const [showEvidenceStep, setShowEvidenceStep] = useState(false);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [evidenceUploadProgress, setEvidenceUploadProgress] = useState('');
   const [authOpenSignal, setAuthOpenSignal] = useState(0);
   const [authState, setAuthState] = useState<AuthSessionState>({
     user: null,
@@ -372,6 +383,9 @@ function App() {
     setGenerationError('');
     setImageFile(file);
     setCroppedAvatarPreview(null);
+    setShowEvidenceStep(false);
+    setEvidenceFiles([]);
+    setEvidenceUploadProgress('');
     localStorage.removeItem('vid_original_file_hash');
     localStorage.removeItem('vid_original_file_path');
     localStorage.removeItem('vid_registered_friendly_id');
@@ -631,8 +645,7 @@ function App() {
           setActivationCodeInfo(refreshedState.savedCodeInfo);
           setActivationCodeError('');
           setGenerationError('');
-          markGenerationReady();
-          setShowForgingAnimation(true);
+          setShowEvidenceStep(true);
         } catch (error) {
           console.error('Failed to prepare generation flow:', error);
           setGenerationError(t('errors.generationFlowFailed'));
@@ -651,6 +664,71 @@ function App() {
       console.error('Failed to check generation prerequisites:', error);
       setGenerationError(t('errors.quotaStatusFailed'));
       setIsSubmittingNext(false);
+    }
+  };
+
+  const finishGenerationFlow = useCallback(() => {
+    markGenerationReady();
+    setShowEvidenceStep(false);
+    setShowForgingAnimation(true);
+  }, []);
+
+  const handleEvidenceFilesChange = (files: FileList | File[]) => {
+    const nextFiles = Array.from(files).slice(0, MAX_EVIDENCE_FILES);
+
+    if (nextFiles.some(file => !isAllowedEvidenceFile(file))) {
+      setGenerationError(t('errors.evidenceInvalidFile', { size: `${MAX_EVIDENCE_FILE_MB}MB` }));
+      return;
+    }
+
+    setGenerationError('');
+    setEvidenceFiles(nextFiles);
+  };
+
+  const removeEvidenceFile = (index: number) => {
+    setEvidenceFiles((files) => files.filter((_, fileIndex) => fileIndex !== index));
+  };
+
+  const handleSkipEvidenceUpload = () => {
+    if (!window.confirm(t('form.evidenceSkipConfirm'))) return;
+    finishGenerationFlow();
+  };
+
+  const handleSubmitEvidenceUpload = async () => {
+    if (isUploadingEvidence) return;
+
+    const friendlyId = localStorage.getItem('vid_registered_friendly_id');
+    if (!friendlyId) {
+      setGenerationError(t('errors.generationFlowFailed'));
+      return;
+    }
+
+    if (evidenceFiles.length === 0) {
+      handleSkipEvidenceUpload();
+      return;
+    }
+
+    setIsUploadingEvidence(true);
+    setGenerationError('');
+
+    try {
+      for (let index = 0; index < evidenceFiles.length; index += 1) {
+        const file = evidenceFiles[index];
+        setEvidenceUploadProgress(t('form.evidenceUploadingProgress', {
+          current: index + 1,
+          total: evidenceFiles.length,
+        }));
+        await uploadEvidenceMaterial(friendlyId, file);
+      }
+
+      setEvidenceFiles([]);
+      setEvidenceUploadProgress('');
+      finishGenerationFlow();
+    } catch (error) {
+      console.error('Failed to upload evidence materials:', error);
+      setGenerationError(t('errors.evidenceUploadFailed'));
+    } finally {
+      setIsUploadingEvidence(false);
     }
   };
 
@@ -1077,6 +1155,87 @@ function App() {
                       {t('form.editInfo')}
                     </button>
                   </>
+                ) : showEvidenceStep ? (
+                  <div className="space-y-6">
+                    <div className="rounded-xl border border-cyan-400/25 bg-slate-950/70 p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-3 text-cyan-200">
+                          <FileUp className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xl font-bold text-white">{t('form.evidenceTitle')}</h4>
+                          <p className="mt-2 text-sm leading-6 text-slate-300">{t('form.evidenceSubtitle')}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 rounded-lg border border-amber-400/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+                        {t('form.evidenceTips')}
+                      </div>
+
+                      <label className="mt-6 block rounded-xl border-2 border-dashed border-slate-700 bg-black/25 p-8 text-center transition-colors hover:border-cyan-400/50">
+                        <FileUp className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+                        <span className="block font-semibold text-white">{t('form.evidenceSelect')}</span>
+                        <span className="mt-2 block text-sm text-slate-500">
+                          {t('form.evidenceLimit', { count: MAX_EVIDENCE_FILES, size: `${MAX_EVIDENCE_FILE_MB}MB` })}
+                        </span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,video/mp4,video/quicktime,video/webm,application/pdf"
+                          onChange={(event) => {
+                            if (event.target.files) handleEvidenceFilesChange(event.target.files);
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {evidenceFiles.length > 0 && (
+                        <div className="mt-5 space-y-3">
+                          {evidenceFiles.map((file, index) => (
+                            <div
+                              key={`${file.name}-${file.size}-${index}`}
+                              className="flex items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-3"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-white">{file.name}</p>
+                                <p className="text-xs text-slate-500">{(file.size / (1024 * 1024)).toFixed(1)}MB</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeEvidenceFile(index)}
+                                disabled={isUploadingEvidence}
+                                className="rounded-full border border-slate-700 p-2 text-slate-300 transition-colors hover:border-red-400/50 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                                aria-label={t('form.evidenceRemove')}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {evidenceUploadProgress && (
+                        <p className="mt-4 text-sm text-cyan-200">{evidenceUploadProgress}</p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-4">
+                      <button
+                        onClick={handleSkipEvidenceUpload}
+                        disabled={isUploadingEvidence}
+                        className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all"
+                      >
+                        {t('form.evidenceSkip')}
+                      </button>
+                      <button
+                        onClick={handleSubmitEvidenceUpload}
+                        disabled={isUploadingEvidence}
+                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
+                      >
+                        {isUploadingEvidence ? t('form.evidenceUploading') : t('form.evidenceContinue')}
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-6">
                     <div
