@@ -61,12 +61,30 @@ Move private creator evidence material originals away from Supabase Storage and 
 
 ## Verification Performed
 
-- Pending.
+- `npm run typecheck`
+- `npm run build`
+- `git diff --cached --check`
+- Edge Function TypeScript transpile check.
+- Confirmed R2 secrets exist in Supabase by `supabase secrets list` digests.
+- Confirmed remote migrations through `20260605090000_create_r2_evidence_upload_sessions.sql` are applied.
+- Confirmed remote functions are active:
+  - `evidence-upload-init`
+  - `evidence-upload-complete`
+  - `evidence-cleanup`
+  - `evidence-material-register`
+- Confirmed unauthenticated upload endpoints return `AUTH_REQUIRED`.
+- Confirmed old `evidence-material-register` returns `EVIDENCE_UPLOAD_FLOW_MIGRATED`.
 
 ## Deployment Status
 
-- Not deployed.
-- Cloudflare R2 subscription, bucket, CORS, and API token are not configured yet.
+- Cloudflare R2 subscription is active.
+- Private R2 bucket `vaid-evidence` exists.
+- R2 public access remains disabled.
+- R2 CORS allows `PUT` and `HEAD` from `https://vaid.top`, `https://www.vaid.top`, and local development ports.
+- Supabase R2 secrets are configured.
+- Database migrations are applied to Supabase production.
+- Edge Functions are deployed to Supabase production.
+- Frontend upload UI is not implemented yet.
 
 ## Rollback Notes
 
