@@ -1162,17 +1162,11 @@ function App() {
                   </>
                 ) : showEvidenceStep ? (
                   <div className="space-y-6">
-                    <div className="rounded-xl border border-slate-700 bg-black/25 p-6">
-                      <h4 className="text-xl font-bold text-white">{t('form.evidenceTitle')}</h4>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">{t('form.evidenceSubtitle')}</p>
-
-                      <div className="mt-6 rounded-lg border border-amber-400/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
-                        {t('form.evidenceTips')}
-                      </div>
-
-                      <label className="mt-6 block rounded-xl border-2 border-dashed border-slate-700 bg-black/25 p-8 text-center transition-colors hover:border-cyan-400/50">
-                        <span className="block font-semibold text-white">{t('form.evidenceSelect')}</span>
-                        <span className="mt-2 block text-sm text-slate-500">
+                    <div>
+                      <label className="vaid-upload-zone block cursor-pointer rounded-xl border-2 border-dashed border-slate-700 p-12 text-center transition-all hover:border-blue-400">
+                        <span className="block text-lg font-semibold text-white">{t('form.evidenceTitle')}</span>
+                        <span className="mt-3 block text-sm leading-6 text-slate-400">{t('form.evidenceSubtitle')}</span>
+                        <span className="mt-4 block text-sm text-slate-500">
                           {t('form.evidenceLimit', { count: MAX_EVIDENCE_FILES, size: `${MAX_EVIDENCE_FILE_MB}MB` })}
                         </span>
                         <input
@@ -1185,6 +1179,9 @@ function App() {
                           className="hidden"
                         />
                       </label>
+                      <p className="mt-4 text-sm leading-6 text-slate-500">
+                        {t('form.evidenceTips')}
+                      </p>
 
                       {evidenceFiles.length > 0 && (
                         <div className="mt-5 space-y-3">
