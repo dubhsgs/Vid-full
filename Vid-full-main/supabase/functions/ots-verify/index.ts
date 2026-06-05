@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: record, error: fetchError } = await supabase
       .from('v_ids')
-      .select('friendly_id, ots_status, ots_file_path, sha256_hash')
+      .select('friendly_id, ots_status, ots_file_path, sha256_hash, archive_confirmed_at')
       .eq('friendly_id', friendly_id)
       .maybeSingle();
 
@@ -54,6 +54,14 @@ Deno.serve(async (req: Request) => {
     }
 
     if (record.ots_status === 'confirmed') {
+      if (!record.archive_confirmed_at) {
+        await supabase
+          .from('v_ids')
+          .update({ archive_confirmed_at: new Date().toISOString() })
+          .eq('friendly_id', friendly_id)
+          .is('archive_confirmed_at', null);
+      }
+
       return new Response(
         JSON.stringify({ success: true, ots_status: 'confirmed' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -101,7 +109,10 @@ Deno.serve(async (req: Request) => {
     if (upgraded.confirmed) {
       await supabase
         .from('v_ids')
-        .update({ ots_status: 'confirmed' })
+        .update({
+          ots_status: 'confirmed',
+          archive_confirmed_at: new Date().toISOString(),
+        })
         .eq('friendly_id', friendly_id);
 
       return new Response(

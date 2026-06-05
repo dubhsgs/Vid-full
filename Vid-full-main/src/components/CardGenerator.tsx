@@ -26,6 +26,7 @@ interface FormData {
 interface ArchiveCertificateMetadata {
   createdAt?: string;
   otsStatus?: string;
+  archiveConfirmedAt?: string;
   downloadedAt: string;
 }
 
@@ -70,6 +71,7 @@ function buildArchiveCertificateHtml(
     ['Character Name', form.name],
     ['Created Time', metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate],
     ['Archive Status', formatArchiveStatus(metadata.otsStatus)],
+    ['Archive Confirmed At', metadata.archiveConfirmedAt ? formatDateTime(metadata.archiveConfirmedAt) : 'Not confirmed yet'],
     ['SHA-256 Hash', sha256Hash || 'Not available'],
     ['Public Verification URL', verifyUrl],
     ['Certificate Downloaded At', metadata.downloadedAt],
@@ -610,7 +612,7 @@ VAID 証明コード：${sha256Hash}
       if (citizenId) {
         const { data: recordData, error: recordError } = await supabase
           .from('v_ids')
-          .select('created_at, ots_status')
+          .select('created_at, ots_status, archive_confirmed_at')
           .eq('friendly_id', citizenId)
           .maybeSingle();
 
@@ -621,6 +623,7 @@ VAID 証明コード：${sha256Hash}
             ...archiveMetadata,
             createdAt: String(recordData.created_at || ''),
             otsStatus: String(recordData.ots_status || ''),
+            archiveConfirmedAt: String(recordData.archive_confirmed_at || ''),
           };
         }
       }
