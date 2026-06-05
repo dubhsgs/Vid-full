@@ -70,7 +70,7 @@ function buildArchiveCertificateHtml(
     ['Character Name', form.name],
     ['Created Time', metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate],
     ['Archive Status', formatArchiveStatus(metadata.otsStatus)],
-    ['Digital Fingerprint', sha256Hash || 'Not available'],
+    ['SHA-256 Hash', sha256Hash || 'Not available'],
     ['Public Verification URL', verifyUrl],
     ['Certificate Downloaded At', metadata.downloadedAt],
   ];
@@ -225,7 +225,7 @@ function buildArchiveCertificateHtml(
         ${fields.map(([label, value]) => `
         <tr>
           <th>${escapeHtml(label)}</th>
-          <td class="${label === 'Digital Fingerprint' ? 'fingerprint' : ''}">${escapeHtml(value)}</td>
+          <td class="${label === 'SHA-256 Hash' ? 'fingerprint' : ''}">${escapeHtml(value)}</td>
         </tr>`).join('')}
       </tbody>
     </table>
