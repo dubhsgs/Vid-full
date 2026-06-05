@@ -1,6 +1,6 @@
 import { createServiceClient, isInternalRequest } from '../_shared/auth.ts';
+import { getR2Config, signedR2Request } from '../_shared/r2.ts';
 
-const EVIDENCE_STORAGE_BUCKET = 'v-id-evidence-temp';
 const DEFAULT_MAX_AGE_HOURS = 24;
 const DEFAULT_MAX_DELETIONS = 100;
 
@@ -15,12 +15,9 @@ interface CleanupRequest {
   max_deletions?: number;
 }
 
-interface StorageEntry {
-  name: string;
-  id?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  last_accessed_at?: string | null;
+interface UploadSession {
+  id: string;
+  object_key: string;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -36,11 +33,19 @@ function clampNumber(value: unknown, fallback: number, min: number, max: number)
   return Math.max(min, Math.min(Math.floor(parsed), max));
 }
 
-function isOlderThan(entry: StorageEntry, cutoffMs: number): boolean {
-  const timestamp = entry.created_at || entry.updated_at || entry.last_accessed_at;
-  if (!timestamp) return false;
-  const timeMs = Date.parse(timestamp);
-  return Number.isFinite(timeMs) && timeMs < cutoffMs;
+async function deleteR2Object(objectKey: string): Promise<boolean> {
+  const request = await signedR2Request(getR2Config(), {
+    method: 'DELETE',
+    key: objectKey,
+  });
+  const response = await fetch(request);
+  if (response.ok || response.status === 404) return true;
+
+  console.warn('[evidence-cleanup] Failed to delete stale R2 object:', {
+    status: response.status,
+    objectKey,
+  });
+  return false;
 }
 
 Deno.serve(async (req: Request) => {
@@ -60,59 +65,46 @@ Deno.serve(async (req: Request) => {
     const payload = await req.json().catch(() => ({})) as CleanupRequest;
     const maxAgeHours = clampNumber(payload.max_age_hours, DEFAULT_MAX_AGE_HOURS, 1, 168);
     const maxDeletions = clampNumber(payload.max_deletions, DEFAULT_MAX_DELETIONS, 1, 500);
-    const cutoffMs = Date.now() - maxAgeHours * 60 * 60 * 1000;
+    const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
     const supabase = createServiceClient();
-    const pathsToDelete: string[] = [];
 
-    const { data: userFolders, error: foldersError } = await supabase.storage
-      .from(EVIDENCE_STORAGE_BUCKET)
-      .list('evidence', {
-        limit: 1000,
-        sortBy: { column: 'name', order: 'asc' },
-      });
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('v_id_evidence_upload_sessions')
+      .select('id, object_key')
+      .eq('status', 'pending')
+      .or(`expires_at.lt.${new Date().toISOString()},created_at.lt.${cutoff}`)
+      .order('created_at', { ascending: true })
+      .limit(maxDeletions);
 
-    if (foldersError) {
-      console.error('[evidence-cleanup] Failed to list evidence folders:', foldersError);
-      return jsonResponse({ success: false, error: 'LIST_FOLDERS_FAILED' }, 500);
+    if (sessionsError) {
+      console.error('[evidence-cleanup] Failed to list pending R2 upload sessions:', sessionsError);
+      return jsonResponse({ success: false, error: 'LIST_SESSIONS_FAILED' }, 500);
     }
 
-    for (const folder of (userFolders || []) as StorageEntry[]) {
-      if (!folder.name || pathsToDelete.length >= maxDeletions) break;
-
-      const folderPath = `evidence/${folder.name}`;
-      const { data: files, error: filesError } = await supabase.storage
-        .from(EVIDENCE_STORAGE_BUCKET)
-        .list(folderPath, {
-          limit: 1000,
-          sortBy: { column: 'created_at', order: 'asc' },
-        });
-
-      if (filesError) {
-        console.warn('[evidence-cleanup] Failed to list evidence folder:', { folderPath, error: filesError.message });
-        continue;
-      }
-
-      for (const file of (files || []) as StorageEntry[]) {
-        if (!file.name || pathsToDelete.length >= maxDeletions) break;
-        if (!isOlderThan(file, cutoffMs)) continue;
-        pathsToDelete.push(`${folderPath}/${file.name}`);
-      }
-    }
-
-    if (pathsToDelete.length === 0) {
+    if (!sessions || sessions.length === 0) {
       return jsonResponse({ success: true, deleted: 0 });
     }
 
-    const { error: removeError } = await supabase.storage
-      .from(EVIDENCE_STORAGE_BUCKET)
-      .remove(pathsToDelete);
-
-    if (removeError) {
-      console.error('[evidence-cleanup] Failed to delete stale evidence materials:', removeError);
-      return jsonResponse({ success: false, error: 'DELETE_FAILED' }, 500);
+    const deletedSessionIds: string[] = [];
+    for (const session of sessions as UploadSession[]) {
+      if (await deleteR2Object(session.object_key)) {
+        deletedSessionIds.push(session.id);
+      }
     }
 
-    return jsonResponse({ success: true, deleted: pathsToDelete.length });
+    if (deletedSessionIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from('v_id_evidence_upload_sessions')
+        .update({ status: 'abandoned' })
+        .in('id', deletedSessionIds);
+
+      if (updateError) {
+        console.error('[evidence-cleanup] Failed to mark stale sessions abandoned:', updateError);
+        return jsonResponse({ success: false, error: 'MARK_ABANDONED_FAILED' }, 500);
+      }
+    }
+
+    return jsonResponse({ success: true, deleted: deletedSessionIds.length });
   } catch (error) {
     console.error('[evidence-cleanup] Unexpected error:', error);
     return jsonResponse({ success: false, error: 'INTERNAL_SERVER_ERROR' }, 500);
