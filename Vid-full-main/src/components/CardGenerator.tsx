@@ -23,6 +23,232 @@ interface FormData {
   qrRecord: string;
 }
 
+interface ArchiveCertificateMetadata {
+  createdAt?: string;
+  otsStatus?: string;
+  downloadedAt: string;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDateTime(value?: string): string {
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function formatArchiveStatus(status?: string): string {
+  if (status === 'confirmed') return 'Archive confirmed';
+  if (status === 'stamped') return 'Archive in progress';
+  if (status === 'failed') return 'Archive failed';
+  return 'Archive in progress';
+}
+
+function buildArchiveCertificateHtml(
+  form: FormData,
+  sha256Hash: string,
+  verifyUrl: string,
+  metadata: ArchiveCertificateMetadata
+): string {
+  const fields = [
+    ['Record ID', form.serialId],
+    ['Character Name', form.name],
+    ['Created Time', metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate],
+    ['Archive Status', formatArchiveStatus(metadata.otsStatus)],
+    ['Digital Fingerprint', sha256Hash || 'Not available'],
+    ['Public Verification URL', verifyUrl],
+    ['Certificate Downloaded At', metadata.downloadedAt],
+  ];
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VAID Digital Identity Archive Certificate - ${escapeHtml(form.serialId)}</title>
+  <style>
+    @page { size: A4; margin: 22mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef2f7;
+      color: #172033;
+      font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+      line-height: 1.55;
+    }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fbfdff;
+      padding: 24mm 22mm;
+      border: 1px solid #c8d3df;
+      box-shadow: 0 18px 45px rgba(21, 32, 52, 0.16);
+      position: relative;
+    }
+    .border {
+      position: absolute;
+      inset: 12mm;
+      border: 2px solid #8da4ba;
+      pointer-events: none;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      border-bottom: 2px solid #d8e1ea;
+      padding-bottom: 22px;
+    }
+    .brand {
+      font-size: 34px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #0f2742;
+    }
+    .meta {
+      text-align: right;
+      color: #5c6d80;
+      font-size: 12px;
+    }
+    h1 {
+      margin: 38px 0 10px;
+      font-size: 28px;
+      color: #0f2742;
+      text-align: center;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      margin: 0 auto 34px;
+      max-width: 580px;
+      color: #5a6878;
+      text-align: center;
+      font-size: 14px;
+    }
+    .section-title {
+      margin: 30px 0 12px;
+      color: #183655;
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #d9e2eb;
+      background: #ffffff;
+    }
+    th, td {
+      border-bottom: 1px solid #e4ebf2;
+      padding: 13px 15px;
+      vertical-align: top;
+      font-size: 13px;
+    }
+    th {
+      width: 34%;
+      color: #58687a;
+      text-align: left;
+      font-weight: 700;
+      background: #f4f7fa;
+    }
+    td {
+      color: #172033;
+      word-break: break-word;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    .fingerprint {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+    .statement {
+      border: 1px solid #d9e2eb;
+      background: #f7fafc;
+      padding: 18px 20px;
+      color: #38485a;
+      font-size: 13px;
+    }
+    .footer {
+      position: absolute;
+      left: 22mm;
+      right: 22mm;
+      bottom: 20mm;
+      border-top: 1px solid #d8e1ea;
+      padding-top: 14px;
+      color: #6c7b8d;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="border"></div>
+    <header class="header">
+      <div class="brand">VAID</div>
+      <div class="meta">
+        Digital Identity Archive Certificate<br />
+        ${escapeHtml(form.serialId)}
+      </div>
+    </header>
+
+    <h1>VAID Digital Identity Archive Certificate</h1>
+    <p class="subtitle">
+      This certificate summarizes the VAID archive record associated with the digital identity shown in the downloaded certificate image.
+    </p>
+
+    <div class="section-title">Archive Record</div>
+    <table>
+      <tbody>
+        ${fields.map(([label, value]) => `
+        <tr>
+          <th>${escapeHtml(label)}</th>
+          <td class="${label === 'Digital Fingerprint' ? 'fingerprint' : ''}">${escapeHtml(value)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="section-title">Certificate Statement</div>
+    <div class="statement">
+      This document is a VAID-generated archive certificate for record explanation and auxiliary evidence. It records the archive identifier, creation information, digital fingerprint, and public verification link available at the time this package was downloaded. It does not replace copyright registration, notarization, judicial certification, or any government-issued ownership certificate.
+    </div>
+
+    <div class="section-title">Important Preservation Note</div>
+    <div class="statement">
+      Keep this HTML certificate, the certificate image, the public verification link, and any original proof materials together. If a dispute occurs, the complete evidence package should be reviewed with the original files and the current public verification page.
+    </div>
+
+    <footer class="footer">
+      <span>Generated by VAID Protocol</span>
+      <span>${escapeHtml(metadata.downloadedAt)}</span>
+    </footer>
+  </main>
+</body>
+</html>`;
+}
+
 export function CardGenerator() {
   const { t } = useTranslation();
   const CARD_GENERATOR_SESSION_KEY = 'v-id-card-generator-session';
@@ -376,8 +602,36 @@ VAID 証明コード：${sha256Hash}
 
       const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
+      const verifyUrl = citizenId ? `${siteOrigin}/verify/${citizenId}` : siteOrigin;
+      let archiveMetadata: ArchiveCertificateMetadata = {
+        downloadedAt: formatDateTime(new Date().toISOString()),
+      };
+
+      if (citizenId) {
+        const { data: recordData, error: recordError } = await supabase
+          .from('v_ids')
+          .select('created_at, ots_status')
+          .eq('friendly_id', citizenId)
+          .maybeSingle();
+
+        if (recordError) {
+          console.warn('[CardGenerator] Archive certificate metadata unavailable:', recordError);
+        } else if (recordData) {
+          archiveMetadata = {
+            ...archiveMetadata,
+            createdAt: String(recordData.created_at || ''),
+            otsStatus: String(recordData.ots_status || ''),
+          };
+        }
+      }
 
       zip.file('VAID_Certificate.png', imageBlob);
+      zip.file('VAID_Archive_Certificate.html', buildArchiveCertificateHtml(
+        form,
+        sha256Hash,
+        verifyUrl,
+        archiveMetadata
+      ));
       zip.file('Proof_Verification_Guide.txt', verificationGuide);
 
       if (citizenId) {
