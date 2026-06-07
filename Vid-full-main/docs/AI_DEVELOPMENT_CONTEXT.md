@@ -20,17 +20,21 @@ legal determination of ownership.
 ## 3. Core User Flow
 
 1. A user signs in with Supabase email OTP.
-2. The user uploads an original image and enters character and creator names.
-3. The frontend uploads the original image temporarily to private storage and
+2. The user uploads an original image and adjusts its crop and position.
+3. The user enters character, creator, country, and identity-document details,
+   and may add private creation proof materials.
+4. The frontend uploads the original image temporarily to private storage and
    uploads a cropped public avatar image.
-4. The `v-id-register` Edge Function downloads the original image, recomputes
+5. The `v-id-register` Edge Function downloads the original image, recomputes
    its SHA-256 hash, validates the request, and calls the database RPC.
-5. The RPC atomically consumes one credit, creates the VAID record, and inserts
+6. The RPC atomically consumes one credit, creates the VAID record, and inserts
    an OTS job.
-6. The user downloads a certificate package and can share the public
+7. The creator identity claim is encrypted and stored separately from all
+   public verification data.
+8. The user downloads a certificate package and can share the public
    `/verify/:id` page.
-7. The original upload cleanup worker removes abandoned temporary originals.
-8. The OTS worker creates a timestamp proof. Verification status later changes
+9. The original upload cleanup worker removes abandoned temporary originals.
+10. The OTS worker creates a timestamp proof. Verification status later changes
    from in progress to confirmed.
 
 ## 4. Technical Architecture
@@ -105,6 +109,8 @@ legal determination of ownership.
 - Public verification must expose only product-approved public fields.
 - Original uploaded files are private and temporary. Keep retention and cleanup
   behavior explicit.
+- Creator identity-document numbers must be encrypted at rest and must never be
+  exposed through public verification data, browser storage, or logs.
 - Logs must not print secrets, raw payment callback payloads, personal data, or
   original-file contents.
 - User-facing copy must not claim copyright registration, ownership

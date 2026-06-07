@@ -10,6 +10,10 @@ import {
   MAX_EVIDENCE_FILES,
   uploadEvidenceMaterial,
 } from './utils/evidenceUpload';
+import {
+  registerCreatorIdentity,
+  type CreatorDocumentType,
+} from './utils/creatorIdentity';
 import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -223,6 +227,9 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
+  const [countryRegion, setCountryRegion] = useState('');
+  const [documentType, setDocumentType] = useState<CreatorDocumentType>('national_id');
+  const [documentNumber, setDocumentNumber] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [imageScale, setImageScale] = useState(1);
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
@@ -442,10 +449,6 @@ function App() {
 
   const handleEditInfo = () => {
     if (!imagePreview || !imageFile) return;
-    if (!characterName.trim() || !creatorName.trim()) {
-      setGenerationError(t('errors.fillNames'));
-      return;
-    }
     setGenerationError('');
     setIsEditing(true);
     setImageScale(1);
@@ -490,63 +493,10 @@ function App() {
       return;
     }
 
-    if (!characterName.trim() || !creatorName.trim()) {
-      setGenerationError(t('errors.returnFillNames'));
-      return;
-    }
-
     setGenerationError('');
     setIsSubmittingNext(true);
 
     try {
-      if (authState.loading) {
-        setIsSubmittingNext(false);
-        return;
-      }
-
-      if (!authState.user) {
-        setGenerationError(t('errors.loginRequired'));
-        setAuthOpenSignal((value) => value + 1);
-        setIsSubmittingNext(false);
-        return;
-      }
-
-      if (!authState.emailConfirmed) {
-        setGenerationError(t('errors.emailNotConfirmed'));
-        setAuthOpenSignal((value) => value + 1);
-        setIsSubmittingNext(false);
-        return;
-      }
-
-      const normalizedInput = normalizeActivationCode(activationCodeInput);
-      if (activationCodeInput.trim() && normalizedInput !== activationCodeInput) {
-        setActivationCodeInput(normalizedInput);
-      }
-
-      const { freeRemaining, savedCodeInfo } = await refreshAccessDashboard(normalizedInput);
-      let activeActivationCode = savedCodeInfo ?? activationCodeInfo;
-
-      // Free quota takes priority. Only check activation code after free quota is exhausted.
-      if (freeRemaining <= 0 && normalizedInput) {
-        activeActivationCode = await getActivationCodeInfo(normalizedInput);
-        setActivationCodeInfo(activeActivationCode);
-      } else if (freeRemaining > 0) {
-        setActivationCodeError('');
-      }
-
-      const hasUsableActivationCode = !!activeActivationCode
-        && activeActivationCode.status === 'active'
-        && activeActivationCode.remaining_uses > 0;
-
-      if (freeRemaining <= 0 && !hasUsableActivationCode) {
-        if (!activeActivationCode && normalizedInput) {
-          setActivationCodeError(t('errors.activationNotFound'));
-        }
-        setShowPaywall(true);
-        setIsSubmittingNext(false);
-        return;
-      }
-
       const canvas = document.createElement('canvas');
       const size = 240;
       canvas.width = size;
@@ -554,7 +504,7 @@ function App() {
       const ctx = canvas.getContext('2d')!;
 
       const img = new Image();
-      img.onload = async () => {
+      img.onload = () => {
         ctx.save();
         ctx.beginPath();
         ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
@@ -587,73 +537,8 @@ function App() {
         const croppedAvatar = canvas.toDataURL('image/png');
         setCroppedAvatarPreview(croppedAvatar);
         localStorage.setItem('vid_uploaded_avatar', croppedAvatar);
-        localStorage.setItem('vid_character_name', characterName);
-        localStorage.setItem('vid_creator_name', creatorName);
-
-        try {
-          const hash = await calculateSHA256(imageFile);
-
-          let refreshedState = await refreshAccessDashboard(normalizedInput);
-
-          if (refreshedState.freeRemaining <= 0 && normalizedInput) {
-            const redeemResult = await consumeActivationCode(normalizedInput);
-            if (!redeemResult.success) {
-              setActivationCodeError(t('errors.activationUnavailable'));
-            } else {
-              setActivationCodeInput('');
-              setActivationCodeError('');
-              refreshedState = await refreshAccessDashboard();
-            }
-          }
-
-          if (refreshedState.freeRemaining <= 0) {
-            setShowPaywall(true);
-            setIsSubmittingNext(false);
-            return;
-          }
-
-          const originalFilePath = await uploadOriginalFileToStorage(imageFile);
-          if (!originalFilePath) {
-            setGenerationError(t('errors.generationFlowFailed'));
-            return;
-          }
-
-          const uploadedAvatarUrl = await uploadImageToStorage(croppedAvatar);
-          if (!uploadedAvatarUrl) {
-            setGenerationError(t('errors.generationFlowFailed'));
-            return;
-          }
-
-          const { data: registerData, error: registerError } = await supabase.functions.invoke('v-id-register', {
-            body: {
-              character_name: characterName,
-              creator_name: creatorName,
-              sha256_hash: hash,
-              image_url: uploadedAvatarUrl,
-              original_file_path: originalFilePath,
-            },
-          });
-
-          if (registerError || !registerData?.success || !registerData?.friendly_id) {
-            console.error('Failed to register VAID before card preview:', registerError || registerData);
-            setGenerationError(t('errors.generationFlowFailed'));
-            return;
-          }
-
-          localStorage.setItem('vid_original_file_hash', hash);
-          localStorage.setItem('vid_registered_friendly_id', registerData.friendly_id);
-          localStorage.setItem('vid_registered_hash', hash);
-          setRemainingCredits(Number(registerData.free_credits || 0) + Number(registerData.paid_credits || 0));
-          setActivationCodeInfo(refreshedState.savedCodeInfo);
-          setActivationCodeError('');
-          setGenerationError('');
-          setShowEvidenceStep(true);
-        } catch (error) {
-          console.error('Failed to prepare generation flow:', error);
-          setGenerationError(t('errors.generationFlowFailed'));
-        } finally {
-          setIsSubmittingNext(false);
-        }
+        setShowEvidenceStep(true);
+        setIsSubmittingNext(false);
       };
 
       img.onerror = () => {
@@ -663,8 +548,8 @@ function App() {
 
       img.src = imagePreview;
     } catch (error) {
-      console.error('Failed to check generation prerequisites:', error);
-      setGenerationError(t('errors.quotaStatusFailed'));
+      console.error('Failed to prepare cropped avatar:', error);
+      setGenerationError(t('errors.imageReadFailed'));
       setIsSubmittingNext(false);
     }
   };
@@ -694,22 +579,47 @@ function App() {
     setEvidenceFiles((files) => files.filter((_, fileIndex) => fileIndex !== index));
   };
 
-  const handleSkipEvidenceUpload = () => {
-    if (!window.confirm(t('form.evidenceSkipConfirm'))) return;
-    finishGenerationFlow();
-  };
-
-  const handleSubmitEvidenceUpload = async () => {
+  const handleSubmitEvidenceUpload = async (skipEvidence = false) => {
     if (isUploadingEvidence) return;
 
-    const friendlyId = localStorage.getItem('vid_registered_friendly_id');
-    if (!friendlyId) {
-      setGenerationError(t('errors.generationFlowFailed'));
+    if (!imageFile || !croppedAvatarPreview) {
+      setEvidenceUploadError(t('errors.imageReadFailed'));
       return;
     }
 
-    if (evidenceFiles.length === 0) {
-      handleSkipEvidenceUpload();
+    if (
+      !characterName.trim()
+      || !creatorName.trim()
+      || !countryRegion.trim()
+      || !documentNumber.trim()
+    ) {
+      setEvidenceUploadError(t('errors.fillArchiveDetails'));
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setEvidenceUploadError(t('errors.agreeToTerms'));
+      return;
+    }
+
+    if (!skipEvidence && evidenceFiles.length === 0) {
+      if (!window.confirm(t('form.evidenceSkipConfirm'))) return;
+      skipEvidence = true;
+    }
+
+    if (authState.loading) {
+      return;
+    }
+
+    if (!authState.user) {
+      setEvidenceUploadError(t('errors.loginRequired'));
+      setAuthOpenSignal((value) => value + 1);
+      return;
+    }
+
+    if (!authState.emailConfirmed) {
+      setEvidenceUploadError(t('errors.emailNotConfirmed'));
+      setAuthOpenSignal((value) => value + 1);
       return;
     }
 
@@ -718,23 +628,123 @@ function App() {
     setEvidenceUploadError('');
     setEvidenceUploadProgress(0);
 
+    let currentStage: 'registration' | 'identity' | 'evidence' = 'registration';
+
     try {
-      for (let index = 0; index < evidenceFiles.length; index += 1) {
-        const file = evidenceFiles[index];
-        setEvidenceUploadProgress(Math.round((index / evidenceFiles.length) * 100));
-        await uploadEvidenceMaterial(friendlyId, file);
-        setEvidenceUploadProgress(Math.round(((index + 1) / evidenceFiles.length) * 100));
+      const normalizedInput = normalizeActivationCode(activationCodeInput);
+      if (activationCodeInput.trim() && normalizedInput !== activationCodeInput) {
+        setActivationCodeInput(normalizedInput);
       }
 
+      const { freeRemaining, savedCodeInfo } = await refreshAccessDashboard(normalizedInput);
+      let activeActivationCode = savedCodeInfo ?? activationCodeInfo;
+
+      if (freeRemaining <= 0 && normalizedInput) {
+        activeActivationCode = await getActivationCodeInfo(normalizedInput);
+        setActivationCodeInfo(activeActivationCode);
+      } else if (freeRemaining > 0) {
+        setActivationCodeError('');
+      }
+
+      const hasUsableActivationCode = !!activeActivationCode
+        && activeActivationCode.status === 'active'
+        && activeActivationCode.remaining_uses > 0;
+
+      if (freeRemaining <= 0 && !hasUsableActivationCode) {
+        if (!activeActivationCode && normalizedInput) {
+          setActivationCodeError(t('errors.activationNotFound'));
+        }
+        setShowPaywall(true);
+        return;
+      }
+
+      const hash = await calculateSHA256(imageFile);
+      let refreshedState = await refreshAccessDashboard(normalizedInput);
+
+      if (refreshedState.freeRemaining <= 0 && normalizedInput) {
+        const redeemResult = await consumeActivationCode(normalizedInput);
+        if (!redeemResult.success) {
+          setActivationCodeError(t('errors.activationUnavailable'));
+        } else {
+          setActivationCodeInput('');
+          setActivationCodeError('');
+          refreshedState = await refreshAccessDashboard();
+        }
+      }
+
+      if (refreshedState.freeRemaining <= 0) {
+        setShowPaywall(true);
+        return;
+      }
+
+      const originalFilePath = await uploadOriginalFileToStorage(imageFile);
+      const uploadedAvatarUrl = await uploadImageToStorage(croppedAvatarPreview);
+      if (!originalFilePath || !uploadedAvatarUrl) {
+        throw new Error('IMAGE_UPLOAD_FAILED');
+      }
+
+      const { data: registerData, error: registerError } = await supabase.functions.invoke('v-id-register', {
+        body: {
+          character_name: characterName,
+          creator_name: creatorName,
+          sha256_hash: hash,
+          image_url: uploadedAvatarUrl,
+          original_file_path: originalFilePath,
+        },
+      });
+
+      if (registerError || !registerData?.success || !registerData?.friendly_id) {
+        throw new Error(registerData?.error || registerError?.message || 'V_ID_REGISTER_FAILED');
+      }
+
+      const friendlyId = String(registerData.friendly_id);
+      currentStage = 'identity';
+      await registerCreatorIdentity(
+        friendlyId,
+        countryRegion.trim(),
+        documentType,
+        documentNumber.trim()
+      );
+
+      if (!skipEvidence) {
+        currentStage = 'evidence';
+        for (let index = 0; index < evidenceFiles.length; index += 1) {
+          const file = evidenceFiles[index];
+          setEvidenceUploadProgress(Math.round((index / evidenceFiles.length) * 100));
+          await uploadEvidenceMaterial(friendlyId, file);
+          setEvidenceUploadProgress(Math.round(((index + 1) / evidenceFiles.length) * 100));
+        }
+      }
+
+      localStorage.setItem('vid_uploaded_avatar', croppedAvatarPreview);
+      localStorage.setItem('vid_character_name', characterName);
+      localStorage.setItem('vid_creator_name', creatorName);
+      localStorage.setItem('vid_original_file_hash', hash);
+      localStorage.setItem('vid_registered_friendly_id', friendlyId);
+      localStorage.setItem('vid_registered_hash', hash);
+      setRemainingCredits(Number(registerData.free_credits || 0) + Number(registerData.paid_credits || 0));
+      setActivationCodeInfo(refreshedState.savedCodeInfo);
+      setActivationCodeError('');
       setEvidenceFiles([]);
       setEvidenceUploadProgress(0);
       finishGenerationFlow();
     } catch (error) {
-      console.error('Failed to upload evidence materials:', error);
-      setEvidenceUploadError(t('errors.evidenceUploadFailed'));
+      console.error(`Failed during ${currentStage}:`, error);
+      setEvidenceUploadError(
+        currentStage === 'identity'
+          ? t('errors.identitySaveFailed')
+          : currentStage === 'evidence'
+            ? t('errors.evidenceUploadFailed')
+            : t('errors.generationFlowFailed')
+      );
     } finally {
       setIsUploadingEvidence(false);
     }
+  };
+
+  const handleSkipEvidenceUpload = () => {
+    if (!window.confirm(t('form.evidenceSkipConfirm'))) return;
+    void handleSubmitEvidenceUpload(true);
   };
 
   const handleAnimationComplete = useCallback(() => {
@@ -1065,7 +1075,17 @@ function App() {
                       )}
                     </div>
 
-                    <div className="mt-8 space-y-6">
+                    <button
+                      onClick={handleEditInfo}
+                      disabled={!imageFile}
+                      className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
+                    >
+                      {t('form.next')}
+                    </button>
+                  </>
+                ) : showEvidenceStep ? (
+                  <div className="space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2">
                       <div>
                         <label htmlFor="characterName" className="block text-left text-base font-medium text-white mb-2">
                           {t('form.characterName')}
@@ -1074,9 +1094,9 @@ function App() {
                           id="characterName"
                           type="text"
                           value={characterName}
-                          onChange={(e) => {
-                            setCharacterName(e.target.value);
-                            setGenerationError('');
+                          onChange={(event) => {
+                            setCharacterName(event.target.value);
+                            setEvidenceUploadError('');
                           }}
                           placeholder={t('form.characterPlaceholder')}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -1091,77 +1111,72 @@ function App() {
                           id="creatorName"
                           type="text"
                           value={creatorName}
-                          onChange={(e) => {
-                            setCreatorName(e.target.value);
-                            setGenerationError('');
+                          onChange={(event) => {
+                            setCreatorName(event.target.value);
+                            setEvidenceUploadError('');
                           }}
                           placeholder={t('form.creatorPlaceholder')}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                       </div>
+
+                      <div>
+                        <label htmlFor="countryRegion" className="block text-left text-base font-medium text-white mb-2">
+                          {t('form.countryRegion')}
+                        </label>
+                        <input
+                          id="countryRegion"
+                          type="text"
+                          value={countryRegion}
+                          onChange={(event) => {
+                            setCountryRegion(event.target.value);
+                            setEvidenceUploadError('');
+                          }}
+                          placeholder={t('form.countryRegionPlaceholder')}
+                          autoComplete="country-name"
+                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="documentType" className="block text-left text-base font-medium text-white mb-2">
+                          {t('form.documentType')}
+                        </label>
+                        <select
+                          id="documentType"
+                          value={documentType}
+                          onChange={(event) => setDocumentType(event.target.value as CreatorDocumentType)}
+                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          <option value="national_id">{t('form.documentTypeNationalId')}</option>
+                          <option value="passport">{t('form.documentTypePassport')}</option>
+                          <option value="driver_license">{t('form.documentTypeDriverLicense')}</option>
+                          <option value="other">{t('form.documentTypeOther')}</option>
+                        </select>
+                      </div>
                     </div>
 
-                    <div className="mt-8">
-                      <label className="flex items-start gap-3 cursor-pointer group">
-                        <div className="relative flex-shrink-0 mt-0.5">
-                          <input
-                            type="checkbox"
-                            checked={agreedToTerms}
-                            onChange={(e) => setAgreedToTerms(e.target.checked)}
-                            className="sr-only"
-                          />
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                            agreedToTerms
-                              ? 'bg-blue-600 border-blue-600'
-                              : 'bg-transparent border-slate-500 group-hover:border-blue-400'
-                          }`}>
-                            {agreedToTerms && (
-                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
-                                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-sm text-slate-400 leading-relaxed">
-                          {t('form.termsPrefix')}{' '}
-                          <a
-                            href="/terms"
-                            className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              navigate('/terms');
-                            }}
-                          >
-                            {t('form.terms')}
-                          </a>
-                          {' '}{t('form.and')}{' '}
-                          <a
-                            href="/privacy"
-                            className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              navigate('/privacy');
-                            }}
-                          >
-                            {t('form.privacy')}
-                          </a>
-                          {t('form.termsSuffix')}
-                        </span>
+                    <div>
+                      <label htmlFor="documentNumber" className="block text-left text-base font-medium text-white mb-2">
+                        {t('form.documentNumber')}
                       </label>
+                      <input
+                        id="documentNumber"
+                        type="text"
+                        value={documentNumber}
+                        onChange={(event) => {
+                          setDocumentNumber(event.target.value);
+                          setEvidenceUploadError('');
+                        }}
+                        placeholder={t('form.documentNumberPlaceholder')}
+                        autoComplete="off"
+                        className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      />
+                      <p className="mt-2 text-left text-xs leading-5 text-slate-500">
+                        {t('form.identityPrivacy')}
+                      </p>
                     </div>
 
-                    <button
-                      onClick={handleEditInfo}
-                      disabled={!imageFile || !agreedToTerms || !characterName.trim() || !creatorName.trim()}
-                      className="w-full mt-4 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
-                    >
-                      {t('form.editInfo')}
-                    </button>
-                  </>
-                ) : showEvidenceStep ? (
-                  <div className="space-y-6">
                     <div>
                       <label className="vaid-upload-zone flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700 p-12 text-center transition-all hover:border-blue-400">
                         <span className="block text-lg font-semibold text-white">{t('form.evidenceTitle')}</span>
@@ -1226,6 +1241,58 @@ function App() {
                       )}
                     </div>
 
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="relative flex-shrink-0 mt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={agreedToTerms}
+                          onChange={(event) => {
+                            setAgreedToTerms(event.target.checked);
+                            setEvidenceUploadError('');
+                          }}
+                          className="sr-only"
+                        />
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                          agreedToTerms
+                            ? 'bg-blue-600 border-blue-600'
+                            : 'bg-transparent border-slate-500 group-hover:border-blue-400'
+                        }`}>
+                          {agreedToTerms && (
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm text-slate-400 leading-relaxed">
+                        {t('form.termsPrefix')}{' '}
+                        <a
+                          href="/terms"
+                          className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            navigate('/terms');
+                          }}
+                        >
+                          {t('form.terms')}
+                        </a>
+                        {' '}{t('form.and')}{' '}
+                        <a
+                          href="/privacy"
+                          className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            navigate('/privacy');
+                          }}
+                        >
+                          {t('form.privacy')}
+                        </a>
+                        {t('form.termsSuffix')}
+                      </span>
+                    </label>
+
                     <div className="flex gap-4">
                       <button
                         onClick={handleSkipEvidenceUpload}
@@ -1235,7 +1302,7 @@ function App() {
                         {t('form.evidenceSkip')}
                       </button>
                       <button
-                        onClick={handleSubmitEvidenceUpload}
+                        onClick={() => void handleSubmitEvidenceUpload(false)}
                         disabled={isUploadingEvidence}
                         className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                       >
