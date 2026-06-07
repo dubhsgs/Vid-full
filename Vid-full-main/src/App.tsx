@@ -748,8 +748,12 @@ function App() {
         currentStage = 'evidence';
         for (let index = 0; index < evidenceFiles.length; index += 1) {
           const file = evidenceFiles[index];
-          setEvidenceUploadProgress(Math.round((index / evidenceFiles.length) * 100));
-          await uploadEvidenceMaterial(friendlyId, file);
+          const fileBaseProgress = (index / evidenceFiles.length) * 100;
+          const fileProgressShare = 100 / evidenceFiles.length;
+          setEvidenceUploadProgress(Math.round(fileBaseProgress));
+          await uploadEvidenceMaterial(friendlyId, file, ({ percent }) => {
+            setEvidenceUploadProgress(Math.round(fileBaseProgress + (fileProgressShare * percent) / 100));
+          });
           setEvidenceUploadProgress(Math.round(((index + 1) / evidenceFiles.length) * 100));
         }
       }
