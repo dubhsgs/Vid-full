@@ -33,6 +33,10 @@ unchanged.
 - New authenticated Edge Function: `creator-identity-register`
 - The function verifies record ownership before storing or updating an identity
   claim.
+- Country selection uses ISO country codes. Passport and national-ID formats
+  are validated for explicitly supported countries in both the browser and the
+  Edge Function. Driver licenses and generic document types are not accepted
+  because their rules cannot be determined reliably from country alone.
 - Required secret: `IDENTITY_ENCRYPTION_KEY` containing a base64-encoded
   32-byte key.
 

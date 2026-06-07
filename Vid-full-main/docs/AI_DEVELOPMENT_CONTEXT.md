@@ -112,6 +112,10 @@ legal determination of ownership.
   behavior explicit.
 - Creator identity-document numbers must be encrypted at rest and must never be
   exposed through public verification data, browser storage, or logs.
+- Creator country must use an ISO country code. Only document types with an
+  implemented country-specific format validator may be accepted by the
+  frontend and `creator-identity-register`; unsupported combinations fail
+  closed.
 - Logs must not print secrets, raw payment callback payloads, personal data, or
   original-file contents.
 - User-facing copy must not claim copyright registration, ownership

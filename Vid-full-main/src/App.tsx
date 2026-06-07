@@ -14,6 +14,11 @@ import {
   registerCreatorIdentity,
   type CreatorDocumentType,
 } from './utils/creatorIdentity';
+import {
+  getSupportedDocumentTypes,
+  isValidIdentityDocument,
+  SUPPORTED_IDENTITY_COUNTRY_CODES,
+} from './utils/identityValidation';
 import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -228,7 +233,7 @@ function App() {
   const [characterName, setCharacterName] = useState('');
   const [creatorName, setCreatorName] = useState('');
   const [countryRegion, setCountryRegion] = useState('');
-  const [documentType, setDocumentType] = useState<CreatorDocumentType>('national_id');
+  const [documentType, setDocumentType] = useState<CreatorDocumentType>('passport');
   const [documentNumber, setDocumentNumber] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [imageScale, setImageScale] = useState(1);
@@ -262,6 +267,22 @@ function App() {
   const [contactMessage, setContactMessage] = useState('');
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [showLaunchBenefit, setShowLaunchBenefit] = useState(false);
+  const supportedDocumentTypes = getSupportedDocumentTypes(countryRegion);
+  const documentNumberIsValid = isValidIdentityDocument(
+    countryRegion,
+    documentType,
+    documentNumber
+  );
+  const countryDisplayNames = new Intl.DisplayNames(
+    [i18n.resolvedLanguage ?? i18n.language],
+    { type: 'region' }
+  );
+  const identityCountryOptions = SUPPORTED_IDENTITY_COUNTRY_CODES
+    .map(code => ({
+      code,
+      label: countryDisplayNames.of(code) || code,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, i18n.resolvedLanguage ?? i18n.language));
 
   useEffect(() => {
     setShowLaunchBenefit(localStorage.getItem(LAUNCH_BENEFIT_DISMISSED_KEY) !== '1');
@@ -453,9 +474,13 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || !documentNumber.trim()
+      || !documentNumberIsValid
     ) {
-      setGenerationError(t('errors.fillArchiveDetails'));
+      setGenerationError(
+        countryRegion && documentNumber.trim()
+          ? t('errors.invalidIdentityDocument')
+          : t('errors.fillArchiveDetails')
+      );
       return;
     }
     setGenerationError('');
@@ -600,9 +625,13 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || !documentNumber.trim()
+      || !documentNumberIsValid
     ) {
-      setEvidenceUploadError(t('errors.fillArchiveDetails'));
+      setEvidenceUploadError(
+        countryRegion && documentNumber.trim()
+          ? t('errors.invalidIdentityDocument')
+          : t('errors.fillArchiveDetails')
+      );
       return;
     }
 
@@ -1123,18 +1152,24 @@ function App() {
                         <label htmlFor="countryRegion" className="block text-left text-base font-medium text-white mb-2">
                           {t('form.countryRegion')}
                         </label>
-                        <input
+                        <select
                           id="countryRegion"
-                          type="text"
                           value={countryRegion}
                           onChange={(event) => {
-                            setCountryRegion(event.target.value);
+                            const nextCountry = event.target.value;
+                            const nextTypes = getSupportedDocumentTypes(nextCountry);
+                            setCountryRegion(nextCountry);
+                            setDocumentType(nextTypes[0] || 'passport');
+                            setDocumentNumber('');
                             setGenerationError('');
                           }}
-                          placeholder={t('form.countryRegionPlaceholder')}
-                          autoComplete="country-name"
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        />
+                        >
+                          <option value="">{t('form.countryRegionPlaceholder')}</option>
+                          {identityCountryOptions.map(country => (
+                            <option key={country.code} value={country.code}>{country.label}</option>
+                          ))}
+                        </select>
                       </div>
 
                       <div>
@@ -1144,13 +1179,21 @@ function App() {
                         <select
                           id="documentType"
                           value={documentType}
-                          onChange={(event) => setDocumentType(event.target.value as CreatorDocumentType)}
+                          onChange={(event) => {
+                            setDocumentType(event.target.value as CreatorDocumentType);
+                            setDocumentNumber('');
+                            setGenerationError('');
+                          }}
+                          disabled={!countryRegion}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         >
-                          <option value="national_id">{t('form.documentTypeNationalId')}</option>
-                          <option value="passport">{t('form.documentTypePassport')}</option>
-                          <option value="driver_license">{t('form.documentTypeDriverLicense')}</option>
-                          <option value="other">{t('form.documentTypeOther')}</option>
+                          {supportedDocumentTypes.map(type => (
+                            <option key={type} value={type}>
+                              {type === 'national_id'
+                                ? t('form.documentTypeNationalId')
+                                : t('form.documentTypePassport')}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -1174,6 +1217,11 @@ function App() {
                       <p className="mt-2 text-left text-xs leading-5 text-slate-500">
                         {t('form.identityPrivacy')}
                       </p>
+                      {countryRegion && documentNumber.trim() && !documentNumberIsValid && (
+                        <p className="mt-2 text-left text-sm text-amber-300">
+                          {t('errors.invalidIdentityDocument')}
+                        </p>
+                      )}
                     </div>
 
                     <button
@@ -1183,7 +1231,7 @@ function App() {
                         || !characterName.trim()
                         || !creatorName.trim()
                         || !countryRegion.trim()
-                        || !documentNumber.trim()
+                        || !documentNumberIsValid
                       }
                       className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >

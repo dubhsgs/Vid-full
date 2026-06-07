@@ -1,10 +1,12 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
+import {
+  isSupportedIdentityDocumentType,
+  isValidIdentityDocument,
+} from '../_shared/identityValidation.ts';
 
 const ALLOWED_DOCUMENT_TYPES = new Set([
   'national_id',
   'passport',
-  'driver_license',
-  'other',
 ]);
 
 const corsHeaders = {
@@ -89,7 +91,7 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json() as CreatorIdentityRegisterRequest;
     const friendlyId = String(body.friendly_id || '').trim().toUpperCase();
-    const countryRegion = String(body.country_region || '').trim();
+    const countryRegion = String(body.country_region || '').trim().toUpperCase();
     const documentType = String(body.document_type || '').trim();
     const documentNumber = String(body.document_number || '').trim();
 
@@ -97,7 +99,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'INVALID_FRIENDLY_ID' }, 400);
     }
 
-    if (countryRegion.length < 2 || countryRegion.length > 100) {
+    if (!/^[A-Z]{2}$/.test(countryRegion)) {
       return jsonResponse({ success: false, error: 'INVALID_COUNTRY_REGION' }, 400);
     }
 
@@ -107,6 +109,14 @@ Deno.serve(async (req: Request) => {
 
     if (documentNumber.length < 4 || documentNumber.length > 120) {
       return jsonResponse({ success: false, error: 'INVALID_DOCUMENT_NUMBER' }, 400);
+    }
+
+    if (!isSupportedIdentityDocumentType(countryRegion, documentType)) {
+      return jsonResponse({ success: false, error: 'UNSUPPORTED_IDENTITY_DOCUMENT' }, 400);
+    }
+
+    if (!isValidIdentityDocument(countryRegion, documentType, documentNumber)) {
+      return jsonResponse({ success: false, error: 'INVALID_IDENTITY_DOCUMENT' }, 400);
     }
 
     const supabase = createServiceClient();
