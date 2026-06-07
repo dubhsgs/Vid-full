@@ -20,9 +20,10 @@ legal determination of ownership.
 ## 3. Core User Flow
 
 1. A user signs in with Supabase email OTP.
-2. The user uploads an original image and adjusts its crop and position.
-3. The user enters character, creator, country, and identity-document details,
-   and may add private creation proof materials.
+2. The user uploads an original image and enters character, creator, country,
+   and identity-document details.
+3. The user adjusts the image crop and position, then may add private creation
+   proof materials.
 4. The frontend uploads the original image temporarily to private storage and
    uploads a cropped public avatar image.
 5. The `v-id-register` Edge Function downloads the original image, recomputes

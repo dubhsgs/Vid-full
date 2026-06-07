@@ -449,6 +449,15 @@ function App() {
 
   const handleEditInfo = () => {
     if (!imagePreview || !imageFile) return;
+    if (
+      !characterName.trim()
+      || !creatorName.trim()
+      || !countryRegion.trim()
+      || !documentNumber.trim()
+    ) {
+      setGenerationError(t('errors.fillArchiveDetails'));
+      return;
+    }
     setGenerationError('');
     setIsEditing(true);
     setImageScale(1);
@@ -1075,17 +1084,7 @@ function App() {
                       )}
                     </div>
 
-                    <button
-                      onClick={handleEditInfo}
-                      disabled={!imageFile}
-                      className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
-                    >
-                      {t('form.next')}
-                    </button>
-                  </>
-                ) : showEvidenceStep ? (
-                  <div className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="mt-8 grid gap-6 md:grid-cols-2">
                       <div>
                         <label htmlFor="characterName" className="block text-left text-base font-medium text-white mb-2">
                           {t('form.characterName')}
@@ -1096,7 +1095,7 @@ function App() {
                           value={characterName}
                           onChange={(event) => {
                             setCharacterName(event.target.value);
-                            setEvidenceUploadError('');
+                            setGenerationError('');
                           }}
                           placeholder={t('form.characterPlaceholder')}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -1113,7 +1112,7 @@ function App() {
                           value={creatorName}
                           onChange={(event) => {
                             setCreatorName(event.target.value);
-                            setEvidenceUploadError('');
+                            setGenerationError('');
                           }}
                           placeholder={t('form.creatorPlaceholder')}
                           className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -1130,7 +1129,7 @@ function App() {
                           value={countryRegion}
                           onChange={(event) => {
                             setCountryRegion(event.target.value);
-                            setEvidenceUploadError('');
+                            setGenerationError('');
                           }}
                           placeholder={t('form.countryRegionPlaceholder')}
                           autoComplete="country-name"
@@ -1156,7 +1155,7 @@ function App() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="mt-6">
                       <label htmlFor="documentNumber" className="block text-left text-base font-medium text-white mb-2">
                         {t('form.documentNumber')}
                       </label>
@@ -1166,7 +1165,7 @@ function App() {
                         value={documentNumber}
                         onChange={(event) => {
                           setDocumentNumber(event.target.value);
-                          setEvidenceUploadError('');
+                          setGenerationError('');
                         }}
                         placeholder={t('form.documentNumberPlaceholder')}
                         autoComplete="off"
@@ -1177,6 +1176,22 @@ function App() {
                       </p>
                     </div>
 
+                    <button
+                      onClick={handleEditInfo}
+                      disabled={
+                        !imageFile
+                        || !characterName.trim()
+                        || !creatorName.trim()
+                        || !countryRegion.trim()
+                        || !documentNumber.trim()
+                      }
+                      className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
+                    >
+                      {t('form.next')}
+                    </button>
+                  </>
+                ) : showEvidenceStep ? (
+                  <div className="space-y-6">
                     <div>
                       <label className="vaid-upload-zone flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700 p-12 text-center transition-all hover:border-blue-400">
                         <span className="block text-lg font-semibold text-white">{t('form.evidenceTitle')}</span>

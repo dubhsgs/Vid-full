@@ -11,13 +11,12 @@ unchanged.
 
 ## User Flow
 
-1. Upload the character image.
+1. Upload the character image and enter character name, creator name, country
+   or region, document type, and document number.
 2. Adjust the existing crop, position, and scale controls without visual or
    behavioral changes.
-3. Enter character name, creator name, country or region, document type, and
-   document number.
-4. Optionally upload private creation proof materials.
-5. Agree to the Terms of Service and Privacy Policy, then generate the record.
+3. Optionally upload private creation proof materials.
+4. Agree to the Terms of Service and Privacy Policy, then generate the record.
 
 ## Privacy Boundary
 
