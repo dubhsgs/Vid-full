@@ -1361,11 +1361,11 @@ function App() {
                         {t('form.termsPrefix')}{' '}
                         <a
                           href="/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
                           onClick={(event) => {
-                            event.preventDefault();
                             event.stopPropagation();
-                            navigate('/terms');
                           }}
                         >
                           {t('form.terms')}
@@ -1373,11 +1373,11 @@ function App() {
                         {' '}{t('form.and')}{' '}
                         <a
                           href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
                           onClick={(event) => {
-                            event.preventDefault();
                             event.stopPropagation();
-                            navigate('/privacy');
                           }}
                         >
                           {t('form.privacy')}
