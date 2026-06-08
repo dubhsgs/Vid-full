@@ -794,9 +794,18 @@ function App() {
       finishGenerationFlow();
     } catch (error) {
       console.error(`Failed during ${currentStage}:`, error);
+      const errorMessage = error instanceof Error ? error.message : '';
       setEvidenceUploadError(
         currentStage === 'identity'
-          ? t('errors.identitySaveFailed')
+          ? (
+            errorMessage === 'INVALID_IDENTITY_DOCUMENT'
+            || errorMessage === 'UNSUPPORTED_IDENTITY_DOCUMENT'
+            || errorMessage === 'INVALID_COUNTRY_REGION'
+            || errorMessage === 'INVALID_DOCUMENT_TYPE'
+            || errorMessage === 'INVALID_DOCUMENT_NUMBER'
+              ? t('errors.invalidIdentityDocument')
+              : t('errors.identitySaveFailed')
+          )
           : currentStage === 'evidence'
             ? t('errors.evidenceUploadFailed')
             : t('errors.generationFlowFailed')
