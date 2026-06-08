@@ -804,7 +804,9 @@ function App() {
             || errorMessage === 'INVALID_DOCUMENT_TYPE'
             || errorMessage === 'INVALID_DOCUMENT_NUMBER'
               ? t('errors.invalidIdentityDocument')
-              : t('errors.identitySaveFailed')
+              : errorMessage
+                ? `${t('errors.identitySaveFailed')}（${errorMessage}）`
+                : t('errors.identitySaveFailed')
           )
           : currentStage === 'evidence'
             ? t('errors.evidenceUploadFailed')
