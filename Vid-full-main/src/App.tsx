@@ -16,7 +16,6 @@ import {
 } from './utils/creatorIdentity';
 import {
   getSupportedDocumentTypes,
-  isValidIdentityDocument,
   SUPPORTED_IDENTITY_COUNTRY_CODES,
 } from './utils/identityValidation';
 import { AnimatedGrid } from './components/AnimatedGrid';
@@ -268,11 +267,6 @@ function App() {
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [showChineseLanguagePrompt, setShowChineseLanguagePrompt] = useState(false);
   const supportedDocumentTypes = getSupportedDocumentTypes(countryRegion);
-  const documentNumberIsValid = isValidIdentityDocument(
-    countryRegion,
-    documentType,
-    documentNumber
-  );
   const countryDisplayNames = new Intl.DisplayNames(
     [i18n.resolvedLanguage ?? i18n.language],
     { type: 'region' }
@@ -496,13 +490,9 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || !documentNumberIsValid
+      || !documentNumber.trim()
     ) {
-      setGenerationError(
-        countryRegion && documentNumber.trim()
-          ? t('errors.invalidIdentityDocument')
-          : t('errors.fillArchiveDetails')
-      );
+      setGenerationError(t('errors.fillArchiveDetails'));
       return;
     }
     setGenerationError('');
@@ -647,13 +637,9 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || !documentNumberIsValid
+      || !documentNumber.trim()
     ) {
-      setEvidenceUploadError(
-        countryRegion && documentNumber.trim()
-          ? t('errors.invalidIdentityDocument')
-          : t('errors.fillArchiveDetails')
-      );
+      setEvidenceUploadError(t('errors.fillArchiveDetails'));
       return;
     }
 
@@ -1255,14 +1241,6 @@ function App() {
                         autoComplete="off"
                         className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       />
-                      <p className="mt-2 text-left text-xs leading-5 text-slate-500">
-                        {t('form.identityPrivacy')}
-                      </p>
-                      {countryRegion && documentNumber.trim() && !documentNumberIsValid && (
-                        <p className="mt-2 text-left text-sm text-amber-300">
-                          {t('errors.invalidIdentityDocument')}
-                        </p>
-                      )}
                     </div>
 
                     <button
@@ -1272,7 +1250,7 @@ function App() {
                         || !characterName.trim()
                         || !creatorName.trim()
                         || !countryRegion.trim()
-                        || !documentNumberIsValid
+                        || !documentNumber.trim()
                       }
                       className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >

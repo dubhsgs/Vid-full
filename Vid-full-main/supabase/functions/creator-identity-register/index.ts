@@ -1,9 +1,4 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
-import {
-  isSupportedIdentityDocumentType,
-  isValidIdentityDocument,
-} from '../_shared/identityValidation.ts';
-
 const ALLOWED_DOCUMENT_TYPES = new Set([
   'national_id',
   'passport',
@@ -107,16 +102,8 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'INVALID_DOCUMENT_TYPE' }, 400);
     }
 
-    if (documentNumber.length < 4 || documentNumber.length > 120) {
+    if (documentNumber.length < 1 || documentNumber.length > 120) {
       return jsonResponse({ success: false, error: 'INVALID_DOCUMENT_NUMBER' }, 400);
-    }
-
-    if (!isSupportedIdentityDocumentType(countryRegion, documentType)) {
-      return jsonResponse({ success: false, error: 'UNSUPPORTED_IDENTITY_DOCUMENT' }, 400);
-    }
-
-    if (!isValidIdentityDocument(countryRegion, documentType, documentNumber)) {
-      return jsonResponse({ success: false, error: 'INVALID_IDENTITY_DOCUMENT' }, 400);
     }
 
     const supabase = createServiceClient();
