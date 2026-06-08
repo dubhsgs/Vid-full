@@ -297,7 +297,7 @@ function App() {
       if ((i18n.resolvedLanguage ?? i18n.language).startsWith('en')) {
         setShowChineseLanguagePrompt(true);
       }
-    }, 3000);
+    }, 5000);
 
     return () => window.clearTimeout(timer);
   }, [heroLanguage, i18n]);
