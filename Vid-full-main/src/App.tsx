@@ -856,9 +856,6 @@ function App() {
             <h2 id="chinese-language-prompt-title" className="text-xl font-bold text-white">
               是否要切换成中文？
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              大部分早期用户使用中文界面，切换后浏览会更顺畅。
-            </p>
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
