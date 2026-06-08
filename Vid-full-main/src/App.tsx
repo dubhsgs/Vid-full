@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Shield, FileCheck, ChevronDown, X, Gift, Sparkles, Trash2 } from 'lucide-react';
+import { Upload, Shield, FileCheck, ChevronDown, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { calculateSHA256 } from './utils/sha256';
@@ -45,7 +45,7 @@ const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
 const MAX_EVIDENCE_FILE_MB = MAX_EVIDENCE_FILE_BYTES / (1024 * 1024);
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const LAUNCH_BENEFIT_DISMISSED_KEY = 'vaid-launch-benefit-dismissed-v4';
+const CHINESE_LANGUAGE_PROMPT_SESSION_KEY = 'vaid-chinese-language-prompt-shown-v1';
 
 function HeroHudFrame() {
   const innerContainerFillPath =
@@ -266,7 +266,7 @@ function App() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [showLaunchBenefit, setShowLaunchBenefit] = useState(false);
+  const [showChineseLanguagePrompt, setShowChineseLanguagePrompt] = useState(false);
   const supportedDocumentTypes = getSupportedDocumentTypes(countryRegion);
   const documentNumberIsValid = isValidIdentityDocument(
     countryRegion,
@@ -285,14 +285,36 @@ function App() {
     .sort((left, right) => left.label.localeCompare(right.label, i18n.resolvedLanguage ?? i18n.language));
 
   useEffect(() => {
-    setShowLaunchBenefit(localStorage.getItem(LAUNCH_BENEFIT_DISMISSED_KEY) !== '1');
+    if (!heroLanguage.startsWith('en')) return;
+
+    try {
+      if (window.sessionStorage.getItem(CHINESE_LANGUAGE_PROMPT_SESSION_KEY) === '1') return;
+    } catch {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if ((i18n.resolvedLanguage ?? i18n.language).startsWith('en')) {
+        setShowChineseLanguagePrompt(true);
+      }
+    }, 3000);
+
+    return () => window.clearTimeout(timer);
+  }, [heroLanguage, i18n]);
+
+  const closeChineseLanguagePrompt = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(CHINESE_LANGUAGE_PROMPT_SESSION_KEY, '1');
+    } catch {
+      // Keep the prompt dismissible even if session storage is unavailable.
+    }
+    setShowChineseLanguagePrompt(false);
   }, []);
 
-  const dismissLaunchBenefit = useCallback(() => {
-    localStorage.setItem(LAUNCH_BENEFIT_DISMISSED_KEY, '1');
-    setShowLaunchBenefit(false);
-  }, []);
-
+  const switchToChinese = useCallback(() => {
+    closeChineseLanguagePrompt();
+    void i18n.changeLanguage('zh');
+  }, [closeChineseLanguagePrompt, i18n]);
 
   const refreshAccessDashboard = useCallback(async (preferredCode?: string) => {
     const [freeRemaining, savedCodeInfo] = await Promise.all([
@@ -865,32 +887,36 @@ function App() {
       </div>
       <AnimatedGrid />
 
-      {showLaunchBenefit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/36 px-4 backdrop-blur-md">
-          <div className="relative w-full max-w-[380px] overflow-hidden rounded-2xl border border-cyan-200/45 bg-[#07111f]/95 px-7 py-10 text-center shadow-[0_0_64px_rgba(34,211,238,0.22)] sm:px-8 sm:py-12">
-            <button
-              type="button"
-              onClick={dismissLaunchBenefit}
-              aria-label="Close"
-              className="absolute right-4 top-4 rounded-full border border-cyan-100/25 bg-white/5 p-2 text-cyan-100 transition-colors hover:border-cyan-200/70 hover:bg-cyan-200/10"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100 to-transparent" />
-            <div className="mb-6 flex items-center justify-center gap-4 text-cyan-100" aria-hidden="true">
-              <Sparkles className="h-5 w-5 opacity-80" />
-              <span className="rounded-full border border-cyan-200/35 bg-cyan-200/10 p-3 shadow-[0_0_28px_rgba(125,249,255,0.18)]">
-                <Gift className="h-7 w-7" />
-              </span>
-              <Sparkles className="h-5 w-5 opacity-80" />
-            </div>
-            <h2 className="mx-auto pr-8 text-xl font-black leading-tight text-white sm:pr-0 sm:text-2xl">
-              Limited-Time Free Access: Create Your First VAID Digital ID
+      {showChineseLanguagePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 px-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="chinese-language-prompt-title"
+            className="w-full max-w-sm rounded-xl border border-cyan-300/25 bg-slate-950/95 p-6 text-center shadow-2xl shadow-cyan-950/40"
+          >
+            <h2 id="chinese-language-prompt-title" className="text-xl font-bold text-white">
+              是否要切换成中文？
             </h2>
-            <div className="mx-auto my-7 h-px w-32 bg-cyan-100/30" />
-            <p className="mx-auto text-2xl font-black leading-tight text-cyan-100 sm:text-3xl">
-              限时免费：免费生成你的第一份 VAID 数字身份证
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              大部分早期用户使用中文界面，切换后浏览会更顺畅。
             </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={closeChineseLanguagePrompt}
+                className="flex-1 rounded-lg border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+              >
+                暂不
+              </button>
+              <button
+                type="button"
+                onClick={switchToChinese}
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+              >
+                确定
+              </button>
+            </div>
           </div>
         </div>
       )}
