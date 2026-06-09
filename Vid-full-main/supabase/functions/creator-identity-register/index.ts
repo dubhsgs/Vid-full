@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error: 'INVALID_DOCUMENT_TYPE' }, 400);
     }
 
-    if (documentNumber.length < 2 || documentNumber.length > 120) {
+    if (documentNumber.length < 1 || documentNumber.length > 120) {
       return jsonResponse({ success: false, error: 'INVALID_DOCUMENT_NUMBER' }, 400);
     }
 

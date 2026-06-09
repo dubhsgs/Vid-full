@@ -216,7 +216,7 @@ function buildArchiveCertificateHtml(
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #fbfdff;
+      background: #ffffff;
       color: #172033;
       font-family: "Avenir Next", "Segoe UI", "Noto Sans SC", "Hiragino Sans", Arial, sans-serif;
       line-height: 1.55;
@@ -225,7 +225,7 @@ function buildArchiveCertificateHtml(
       width: 794px;
       min-height: 1123px;
       margin: 0 auto;
-      background: #fbfdff;
+      background: #ffffff;
       padding: 92px 84px;
       border: 1px solid #c8d3df;
       position: relative;
@@ -558,7 +558,7 @@ async function buildArchiveCertificatePdf(
     if (!page) throw new Error('Archive certificate page missing');
 
     const canvas = await html2canvas(page, {
-      backgroundColor: '#fbfdff',
+      backgroundColor: '#ffffff',
       scale: 2,
       useCORS: true,
       logging: false,

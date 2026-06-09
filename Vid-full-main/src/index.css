@@ -4,6 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes vaid-indeterminate-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.vaid-indeterminate-progress {
+  width: 28%;
+  animation: vaid-indeterminate-progress 1.2s ease-in-out infinite;
+}
+
 @layer base {
   html,
   body,

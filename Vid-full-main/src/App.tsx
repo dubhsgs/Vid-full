@@ -490,13 +490,9 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || documentNumber.trim().length < 2
+      || !documentNumber.trim()
     ) {
-      setGenerationError(
-        documentNumber.trim().length === 1
-          ? t('errors.invalidIdentityDocument')
-          : t('errors.fillArchiveDetails')
-      );
+      setGenerationError(t('errors.fillArchiveDetails'));
       return;
     }
     setGenerationError('');
@@ -641,13 +637,9 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || documentNumber.trim().length < 2
+      || !documentNumber.trim()
     ) {
-      setEvidenceUploadError(
-        documentNumber.trim().length === 1
-          ? t('errors.invalidIdentityDocument')
-          : t('errors.fillArchiveDetails')
-      );
+      setEvidenceUploadError(t('errors.fillArchiveDetails'));
       return;
     }
 
@@ -1258,7 +1250,7 @@ function App() {
                         || !characterName.trim()
                         || !creatorName.trim()
                         || !countryRegion.trim()
-                        || documentNumber.trim().length < 2
+                        || !documentNumber.trim()
                       }
                       className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >
@@ -1323,8 +1315,14 @@ function App() {
                         <div className="mt-5">
                           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
                             <div
-                              className="h-full rounded-full bg-cyan-300 transition-all duration-300"
-                              style={{ width: `${Math.max(evidenceUploadProgress, 8)}%` }}
+                              className={`h-full rounded-full bg-cyan-300 ${
+                                evidenceFiles.length > 0
+                                  ? 'transition-all duration-300'
+                                  : 'vaid-indeterminate-progress'
+                              }`}
+                              style={evidenceFiles.length > 0
+                                ? { width: `${Math.max(evidenceUploadProgress, 8)}%` }
+                                : undefined}
                             />
                           </div>
                         </div>
