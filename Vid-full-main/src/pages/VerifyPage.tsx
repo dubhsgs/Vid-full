@@ -301,14 +301,52 @@ export function VerifyPage() {
         console.error('[VerifyPage] Failed to generate/load QR code:', err);
       }
 
-      const issueDate = formatCertificateIssuedDate(new Date(record.created_at));
+      const issueDate = formatCertificateIssuedDate(new Date(record.created_at), langKey);
+      const certificateCopy = langKey === 'zh'
+        ? {
+            status: '已验证',
+            description: '本卡片用于记录由 VAID 创建的唯一数字身份及其可验证信息。',
+            canvas: {
+              nameLabel: '名称：',
+              statusLabel: '状态：',
+              createdLabel: '创建时间：',
+              recordIdLabel: '档案编号：',
+              proofLabel: '存证：',
+              proofValue: '链上时间锚定',
+            },
+          }
+        : langKey === 'ja'
+          ? {
+              status: '検証済み',
+              description: 'このカードは、VAID に記録された固有のデジタルアイデンティティと検証可能な情報を示します。',
+              canvas: {
+                nameLabel: '名前：',
+                statusLabel: '状態：',
+                createdLabel: '作成日時：',
+                recordIdLabel: 'Record ID：',
+                proofLabel: '証明：',
+                proofValue: 'チェーン時刻記録',
+              },
+            }
+          : {
+              status: 'VERIFIED',
+              description: 'THIS DOCUMENT PROVIDES VERIFIABLE EVIDENCE OF A UNIQUE DIGITAL IDENTITY RECORDED BY VAID.',
+              canvas: {
+                nameLabel: 'NAME:',
+                statusLabel: 'STATUS:',
+                createdLabel: 'CREATED:',
+                recordIdLabel: 'RECORD ID:',
+                proofLabel: 'PROOF:',
+                proofValue: 'Blockchain sealed',
+              },
+            };
       const rendered = await renderCertificateCanvas(canvas, {
         fields: {
           name: record.character_name,
-          status: 'VERIFIED',
+          status: certificateCopy.status,
           issuedDate: issueDate,
           serialId: record.id.toUpperCase(),
-          description: 'THIS DOCUMENT PROVIDES VERIFIABLE EVIDENCE OF A UNIQUE DIGITAL IDENTITY RECORDED BY VAID.',
+          description: certificateCopy.description,
         },
         assets: {
           backgroundImage: bgImg,
@@ -317,6 +355,7 @@ export function VerifyPage() {
           avatarImage: avatarImg,
           qrImage: qrImg,
         },
+        copy: certificateCopy.canvas,
       });
       if (!rendered) {
         throw new Error('Canvas context unavailable');
@@ -327,7 +366,7 @@ export function VerifyPage() {
       console.error('[VerifyPage] Failed to render certificate:', err);
       setCertificateReady(true);
     }
-  }, [record, loadImage]);
+  }, [langKey, record, loadImage]);
 
   useEffect(() => {
     if (record) {

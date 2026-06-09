@@ -182,6 +182,7 @@ const resources = {
         unsupportedImageType: 'Please upload a JPG, PNG, WEBP, or GIF image.',
         imageTooLarge: 'Image is too large. Please upload an image smaller than {{size}}.',
         evidenceInvalidFile: 'Please upload video, image, or PDF proof materials smaller than {{size}} each.',
+        evidenceRequired: 'Please upload platform creation proof materials, or click Skip.',
         evidenceUploadFailed: 'Proof material upload failed. Please try again or skip this step.',
         identitySaveFailed: 'Identity information could not be saved. Please try again.',
         invalidIdentityDocument: 'Please enter a document number that matches the selected country and document type.',
@@ -248,6 +249,7 @@ const resources = {
         identityPreview: 'Identity Preview',
         downloading: 'Downloading...',
         download: 'Download',
+        recordedBy: 'Proof of identity recorded by VAID',
         errors: {
           missingData: 'Required certificate data is missing. Please return home and start again.',
           expiredSession: 'This generation link has expired. Please return home and start again.',
@@ -432,6 +434,7 @@ const resources = {
         unsupportedImageType: '请上传 JPG、PNG、WEBP 或 GIF 图片',
         imageTooLarge: '图片过大，请上传小于 {{size}} 的图片',
         evidenceInvalidFile: '请上传视频、图片或 PDF 证明材料，每个文件不超过 {{size}}',
+        evidenceRequired: '请先上传平台创作证明材料，或点击跳过。',
         evidenceUploadFailed: '证明材料上传失败，请重试，或跳过这一步',
         identitySaveFailed: '身份资料保存失败，请重试',
         invalidIdentityDocument: '请输入符合所选国家和证件类型格式的证件号码',
@@ -498,6 +501,7 @@ const resources = {
         identityPreview: '身份预览',
         downloading: '下载中...',
         download: '下载',
+        recordedBy: '身份记录已由 VAID 存证',
         errors: {
           missingData: '缺少生成证书所需的数据，请从首页重新开始。',
           expiredSession: '本次生成链接已失效，请返回首页重新发起生成。',
@@ -681,6 +685,7 @@ const resources = {
         unsupportedImageType: 'JPG、PNG、WEBP、GIF 画像をアップロードしてください。',
         imageTooLarge: '画像が大きすぎます。{{size}} 未満の画像をアップロードしてください。',
         evidenceInvalidFile: '動画、画像、PDF の証明資料をアップロードしてください。各ファイルは {{size}} 未満にしてください。',
+        evidenceRequired: 'プラットフォーム上の制作証明資料をアップロードするか、「スキップ」をクリックしてください。',
         evidenceUploadFailed: '証明資料のアップロードに失敗しました。再試行するか、この手順をスキップしてください。',
         identitySaveFailed: '本人確認情報を保存できませんでした。再試行してください。',
         invalidIdentityDocument: '選択した国と証明書の種類に一致する番号を入力してください。',
@@ -747,6 +752,7 @@ const resources = {
         identityPreview: 'アイデンティティプレビュー',
         downloading: 'ダウンロード中...',
         download: 'ダウンロード',
+        recordedBy: 'VAID に記録されたアイデンティティ証明',
         errors: {
           missingData: '証明書生成に必要なデータが不足しています。ホームに戻ってやり直してください。',
           expiredSession: 'この生成リンクは期限切れです。ホームに戻ってやり直してください。',

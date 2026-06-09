@@ -54,13 +54,39 @@ export interface CertificateCanvasAssets {
 export interface CertificateCanvasRenderInput {
   fields: CertificateCanvasFields;
   assets: CertificateCanvasAssets;
+  copy?: CertificateCanvasCopy;
+}
+
+export interface CertificateCanvasCopy {
+  nameLabel: string;
+  statusLabel: string;
+  createdLabel: string;
+  recordIdLabel: string;
+  proofLabel: string;
+  proofValue: string;
 }
 
 export interface CertificateCanvasRenderOptions {
   dpr?: number;
 }
 
-export function formatCertificateIssuedDate(date = new Date()) {
+export function formatCertificateIssuedDate(date = new Date(), language = 'en') {
+  if (language.startsWith('zh')) {
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  }
+
+  if (language.startsWith('ja')) {
+    return date.toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  }
+
   const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
   const day = String(date.getDate()).padStart(2, '0');
   const year = date.getFullYear();
@@ -569,17 +595,21 @@ function drawDividerLine(ctx: CanvasRenderingContext2D) {
   ctx.restore();
 }
 
-function drawTextFields(ctx: CanvasRenderingContext2D, fields: CertificateCanvasFields) {
+function drawTextFields(
+  ctx: CanvasRenderingContext2D,
+  fields: CertificateCanvasFields,
+  copy: CertificateCanvasCopy
+) {
   const startX = PANEL_X + PANEL_W * TEXT_START_X_RATIO;
   const labelStyle = 'rgba(205, 198, 183, 0.84)';
   const valueStyle = 'rgba(247, 241, 229, 0.98)';
   const sharedFont = `600 ${INFO_TEXT_FONT_SIZE}px "Avenir Next", "Segoe UI", system-ui`;
   const labelGap = 11;
   const lines = [
-    { label: 'NAME:', value: fields.name, y: PANEL_Y + PANEL_H * TEXT_NAME_Y_RATIO, valueColor: valueStyle },
-    { label: 'STATUS:', value: fields.status, y: PANEL_Y + PANEL_H * TEXT_STATUS_Y_RATIO, valueColor: '#1fe06b' },
-    { label: 'CREATED:', value: fields.issuedDate, y: PANEL_Y + PANEL_H * TEXT_ISSUED_Y_RATIO, valueColor: valueStyle },
-    { label: 'RECORD ID:', value: fields.serialId, y: PANEL_Y + PANEL_H * TEXT_ID_Y_RATIO, valueColor: valueStyle },
+    { label: copy.nameLabel, value: fields.name, y: PANEL_Y + PANEL_H * TEXT_NAME_Y_RATIO, valueColor: valueStyle },
+    { label: copy.statusLabel, value: fields.status, y: PANEL_Y + PANEL_H * TEXT_STATUS_Y_RATIO, valueColor: '#1fe06b', isStatus: true },
+    { label: copy.createdLabel, value: fields.issuedDate, y: PANEL_Y + PANEL_H * TEXT_ISSUED_Y_RATIO, valueColor: valueStyle },
+    { label: copy.recordIdLabel, value: fields.serialId, y: PANEL_Y + PANEL_H * TEXT_ID_Y_RATIO, valueColor: valueStyle },
   ];
 
   ctx.save();
@@ -591,7 +621,7 @@ function drawTextFields(ctx: CanvasRenderingContext2D, fields: CertificateCanvas
     ctx.fillText(line.label, startX, line.y);
     const valueX = startX + ctx.measureText(line.label).width + labelGap;
 
-    if (line.label === 'STATUS:') {
+    if (line.isStatus) {
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
       ctx.fillStyle = 'rgba(31, 224, 107, 0.63)';
@@ -613,7 +643,11 @@ function drawTextFields(ctx: CanvasRenderingContext2D, fields: CertificateCanvas
   ctx.restore();
 }
 
-function drawQRCode(ctx: CanvasRenderingContext2D, qrImg: HTMLImageElement | null) {
+function drawQRCode(
+  ctx: CanvasRenderingContext2D,
+  qrImg: HTMLImageElement | null,
+  copy: CertificateCanvasCopy
+) {
   const { plateX, plateY, plateW, plateH, qx, qy, qs } = getQRCodeGeometry();
   const textCenterX = plateX + plateW / 2;
   const textSafeWidth = plateW - 12;
@@ -657,10 +691,10 @@ function drawQRCode(ctx: CanvasRenderingContext2D, qrImg: HTMLImageElement | nul
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${QR_TEXT_PRIMARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
   ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
-  ctx.fillText('PROOF:', textCenterX, proofLabelY, textSafeWidth);
+  ctx.fillText(copy.proofLabel, textCenterX, proofLabelY, textSafeWidth);
   ctx.font = `700 ${QR_TEXT_SECONDARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
   ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
-  ctx.fillText('Blockchain sealed', textCenterX, proofValueY, textSafeWidth);
+  ctx.fillText(copy.proofValue, textCenterX, proofValueY, textSafeWidth);
   ctx.restore();
 }
 
@@ -691,6 +725,14 @@ export async function renderCertificateCanvas(
   ctx.clearRect(0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
 
   const { assets, fields } = input;
+  const copy = input.copy ?? {
+    nameLabel: 'NAME:',
+    statusLabel: 'STATUS:',
+    createdLabel: 'CREATED:',
+    recordIdLabel: 'RECORD ID:',
+    proofLabel: 'PROOF:',
+    proofValue: 'Blockchain sealed',
+  };
   if (assets.backgroundImage) {
     drawCover(ctx, assets.backgroundImage, 0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
   }
@@ -699,8 +741,8 @@ export async function renderCertificateCanvas(
   drawLogo(ctx, assets.logoImage);
   drawAvatar(ctx, assets.avatarImage);
   drawDividerLine(ctx);
-  drawTextFields(ctx, fields);
-  drawQRCode(ctx, assets.qrImage);
+  drawTextFields(ctx, fields, copy);
+  drawQRCode(ctx, assets.qrImage, copy);
   drawDescription(ctx, fields.description);
   drawCardMistBlur(ctx);
 

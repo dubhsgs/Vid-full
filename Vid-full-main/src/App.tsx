@@ -490,9 +490,13 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || !documentNumber.trim()
+      || documentNumber.trim().length < 2
     ) {
-      setGenerationError(t('errors.fillArchiveDetails'));
+      setGenerationError(
+        documentNumber.trim().length === 1
+          ? t('errors.invalidIdentityDocument')
+          : t('errors.fillArchiveDetails')
+      );
       return;
     }
     setGenerationError('');
@@ -637,9 +641,13 @@ function App() {
       !characterName.trim()
       || !creatorName.trim()
       || !countryRegion.trim()
-      || !documentNumber.trim()
+      || documentNumber.trim().length < 2
     ) {
-      setEvidenceUploadError(t('errors.fillArchiveDetails'));
+      setEvidenceUploadError(
+        documentNumber.trim().length === 1
+          ? t('errors.invalidIdentityDocument')
+          : t('errors.fillArchiveDetails')
+      );
       return;
     }
 
@@ -649,8 +657,8 @@ function App() {
     }
 
     if (!skipEvidence && evidenceFiles.length === 0) {
-      if (!window.confirm(t('form.evidenceSkipConfirm'))) return;
-      skipEvidence = true;
+      setEvidenceUploadError(t('errors.evidenceRequired'));
+      return;
     }
 
     if (authState.loading) {
@@ -1250,7 +1258,7 @@ function App() {
                         || !characterName.trim()
                         || !creatorName.trim()
                         || !countryRegion.trim()
-                        || !documentNumber.trim()
+                        || documentNumber.trim().length < 2
                       }
                       className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
                     >

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../utils/supabase';
@@ -56,6 +56,51 @@ function getDownloadLanguage(language?: string): DownloadLanguage {
   if (language?.startsWith('zh')) return 'zh';
   if (language?.startsWith('ja')) return 'ja';
   return 'en';
+}
+
+function getCardCopy(language: DownloadLanguage) {
+  if (language === 'zh') {
+    return {
+      status: '已验证',
+      description: '本卡片用于记录由 VAID 创建的唯一数字身份及其可验证信息。',
+      canvas: {
+        nameLabel: '名称：',
+        statusLabel: '状态：',
+        createdLabel: '创建时间：',
+        recordIdLabel: '档案编号：',
+        proofLabel: '存证：',
+        proofValue: '链上时间锚定',
+      },
+    };
+  }
+
+  if (language === 'ja') {
+    return {
+      status: '検証済み',
+      description: 'このカードは、VAID に記録された固有のデジタルアイデンティティと検証可能な情報を示します。',
+      canvas: {
+        nameLabel: '名前：',
+        statusLabel: '状態：',
+        createdLabel: '作成日時：',
+        recordIdLabel: 'Record ID：',
+        proofLabel: '証明：',
+        proofValue: 'チェーン時刻記録',
+      },
+    };
+  }
+
+  return {
+    status: 'VERIFIED',
+    description: 'THIS DOCUMENT PROVIDES VERIFIABLE EVIDENCE OF A UNIQUE DIGITAL IDENTITY RECORDED BY VAID.',
+    canvas: {
+      nameLabel: 'NAME:',
+      statusLabel: 'STATUS:',
+      createdLabel: 'CREATED:',
+      recordIdLabel: 'RECORD ID:',
+      proofLabel: 'PROOF:',
+      proofValue: 'Blockchain sealed',
+    },
+  };
 }
 
 function getLocalizedBundleNames(language: DownloadLanguage) {
@@ -535,6 +580,8 @@ async function buildArchiveCertificatePdf(
 
 export function CardGenerator() {
   const { t, i18n } = useTranslation();
+  const cardLanguage = getDownloadLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const cardCopy = useMemo(() => getCardCopy(cardLanguage), [cardLanguage]);
   const CARD_GENERATOR_SESSION_KEY = 'v-id-card-generator-session';
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -600,12 +647,14 @@ export function CardGenerator() {
 
       sessionStorage.setItem(CARD_GENERATOR_SESSION_KEY, '1');
 
-      const issuedDate = formatCertificateIssuedDate();
+      const issuedDate = formatCertificateIssuedDate(new Date(), cardLanguage);
 
       setForm(prev => ({
         ...prev,
         name: savedName,
+        status: cardCopy.status,
         issuedDate,
+        description: cardCopy.description,
         serialId: 'Generating...',
       }));
 
@@ -647,7 +696,7 @@ export function CardGenerator() {
     };
 
     initializeCard();
-  }, [CARD_GENERATOR_SESSION_KEY, generateSerialId, navigate, siteOrigin, t]);
+  }, [CARD_GENERATOR_SESSION_KEY, cardCopy.description, cardCopy.status, cardLanguage, generateSerialId, navigate, siteOrigin, t]);
 
   const loadImage = useCallback((src: string, timeout = 10000): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -759,6 +808,7 @@ export function CardGenerator() {
         avatarImage: avatarImg,
         qrImage: qrImg,
       },
+      copy: cardCopy.canvas,
     }).then((rendered) => {
       if (!cancelled && !rendered) {
         console.error('[CardGenerator] Canvas context unavailable');
@@ -772,7 +822,7 @@ export function CardGenerator() {
     return () => {
       cancelled = true;
     };
-  }, [avatarImg, bgImg, form, logoImg, qrImg, textureImg]);
+  }, [avatarImg, bgImg, cardCopy.canvas, form, logoImg, qrImg, textureImg]);
 
   const exportPNG = async () => {
     if (isDownloading) return;
@@ -952,7 +1002,7 @@ export function CardGenerator() {
         }}
       />
       <p className="relative z-10 mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
-        * PROOF OF IDENTITY RECORDED BY VAID
+        * {t('cardGenerator.recordedBy')}
       </p>
     </div>
   );
