@@ -69,13 +69,13 @@ function HeroHudFrame() {
           <stop offset="100%" stopColor="#0b1430" stopOpacity="0.0576" />
         </linearGradient>
         <linearGradient id="hero-gbg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f1fbff" stopOpacity="0.0634" />
-          <stop offset="52%" stopColor="#d2e3ff" stopOpacity="0.049" />
-          <stop offset="100%" stopColor="#9db4e7" stopOpacity="0.0346" />
+          <stop offset="0%" stopColor="#f7fcff" stopOpacity="0.13" />
+          <stop offset="52%" stopColor="#e4efff" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#b9cbed" stopOpacity="0.072" />
         </linearGradient>
         <linearGradient id="hero-gshine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbfeff" stopOpacity="0.0346" />
-          <stop offset="38%" stopColor="#e2f0ff" stopOpacity="0.0187" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.068" />
+          <stop offset="38%" stopColor="#eef6ff" stopOpacity="0.038" />
           <stop offset="100%" stopColor="#9fb8e8" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="hero-top-left-neon" x1="32" y1="20" x2="186" y2="20" gradientUnits="userSpaceOnUse">
@@ -1156,7 +1156,7 @@ function App() {
                             setGenerationError('');
                           }}
                           placeholder={t('form.characterPlaceholder')}
-                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          className="vaid-identity-control w-full bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                       </div>
 
@@ -1173,7 +1173,7 @@ function App() {
                             setGenerationError('');
                           }}
                           placeholder={t('form.creatorPlaceholder')}
-                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          className="vaid-identity-control w-full bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                       </div>
 
@@ -1181,49 +1181,55 @@ function App() {
                         <label htmlFor="countryRegion" className="block text-left text-base font-medium text-white mb-2">
                           {t('form.countryRegion')}
                         </label>
-                        <select
-                          id="countryRegion"
-                          value={countryRegion}
-                          onChange={(event) => {
-                            const nextCountry = event.target.value;
-                            const nextTypes = getSupportedDocumentTypes(nextCountry);
-                            setCountryRegion(nextCountry);
-                            setDocumentType(nextTypes[0] || 'passport');
-                            setDocumentNumber('');
-                            setGenerationError('');
-                          }}
-                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        >
-                          <option value="">{t('form.countryRegionPlaceholder')}</option>
-                          {identityCountryOptions.map(country => (
-                            <option key={country.code} value={country.code}>{country.label}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            id="countryRegion"
+                            value={countryRegion}
+                            onChange={(event) => {
+                              const nextCountry = event.target.value;
+                              const nextTypes = getSupportedDocumentTypes(nextCountry);
+                              setCountryRegion(nextCountry);
+                              setDocumentType(nextTypes[0] || 'passport');
+                              setDocumentNumber('');
+                              setGenerationError('');
+                            }}
+                            className="vaid-identity-control vaid-identity-select w-full bg-[#0a0a0a] border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          >
+                            <option value="">{t('form.countryRegionPlaceholder')}</option>
+                            {identityCountryOptions.map(country => (
+                              <option key={country.code} value={country.code}>{country.label}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="vaid-identity-select-icon" aria-hidden="true" />
+                        </div>
                       </div>
 
                       <div>
                         <label htmlFor="documentType" className="block text-left text-base font-medium text-white mb-2">
                           {t('form.documentType')}
                         </label>
-                        <select
-                          id="documentType"
-                          value={documentType}
-                          onChange={(event) => {
-                            setDocumentType(event.target.value as CreatorDocumentType);
-                            setDocumentNumber('');
-                            setGenerationError('');
-                          }}
-                          disabled={!countryRegion}
-                          className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        >
-                          {supportedDocumentTypes.map(type => (
-                            <option key={type} value={type}>
-                              {type === 'national_id'
-                                ? t('form.documentTypeNationalId')
-                                : t('form.documentTypePassport')}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            id="documentType"
+                            value={documentType}
+                            onChange={(event) => {
+                              setDocumentType(event.target.value as CreatorDocumentType);
+                              setDocumentNumber('');
+                              setGenerationError('');
+                            }}
+                            disabled={!countryRegion}
+                            className="vaid-identity-control vaid-identity-select w-full bg-[#0a0a0a] border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          >
+                            {supportedDocumentTypes.map(type => (
+                              <option key={type} value={type}>
+                                {type === 'national_id'
+                                  ? t('form.documentTypeNationalId')
+                                  : t('form.documentTypePassport')}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="vaid-identity-select-icon" aria-hidden="true" />
+                        </div>
                       </div>
                     </div>
 
@@ -1241,7 +1247,7 @@ function App() {
                         }}
                         placeholder={t('form.documentNumberPlaceholder')}
                         autoComplete="off"
-                        className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="vaid-identity-control w-full bg-[#0a0a0a] border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       />
                     </div>
 

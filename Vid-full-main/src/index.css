@@ -637,6 +637,35 @@
   -webkit-backdrop-filter: blur(9.36px);
 }
 
+.vaid-identity-control {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 3.25rem;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  font: inherit;
+  line-height: 1.25;
+}
+
+.vaid-identity-select {
+  padding-right: 3rem;
+}
+
+.vaid-identity-select-icon {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #cbd5e1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.vaid-identity-select:disabled + .vaid-identity-select-icon {
+  opacity: 0.45;
+}
+
 .vaid-footer-circuit {
   left: 50%;
   width: 100vw;
