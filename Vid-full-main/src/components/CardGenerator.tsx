@@ -329,6 +329,13 @@ function buildArchiveCertificateHtml(
       font-weight: 700;
       color: #0f2742;
     }
+    .header-record {
+      align-self: center;
+      color: #5c6d80;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: right;
+    }
     h1 {
       margin: 38px 0 10px;
       font-size: 28px;
@@ -381,12 +388,18 @@ function buildArchiveCertificateHtml(
       line-height: 1.7;
     }
     .statement {
+      height: 124px;
       border: 1px solid #d9e2eb;
       background: #f7fafc;
       background-color: #f7fafc;
       padding: 18px 20px;
       color: #38485a;
       font-size: 13px;
+      font-family: "Avenir Next", "Segoe UI", "Noto Sans SC", "Hiragino Sans", Arial, sans-serif;
+      font-weight: 400;
+      line-height: 1.65;
+      display: flex;
+      align-items: center;
     }
     .statement p {
       margin: 0;
@@ -460,6 +473,7 @@ function buildArchiveCertificateHtml(
     <div class="border"></div>
     <header class="header">
       <div class="brand">VAID</div>
+      <div class="header-record">${escapeHtml(copy.fields.recordId)}：${escapeHtml(form.serialId)}</div>
     </header>
 
     <h1>${escapeHtml(copy.title)}</h1>
@@ -498,6 +512,7 @@ function buildArchiveCertificateHtml(
     <div class="border"></div>
     <header class="header">
       <div class="brand">VAID</div>
+      <div class="header-record">${escapeHtml(copy.fields.recordId)}：${escapeHtml(form.serialId)}</div>
     </header>
 
     <h1>${escapeHtml(copy.manifestTitle)}</h1>
