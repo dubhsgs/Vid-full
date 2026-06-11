@@ -27,6 +27,20 @@ interface ArchiveCertificateMetadata {
   createdAt?: string;
 }
 
+interface EvidenceMaterialRecord {
+  file_name: string;
+  material_type: string;
+  file_size_bytes: number;
+  sha256_hash: string;
+  created_at: string;
+}
+
+interface EvidenceManifest {
+  materials: EvidenceMaterialRecord[];
+  manifestText: string;
+  manifestHash: string;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -143,6 +157,18 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
         createdTime: 'Created Time',
         sha256Hash: 'SHA-256 Hash',
         publicVerificationUrl: 'Public Verification URL',
+        privateEvidenceMaterials: 'Private Evidence Materials',
+        evidenceManifestHash: 'Evidence Manifest Hash',
+      },
+      manifestTitle: '私有证据材料清单',
+      manifestSubtitle: '本页列出与该 VAID 记录相关联的私有创作证明材料元数据。原始材料文件不包含在本 PDF 中，应由用户自行长期保存。',
+      manifestEmpty: 'No private evidence materials registered.',
+      manifestColumns: {
+        fileName: 'File Name',
+        type: 'Type',
+        size: 'Size',
+        sha256Hash: 'SHA-256',
+        registeredAt: 'Registered At',
       },
       statement: '本文件为 VAID 生成的数字身份存档证书，用于记录说明和辅助证明。它记录存档编号、创建信息、数字指纹和公开验证链接。本文件不等同于版权登记、公证、司法认证、行政确权或任何政府机关出具的权属证明。',
       preservation: '请将本 PDF 证书、数字身份卡片、公开验证链接、原始文件和创作过程材料一并保存。如发生争议，应结合原始文件、创作过程记录、公开验证页和其他相关证据共同使用。',
@@ -164,6 +190,18 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
         createdTime: 'Created Time',
         sha256Hash: 'SHA-256 Hash',
         publicVerificationUrl: 'Public Verification URL',
+        privateEvidenceMaterials: 'Private Evidence Materials',
+        evidenceManifestHash: 'Evidence Manifest Hash',
+      },
+      manifestTitle: 'プライベート証拠資料一覧',
+      manifestSubtitle: 'このページは、この VAID レコードに関連する非公開の制作証明資料メタデータを示します。原本ファイルはこの PDF には含まれず、ユーザー自身で長期保存してください。',
+      manifestEmpty: 'No private evidence materials registered.',
+      manifestColumns: {
+        fileName: 'File Name',
+        type: 'Type',
+        size: 'Size',
+        sha256Hash: 'SHA-256',
+        registeredAt: 'Registered At',
       },
       statement: 'この文書は、記録説明および補助証拠のために VAID が生成したデジタルアイデンティティアーカイブ証明書です。アーカイブ識別子、作成情報、デジタルフィンガープリント、公開検証リンクを記録します。著作権登録、公証、司法認証、行政上の権利確認、または政府機関による所有権証明に代わるものではありません。',
       preservation: 'この PDF 証明書、デジタルアイデンティティカード、公開検証リンク、原本ファイル、制作過程の資料を一緒に保存してください。紛争が発生した場合は、原本ファイル、制作過程の記録、公開検証ページ、その他の関連証拠とあわせて使用してください。',
@@ -184,9 +222,67 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
       createdTime: 'Created Time',
       sha256Hash: 'SHA-256 Hash',
       publicVerificationUrl: 'Public Verification URL',
+      privateEvidenceMaterials: 'Private Evidence Materials',
+      evidenceManifestHash: 'Evidence Manifest Hash',
+    },
+    manifestTitle: 'Private Evidence Manifest',
+    manifestSubtitle: 'This page lists private creation proof material metadata associated with this VAID record. Original material files are not embedded in this PDF and should be retained by the user.',
+    manifestEmpty: 'No private evidence materials registered.',
+    manifestColumns: {
+      fileName: 'File Name',
+      type: 'Type',
+      size: 'Size',
+      sha256Hash: 'SHA-256',
+      registeredAt: 'Registered At',
     },
     statement: 'This document is a VAID-generated digital identity archive certificate for record explanation and auxiliary evidence. It records the archive identifier, creation information, digital fingerprint, and public verification link. It does not replace copyright registration, notarization, judicial certification, administrative confirmation, or any government-issued ownership certificate.',
     preservation: 'Keep this PDF certificate, the digital identity card, the public verification link, original files, and creation-process materials together. If a dispute occurs, use them together with the original files, creation records, public verification page, and other relevant evidence.',
+  };
+}
+
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return 'Not available';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+}
+
+function buildEvidenceManifestText(form: FormData, materials: EvidenceMaterialRecord[]): string {
+  return [
+    'VAID Private Evidence Manifest',
+    `Record ID: ${form.serialId}`,
+    `Material Count: ${materials.length}`,
+    ...materials.map((material, index) => [
+      `Material ${index + 1}`,
+      `File Name: ${material.file_name}`,
+      `Type: ${material.material_type}`,
+      `MIME/Size: ${formatFileSize(Number(material.file_size_bytes))}`,
+      `SHA-256: ${material.sha256_hash}`,
+      `Registered At: ${formatDateTime(material.created_at)}`,
+    ].join('\n')),
+  ].join('\n\n');
+}
+
+async function buildEvidenceManifest(
+  form: FormData,
+  materials: EvidenceMaterialRecord[]
+): Promise<EvidenceManifest | null> {
+  if (materials.length === 0) return null;
+  const sortedMaterials = [...materials].sort((left, right) => {
+    const hashCompare = left.sha256_hash.localeCompare(right.sha256_hash);
+    if (hashCompare !== 0) return hashCompare;
+    return left.file_name.localeCompare(right.file_name);
+  });
+  const manifestText = buildEvidenceManifestText(form, sortedMaterials);
+  return {
+    materials: sortedMaterials,
+    manifestText,
+    manifestHash: await calculateSHA256(manifestText),
   };
 }
 
@@ -195,7 +291,8 @@ function buildArchiveCertificateHtml(
   sha256Hash: string,
   verifyUrl: string,
   metadata: ArchiveCertificateMetadata,
-  language: DownloadLanguage
+  language: DownloadLanguage,
+  evidenceManifest: EvidenceManifest | null
 ): string {
   const copy = getArchiveCertificateCopy(language);
   const fields = [
@@ -204,6 +301,10 @@ function buildArchiveCertificateHtml(
     [copy.fields.createdTime, metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate],
     [copy.fields.sha256Hash, sha256Hash || 'Not available'],
     [copy.fields.publicVerificationUrl, verifyUrl],
+    ...(evidenceManifest ? [
+      [copy.fields.privateEvidenceMaterials, String(evidenceManifest.materials.length)],
+      [copy.fields.evidenceManifestHash, evidenceManifest.manifestHash],
+    ] : []),
   ];
 
   return `<!doctype html>
@@ -313,6 +414,52 @@ function buildArchiveCertificateHtml(
       color: #38485a;
       font-size: 13px;
     }
+    .manifest-page h1 {
+      margin-top: 34px;
+    }
+    .manifest-summary {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 24px 0;
+      padding: 16px 18px;
+      border: 1px solid #d9e2eb;
+      background: #f7fafc;
+      color: #38485a;
+      font-size: 12px;
+    }
+    .manifest-list {
+      display: grid;
+      gap: 12px;
+    }
+    .manifest-item {
+      border: 1px solid #d9e2eb;
+      background: #ffffff;
+      padding: 14px 16px;
+      font-size: 11px;
+      color: #38485a;
+    }
+    .manifest-item-title {
+      color: #172033;
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+    .manifest-row {
+      display: grid;
+      grid-template-columns: 104px 1fr;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .manifest-label {
+      color: #6c7b8d;
+      font-weight: 700;
+    }
+    .manifest-value {
+      color: #172033;
+      word-break: break-word;
+    }
     .footer {
       position: absolute;
       left: 84px;
@@ -370,6 +517,53 @@ function buildArchiveCertificateHtml(
       <span>${escapeHtml(form.serialId)}</span>
     </footer>
   </main>
+  ${evidenceManifest ? `
+  <main class="page manifest-page">
+    <div class="border"></div>
+    <header class="header">
+      <div class="brand">VAID</div>
+      <div class="meta">
+        ${escapeHtml(copy.manifestTitle)}<br />
+        ${escapeHtml(form.serialId)}
+      </div>
+    </header>
+
+    <h1>${escapeHtml(copy.manifestTitle)}</h1>
+    <p class="subtitle">${escapeHtml(copy.manifestSubtitle)}</p>
+
+    <div class="manifest-summary">
+      <div><strong>${escapeHtml(copy.fields.privateEvidenceMaterials)}:</strong> ${evidenceManifest.materials.length}</div>
+      <div><strong>${escapeHtml(copy.fields.evidenceManifestHash)}:</strong> <span class="fingerprint">${escapeHtml(evidenceManifest.manifestHash)}</span></div>
+    </div>
+
+    <div class="manifest-list">
+      ${evidenceManifest.materials.map((material, index) => `
+      <section class="manifest-item">
+        <div class="manifest-item-title">${index + 1}. ${escapeHtml(material.file_name)}</div>
+        <div class="manifest-row">
+          <div class="manifest-label">${escapeHtml(copy.manifestColumns.type)}</div>
+          <div class="manifest-value">${escapeHtml(material.material_type)}</div>
+        </div>
+        <div class="manifest-row">
+          <div class="manifest-label">${escapeHtml(copy.manifestColumns.size)}</div>
+          <div class="manifest-value">${escapeHtml(formatFileSize(Number(material.file_size_bytes)))}</div>
+        </div>
+        <div class="manifest-row">
+          <div class="manifest-label">${escapeHtml(copy.manifestColumns.sha256Hash)}</div>
+          <div class="manifest-value fingerprint">${escapeHtml(material.sha256_hash)}</div>
+        </div>
+        <div class="manifest-row">
+          <div class="manifest-label">${escapeHtml(copy.manifestColumns.registeredAt)}</div>
+          <div class="manifest-value">${escapeHtml(formatDateTime(material.created_at))}</div>
+        </div>
+      </section>`).join('')}
+    </div>
+
+    <footer class="footer">
+      <span>${escapeHtml(copy.generatedBy)}</span>
+      <span>${escapeHtml(form.serialId)}</span>
+    </footer>
+  </main>` : ''}
 </body>
 </html>`;
 }
@@ -408,7 +602,8 @@ Public Verification URL: ${verifyUrl}
 2. 对照公开验证页中的 Record ID、Character Name、Created Time 与本下载包是否一致。
 3. 对照 SHA-256 Hash 是否一致。
 4. 如下载包内包含 .ots 文件，请与本下载包一起保存。
-5. 原始文件、创作过程截图、录屏、提示词记录、平台记录等材料应由您自行长期保存。
+5. 如果 PDF 证书包含 Private Evidence Manifest，请用您自行保存的原始证明材料重新计算 SHA-256，并与清单中的哈希值核对。
+6. 原始文件、创作过程截图、录屏、提示词记录、平台记录等材料应由您自行长期保存。
 
 重要说明：
 VAID 证书和验证页是记录说明与辅助证明材料，不等同于版权登记、公证、司法认证、行政确权或任何政府机关出具的权属证明。如发生争议，应结合原始文件、创作过程材料、VAID 证书、公开验证页和其他相关证据共同使用。
@@ -445,7 +640,8 @@ Public Verification URL: ${verifyUrl}
 2. 公開検証ページの Record ID、Character Name、Created Time がこのパッケージと一致することを確認します。
 3. SHA-256 Hash が一致することを確認します。
 4. パッケージに .ots ファイルが含まれる場合は、一緒に保存してください。
-5. 原本ファイル、制作過程のスクリーンショット、画面録画、プロンプト記録、プラットフォーム記録などはご自身で長期保存してください。
+5. PDF 証明書に Private Evidence Manifest が含まれる場合は、ご自身で保存した原本証明資料から SHA-256 を再計算し、一覧のハッシュ値と照合してください。
+6. 原本ファイル、制作過程のスクリーンショット、画面録画、プロンプト記録、プラットフォーム記録などはご自身で長期保存してください。
 
 重要事項：
 VAID 証明書および検証ページは、記録説明と補助証拠のための資料であり、著作権登録、公証、司法認証、行政上の権利確認、または政府機関による所有権証明に代わるものではありません。紛争が発生した場合は、原本ファイル、制作過程資料、VAID 証明書、公開検証ページ、その他の関連証拠とあわせて使用してください。
@@ -481,7 +677,8 @@ How to verify:
 2. Compare the Record ID, Character Name, and Created Time shown on the public verification page with this package.
 3. Compare the SHA-256 Hash.
 4. If this package includes an .ots file, keep it together with the package.
-5. Keep original files, creation-process screenshots, screen recordings, prompt records, platform records, and related materials yourself.
+5. If the PDF certificate includes a Private Evidence Manifest, recompute SHA-256 from your retained original proof materials and compare it with the manifest hashes.
+6. Keep original files, creation-process screenshots, screen recordings, prompt records, platform records, and related materials yourself.
 
 Important note:
 The VAID certificate and verification page are record explanation and auxiliary proof materials. They do not replace copyright registration, notarization, judicial certification, administrative confirmation, or any government-issued ownership certificate. If a dispute occurs, use them together with original files, creation-process materials, the VAID certificate, the public verification page, and other relevant evidence.
@@ -490,28 +687,46 @@ The VAID certificate and verification page are record explanation and auxiliary 
 `;
 }
 
-function buildJpegPdf(jpegBytes: ArrayBuffer, width: number, height: number): Blob {
+function buildJpegPdf(pages: Array<{ jpegBytes: ArrayBuffer; width: number; height: number }>): Blob {
   const pageWidth = 595.28;
   const pageHeight = 841.89;
-  const margin = 0;
-  const scale = Math.min((pageWidth - margin * 2) / width, (pageHeight - margin * 2) / height);
-  const imageWidth = width * scale;
-  const imageHeight = height * scale;
-  const imageX = (pageWidth - imageWidth) / 2;
-  const imageY = (pageHeight - imageHeight) / 2;
-  const imageArray = new Uint8Array(jpegBytes);
-  let imageBinary = '';
-  for (let i = 0; i < imageArray.length; i += 0x8000) {
-    imageBinary += String.fromCharCode(...imageArray.subarray(i, i + 0x8000));
-  }
-  const contentStream = `q\n${imageWidth.toFixed(2)} 0 0 ${imageHeight.toFixed(2)} ${imageX.toFixed(2)} ${imageY.toFixed(2)} cm\n/Im0 Do\nQ`;
   const objects = [
     '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
-    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`,
-    `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBinary.length} >>\nstream\n${imageBinary}\nendstream\nendobj\n`,
-    `5 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream\nendobj\n`,
   ];
+  const pageObjectNumbers: number[] = [];
+
+  pages.forEach((page, index) => {
+    const pageObjectNumber = 3 + index * 3;
+    const imageObjectNumber = pageObjectNumber + 1;
+    const contentObjectNumber = pageObjectNumber + 2;
+    pageObjectNumbers.push(pageObjectNumber);
+
+    const scale = Math.min(pageWidth / page.width, pageHeight / page.height);
+    const imageWidth = page.width * scale;
+    const imageHeight = page.height * scale;
+    const imageX = (pageWidth - imageWidth) / 2;
+    const imageY = (pageHeight - imageHeight) / 2;
+    const imageArray = new Uint8Array(page.jpegBytes);
+    let imageBinary = '';
+    for (let i = 0; i < imageArray.length; i += 0x8000) {
+      imageBinary += String.fromCharCode(...imageArray.subarray(i, i + 0x8000));
+    }
+    const imageName = `Im${index}`;
+    const contentStream = `q\n${imageWidth.toFixed(2)} 0 0 ${imageHeight.toFixed(2)} ${imageX.toFixed(2)} ${imageY.toFixed(2)} cm\n/${imageName} Do\nQ`;
+
+    objects.push(
+      `${pageObjectNumber} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /${imageName} ${imageObjectNumber} 0 R >> >> /Contents ${contentObjectNumber} 0 R >>\nendobj\n`,
+      `${imageObjectNumber} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${page.width} /Height ${page.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBinary.length} >>\nstream\n${imageBinary}\nendstream\nendobj\n`,
+      `${contentObjectNumber} 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream\nendobj\n`
+    );
+  });
+
+  objects.splice(
+    1,
+    0,
+    `2 0 obj\n<< /Type /Pages /Kids [${pageObjectNumbers.map((objectNumber) => `${objectNumber} 0 R`).join(' ')}] /Count ${pageObjectNumbers.length} >>\nendobj\n`
+  );
+
   let pdf = '%PDF-1.4\n';
   const offsets = [0];
 
@@ -541,9 +756,10 @@ async function buildArchiveCertificatePdf(
   sha256Hash: string,
   verifyUrl: string,
   metadata: ArchiveCertificateMetadata,
-  language: DownloadLanguage
+  language: DownloadLanguage,
+  evidenceManifest: EvidenceManifest | null
 ): Promise<Blob> {
-  const html = buildArchiveCertificateHtml(form, sha256Hash, verifyUrl, metadata, language);
+  const html = buildArchiveCertificateHtml(form, sha256Hash, verifyUrl, metadata, language, evidenceManifest);
   const wrapper = document.createElement('div');
   wrapper.style.position = 'fixed';
   wrapper.style.left = '-10000px';
@@ -554,25 +770,33 @@ async function buildArchiveCertificatePdf(
 
   try {
     const { default: html2canvas } = await import('html2canvas');
-    const page = wrapper.querySelector('.page') as HTMLElement | null;
-    if (!page) throw new Error('Archive certificate page missing');
+    const pageElements = Array.from(wrapper.querySelectorAll('.page')) as HTMLElement[];
+    if (pageElements.length === 0) throw new Error('Archive certificate page missing');
 
-    const canvas = await html2canvas(page, {
-      backgroundColor: '#ffffff',
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-    const jpegBlob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Archive certificate image export failed'));
-        }
-      }, 'image/jpeg', 0.95);
-    });
-    return buildJpegPdf(await jpegBlob.arrayBuffer(), canvas.width, canvas.height);
+    const pdfPages = [];
+    for (const page of pageElements) {
+      const canvas = await html2canvas(page, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const jpegBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Archive certificate image export failed'));
+          }
+        }, 'image/jpeg', 0.95);
+      });
+      pdfPages.push({
+        jpegBytes: await jpegBlob.arrayBuffer(),
+        width: canvas.width,
+        height: canvas.height,
+      });
+    }
+    return buildJpegPdf(pdfPages);
   } finally {
     wrapper.remove();
   }
@@ -839,6 +1063,7 @@ export function CardGenerator() {
           avatarImage: avatarImg,
           qrImage: qrImg,
         },
+        copy: cardCopy.canvas,
       }, { dpr: 2 });
       if (!rendered) {
         throw new Error('Canvas context unavailable');
@@ -861,6 +1086,7 @@ export function CardGenerator() {
       const bundleNames = getLocalizedBundleNames(downloadLanguage);
       const verificationGuide = getVerificationGuide(downloadLanguage, form, sha256Hash, verifyUrl);
       let archiveMetadata: ArchiveCertificateMetadata = {};
+      let evidenceManifest: EvidenceManifest | null = null;
 
       if (citizenId) {
         const { data: recordData, error: recordError } = await supabase
@@ -877,6 +1103,23 @@ export function CardGenerator() {
             createdAt: String(recordData.created_at || ''),
           };
         }
+
+        const { data: evidenceData, error: evidenceError } = await supabase
+          .from('v_id_evidence_materials')
+          .select('file_name, material_type, file_size_bytes, sha256_hash, created_at')
+          .eq('friendly_id', citizenId);
+
+        if (evidenceError) {
+          console.warn('[CardGenerator] Private evidence manifest unavailable:', evidenceError);
+        } else if (evidenceData?.length) {
+          evidenceManifest = await buildEvidenceManifest(form, evidenceData.map((material) => ({
+            file_name: String(material.file_name || ''),
+            material_type: String(material.material_type || ''),
+            file_size_bytes: Number(material.file_size_bytes || 0),
+            sha256_hash: String(material.sha256_hash || ''),
+            created_at: String(material.created_at || ''),
+          })));
+        }
       }
 
       const archiveCertificatePdf = await buildArchiveCertificatePdf(
@@ -884,7 +1127,8 @@ export function CardGenerator() {
         sha256Hash,
         verifyUrl,
         archiveMetadata,
-        downloadLanguage
+        downloadLanguage,
+        evidenceManifest
       );
 
       zip.file(bundleNames.identityCard, imageBlob);
