@@ -72,37 +72,7 @@ function getDownloadLanguage(language?: string): DownloadLanguage {
   return 'en';
 }
 
-function getCardCopy(language: DownloadLanguage) {
-  if (language === 'zh') {
-    return {
-      status: '已验证',
-      description: '本卡片用于记录由 VAID 创建的唯一数字身份及其可验证信息。',
-      canvas: {
-        nameLabel: '名称：',
-        statusLabel: '状态：',
-        createdLabel: '创建时间：',
-        recordIdLabel: '档案编号：',
-        proofLabel: '存证：',
-        proofValue: '链上时间锚定',
-      },
-    };
-  }
-
-  if (language === 'ja') {
-    return {
-      status: '検証済み',
-      description: 'このカードは、VAID に記録された固有のデジタルアイデンティティと検証可能な情報を示します。',
-      canvas: {
-        nameLabel: '名前：',
-        statusLabel: '状態：',
-        createdLabel: '作成日時：',
-        recordIdLabel: 'Record ID：',
-        proofLabel: '証明：',
-        proofValue: 'チェーン時刻記録',
-      },
-    };
-  }
-
+function getCardCopy() {
   return {
     status: 'VERIFIED',
     description: 'THIS DOCUMENT PROVIDES VERIFIABLE EVIDENCE OF A UNIQUE DIGITAL IDENTITY RECORDED BY VAID.',
@@ -809,8 +779,7 @@ async function buildArchiveCertificatePdf(
 
 export function CardGenerator() {
   const { t, i18n } = useTranslation();
-  const cardLanguage = getDownloadLanguage(i18n.resolvedLanguage ?? i18n.language);
-  const cardCopy = useMemo(() => getCardCopy(cardLanguage), [cardLanguage]);
+  const cardCopy = useMemo(() => getCardCopy(), []);
   const CARD_GENERATOR_SESSION_KEY = 'v-id-card-generator-session';
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -876,7 +845,7 @@ export function CardGenerator() {
 
       sessionStorage.setItem(CARD_GENERATOR_SESSION_KEY, '1');
 
-      const issuedDate = formatCertificateIssuedDate(new Date(), cardLanguage);
+      const issuedDate = formatCertificateIssuedDate(new Date(), 'en');
 
       setForm(prev => ({
         ...prev,
@@ -925,7 +894,7 @@ export function CardGenerator() {
     };
 
     initializeCard();
-  }, [CARD_GENERATOR_SESSION_KEY, cardCopy.description, cardCopy.status, cardLanguage, generateSerialId, navigate, siteOrigin, t]);
+  }, [CARD_GENERATOR_SESSION_KEY, cardCopy.description, cardCopy.status, generateSerialId, navigate, siteOrigin, t]);
 
   const loadImage = useCallback((src: string, timeout = 10000): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
