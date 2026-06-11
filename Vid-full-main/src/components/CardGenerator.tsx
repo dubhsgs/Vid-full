@@ -152,23 +152,23 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
       preservationTitle: '保存说明',
       generatedBy: '由 VAID Protocol 生成',
       fields: {
-        recordId: 'Record ID',
-        characterName: 'Character Name',
-        createdTime: 'Created Time',
-        sha256Hash: 'SHA-256 Hash',
-        publicVerificationUrl: 'Public Verification URL',
-        privateEvidenceMaterials: 'Private Evidence Materials',
-        evidenceManifestHash: 'Evidence Manifest Hash',
+        recordId: '记录编号',
+        characterName: '角色名称',
+        createdTime: '创建时间',
+        sha256Hash: 'SHA-256 哈希值',
+        publicVerificationUrl: '公开验证链接',
+        privateEvidenceMaterials: '私有证据材料',
+        evidenceManifestHash: '证据清单哈希值',
       },
       manifestTitle: '私有证据材料清单',
       manifestSubtitle: '本页列出与该 VAID 记录相关联的私有创作证明材料元数据。原始材料文件不包含在本 PDF 中，应由用户自行长期保存。',
-      manifestEmpty: 'No private evidence materials registered.',
+      manifestEmpty: '未登记私有证据材料。',
       manifestColumns: {
-        fileName: 'File Name',
-        type: 'Type',
-        size: 'Size',
+        fileName: '文件名',
+        type: '类型',
+        size: '大小',
         sha256Hash: 'SHA-256',
-        registeredAt: 'Registered At',
+        registeredAt: '登记时间',
       },
       statement: '本文件为 VAID 生成的数字身份存档证书，用于记录说明和辅助证明。它记录存档编号、创建信息、数字指纹和公开验证链接。本文件不等同于版权登记、公证、司法认证、行政确权或任何政府机关出具的权属证明。',
       preservation: '请将本 PDF 证书、数字身份卡片、公开验证链接、原始文件和创作过程材料一并保存。如发生争议，应结合原始文件、创作过程记录、公开验证页和其他相关证据共同使用。',
@@ -296,14 +296,14 @@ function buildArchiveCertificateHtml(
 ): string {
   const copy = getArchiveCertificateCopy(language);
   const fields = [
-    [copy.fields.recordId, form.serialId],
-    [copy.fields.characterName, form.name],
-    [copy.fields.createdTime, metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate],
-    [copy.fields.sha256Hash, sha256Hash || 'Not available'],
-    [copy.fields.publicVerificationUrl, verifyUrl],
+    { label: copy.fields.recordId, value: form.serialId },
+    { label: copy.fields.characterName, value: form.name },
+    { label: copy.fields.createdTime, value: metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate },
+    { label: copy.fields.sha256Hash, value: sha256Hash || 'Not available', isFingerprint: true },
+    { label: copy.fields.publicVerificationUrl, value: verifyUrl },
     ...(evidenceManifest ? [
-      [copy.fields.privateEvidenceMaterials, String(evidenceManifest.materials.length)],
-      [copy.fields.evidenceManifestHash, evidenceManifest.manifestHash],
+      { label: copy.fields.privateEvidenceMaterials, value: String(evidenceManifest.materials.length) },
+      { label: copy.fields.evidenceManifestHash, value: evidenceManifest.manifestHash, isFingerprint: true },
     ] : []),
   ];
 
@@ -315,6 +315,9 @@ function buildArchiveCertificateHtml(
   <title>${escapeHtml(copy.title)} - ${escapeHtml(form.serialId)}</title>
   <style>
     * { box-sizing: border-box; }
+    html {
+      background: #ffffff;
+    }
     body {
       margin: 0;
       background: #ffffff;
@@ -332,10 +335,7 @@ function buildArchiveCertificateHtml(
       position: relative;
     }
     .border {
-      position: absolute;
-      inset: 46px;
-      border: 2px solid #8da4ba;
-      pointer-events: none;
+      display: none;
     }
     .header {
       display: flex;
@@ -413,6 +413,11 @@ function buildArchiveCertificateHtml(
       padding: 18px 20px;
       color: #38485a;
       font-size: 13px;
+    }
+    .preservation {
+      border: 0;
+      background: #ffffff;
+      padding: 0;
     }
     .manifest-page h1 {
       margin-top: 34px;
@@ -494,10 +499,10 @@ function buildArchiveCertificateHtml(
     <div class="section-title">${escapeHtml(copy.sectionTitle)}</div>
     <table>
       <tbody>
-        ${fields.map(([label, value]) => `
+        ${fields.map(({ label, value, isFingerprint }) => `
         <tr>
           <th>${escapeHtml(label)}</th>
-          <td class="${label === 'SHA-256 Hash' ? 'fingerprint' : ''}">${escapeHtml(value)}</td>
+          <td class="${isFingerprint ? 'fingerprint' : ''}">${escapeHtml(value)}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -508,7 +513,7 @@ function buildArchiveCertificateHtml(
     </div>
 
     <div class="section-title">${escapeHtml(copy.preservationTitle)}</div>
-    <div class="statement">
+    <div class="statement preservation">
       ${escapeHtml(copy.preservation)}
     </div>
 
