@@ -122,7 +122,7 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
       preservationTitle: '保存说明',
       generatedBy: '由 VAID Protocol 生成',
       fields: {
-        recordId: '记录编号',
+        recordId: '档案编号',
         characterName: '角色名称',
         createdTime: '创建时间',
         sha256Hash: 'SHA-256 哈希值',
@@ -140,7 +140,7 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
         sha256Hash: 'SHA-256',
         registeredAt: '登记时间',
       },
-      statement: '本文件为 VAID 生成的数字身份存档证书，用于记录说明和辅助证明。它记录存档编号、创建信息、数字指纹和公开验证链接。本文件不等同于版权登记、公证、司法认证、行政确权或任何政府机关出具的权属证明。',
+      statement: '本文件为 VAID 生成的数字身份存档证书，用于记录说明和辅助证明。它记录档案编号、创建信息、数字指纹和公开验证链接。本文件不等同于版权登记、公证、司法认证、行政确权或任何政府机关出具的权属证明。',
       preservation: '请将本 PDF 证书、数字身份卡片、公开验证链接、原始文件和创作过程材料一并保存。如发生争议，应结合原始文件、创作过程记录、公开验证页和其他相关证据共同使用。',
     };
   }
@@ -287,19 +287,29 @@ function buildArchiveCertificateHtml(
     * { box-sizing: border-box; }
     html {
       background: #ffffff;
+      color-scheme: light only;
     }
     body {
       margin: 0;
       background: #ffffff;
       color: #172033;
+      color-scheme: light only;
       font-family: "Avenir Next", "Segoe UI", "Noto Sans SC", "Hiragino Sans", Arial, sans-serif;
       line-height: 1.55;
+    }
+    .page, .page * {
+      color-scheme: light only;
+      forced-color-adjust: none;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .page {
       width: 794px;
       min-height: 1123px;
       margin: 0 auto;
       background: #ffffff;
+      background-color: #ffffff;
+      color: #172033;
       padding: 92px 84px;
       border: 1px solid #c8d3df;
       position: relative;
@@ -380,14 +390,16 @@ function buildArchiveCertificateHtml(
     .statement {
       border: 1px solid #d9e2eb;
       background: #f7fafc;
+      background-color: #f7fafc;
       padding: 18px 20px;
       color: #38485a;
       font-size: 13px;
     }
     .preservation {
-      border: 0;
-      background: #ffffff;
-      padding: 0;
+      border: 1px solid #d9e2eb;
+      background: #f7fafc;
+      background-color: #f7fafc;
+      padding: 18px 20px;
     }
     .manifest-page h1 {
       margin-top: 34px;
@@ -440,7 +452,7 @@ function buildArchiveCertificateHtml(
       left: 84px;
       right: 84px;
       bottom: 76px;
-      border-top: 1px solid #d8e1ea;
+      border-top: 0;
       padding-top: 14px;
       color: #6c7b8d;
       font-size: 11px;
@@ -740,6 +752,8 @@ async function buildArchiveCertificatePdf(
   wrapper.style.left = '-10000px';
   wrapper.style.top = '0';
   wrapper.style.width = '794px';
+  wrapper.style.backgroundColor = '#ffffff';
+  wrapper.style.setProperty('color-scheme', 'light only');
   wrapper.innerHTML = html;
   document.body.appendChild(wrapper);
 
@@ -755,6 +769,23 @@ async function buildArchiveCertificatePdf(
         scale: 2,
         useCORS: true,
         logging: false,
+        onclone: (clonedDocument) => {
+          clonedDocument.documentElement.style.backgroundColor = '#ffffff';
+          clonedDocument.documentElement.style.setProperty('color-scheme', 'light only');
+          if (clonedDocument.body) {
+            clonedDocument.body.style.backgroundColor = '#ffffff';
+            clonedDocument.body.style.color = '#172033';
+            clonedDocument.body.style.setProperty('color-scheme', 'light only');
+          }
+          clonedDocument.querySelectorAll<HTMLElement>('.page').forEach((clonedPage) => {
+            clonedPage.style.backgroundColor = '#ffffff';
+            clonedPage.style.color = '#172033';
+            clonedPage.style.setProperty('color-scheme', 'light only');
+          });
+          clonedDocument.querySelectorAll<HTMLElement>('.footer').forEach((footer) => {
+            footer.style.borderTop = '0';
+          });
+        },
       });
       const jpegBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
