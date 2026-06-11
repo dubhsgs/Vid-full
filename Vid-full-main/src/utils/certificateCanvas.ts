@@ -200,45 +200,20 @@ function getQRCodeGeometry() {
 
 function drawPanel(ctx: CanvasRenderingContext2D, bgImg: HTMLImageElement | null) {
   if (bgImg) {
-    const softenedBackground = document.createElement('canvas');
-    softenedBackground.width = 240;
-    softenedBackground.height = 135;
-    const softenedContext = softenedBackground.getContext('2d');
-    if (softenedContext) {
-      drawCover(
-        softenedContext,
-        bgImg,
-        0,
-        0,
-        softenedBackground.width,
-        softenedBackground.height
-      );
-    }
-
     ctx.save();
     ctx.beginPath();
     roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
     ctx.clip();
-    if (softenedContext) {
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(
-        softenedBackground,
-        0,
-        0,
-        CERTIFICATE_CANVAS_WIDTH,
-        CERTIFICATE_CANVAS_HEIGHT
-      );
-    } else {
-      drawCover(ctx, bgImg, 0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
-    }
+    ctx.filter = 'blur(6px) brightness(1.15) saturate(1.06)';
+    drawCover(ctx, bgImg, 0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
+    ctx.filter = 'none';
     ctx.restore();
   }
 
   ctx.save();
   ctx.beginPath();
   roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
-  ctx.fillStyle = 'rgba(224, 238, 248, 0.1)';
+  ctx.fillStyle = 'rgba(10, 14, 22, 0.12)';
   ctx.fill();
   ctx.restore();
 
@@ -292,12 +267,14 @@ function drawTechTexture(ctx: CanvasRenderingContext2D, textureImg: HTMLImageEle
   ctx.clip();
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 0.18;
+  ctx.filter = 'contrast(1.35) brightness(1.08)';
   const textureScale = 1.5;
   const scaledW = PANEL_W * textureScale;
   const scaledH = PANEL_H * textureScale;
   const scaledX = PANEL_X - (scaledW - PANEL_W) / 2;
   const scaledY = PANEL_Y - (scaledH - PANEL_H) / 2;
   drawCover(ctx, textureImg, scaledX, scaledY, scaledW, scaledH);
+  ctx.filter = 'none';
   ctx.restore();
 }
 
@@ -310,6 +287,7 @@ function drawCardMistBlur(ctx: CanvasRenderingContext2D) {
   ctx.moveTo(cx + imageR * 1.08, cy);
   ctx.arc(cx, cy, imageR * 1.08, 0, Math.PI * 2);
   ctx.clip('evenodd');
+  ctx.filter = 'blur(20px)';
   ctx.globalCompositeOperation = 'screen';
 
   const mistBand = ctx.createLinearGradient(
@@ -367,6 +345,7 @@ function drawCardMistBlur(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = rightBottomLift;
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
+  ctx.filter = 'none';
   ctx.restore();
 }
 
@@ -553,8 +532,10 @@ function drawAvatar(ctx: CanvasRenderingContext2D, avatarImg: HTMLImageElement |
     const targetSize = imageR * 2 * AVATAR_COVER_SCALE;
     const dx = cx - targetSize / 2;
     const dy = cy - targetSize / 2;
+    ctx.filter = 'saturate(1.02) brightness(0.98) contrast(1.02)';
     ctx.globalAlpha = 0.95;
     ctx.drawImage(avatarImg, sx, sy, minSide, minSide, dx, dy, targetSize, targetSize);
+    ctx.filter = 'none';
     ctx.globalAlpha = 1;
 
     const colorWash = ctx.createLinearGradient(cx - imageR, cy - imageR, cx + imageR, cy + imageR);
