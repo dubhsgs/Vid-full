@@ -796,7 +796,9 @@ function App() {
           )
           : currentStage === 'evidence'
             ? t('errors.evidenceUploadFailed')
-            : t('errors.generationFlowFailed')
+            : errorMessage === 'DUPLICATE_HASH_OWNED_BY_ANOTHER_USER'
+              ? t('errors.duplicateHashOwnedByAnotherUser')
+              : t('errors.generationFlowFailed')
       );
     } finally {
       setIsUploadingEvidence(false);
