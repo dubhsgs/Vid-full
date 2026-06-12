@@ -204,7 +204,7 @@ function drawPanel(ctx: CanvasRenderingContext2D, bgImg: HTMLImageElement | null
     ctx.beginPath();
     roundRect(ctx, PANEL_X, PANEL_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
     ctx.clip();
-    ctx.filter = 'blur(6px) brightness(1.15) saturate(1.06)';
+    ctx.filter = 'blur(9px) brightness(1.15) saturate(1.06)';
     drawCover(ctx, bgImg, 0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
     ctx.filter = 'none';
     ctx.restore();
@@ -296,10 +296,10 @@ function drawCardMistBlur(ctx: CanvasRenderingContext2D) {
     PANEL_X + PANEL_W,
     PANEL_Y + PANEL_H * 0.92
   );
-  mistBand.addColorStop(0, 'rgba(255, 228, 150, 0.0525)');
-  mistBand.addColorStop(0.28, 'rgba(255, 221, 132, 0.0385)');
-  mistBand.addColorStop(0.62, 'rgba(255, 214, 112, 0.025)');
-  mistBand.addColorStop(1, 'rgba(255, 208, 98, 0.0175)');
+  mistBand.addColorStop(0, 'rgba(255, 228, 150, 0.09)');
+  mistBand.addColorStop(0.28, 'rgba(255, 221, 132, 0.066)');
+  mistBand.addColorStop(0.62, 'rgba(255, 214, 112, 0.043)');
+  mistBand.addColorStop(1, 'rgba(255, 208, 98, 0.03)');
   ctx.fillStyle = mistBand;
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
@@ -311,9 +311,9 @@ function drawCardMistBlur(ctx: CanvasRenderingContext2D) {
     PANEL_Y + PANEL_H * 0.38,
     PANEL_W * 0.64
   );
-  centerMist.addColorStop(0, 'rgba(255, 232, 166, 0.0203)');
-  centerMist.addColorStop(0.55, 'rgba(255, 220, 128, 0.0077)');
-  centerMist.addColorStop(1, 'rgba(255, 208, 98, 0.0021)');
+  centerMist.addColorStop(0, 'rgba(255, 232, 166, 0.035)');
+  centerMist.addColorStop(0.55, 'rgba(255, 220, 128, 0.013)');
+  centerMist.addColorStop(1, 'rgba(255, 208, 98, 0.004)');
   ctx.fillStyle = centerMist;
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
@@ -325,8 +325,8 @@ function drawCardMistBlur(ctx: CanvasRenderingContext2D) {
     PANEL_Y + PANEL_H * 0.12,
     PANEL_W * 0.36
   );
-  topLeftBoost.addColorStop(0, 'rgba(255, 234, 170, 0.065)');
-  topLeftBoost.addColorStop(0.5, 'rgba(255, 222, 138, 0.0275)');
+  topLeftBoost.addColorStop(0, 'rgba(255, 234, 170, 0.09)');
+  topLeftBoost.addColorStop(0.5, 'rgba(255, 222, 138, 0.038)');
   topLeftBoost.addColorStop(1, 'rgba(255, 208, 98, 0)');
   ctx.fillStyle = topLeftBoost;
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
@@ -339,8 +339,8 @@ function drawCardMistBlur(ctx: CanvasRenderingContext2D) {
     PANEL_Y + PANEL_H * 0.88,
     PANEL_W * 0.4
   );
-  rightBottomLift.addColorStop(0, 'rgba(255, 226, 146, 0.0553)');
-  rightBottomLift.addColorStop(0.6, 'rgba(255, 214, 112, 0.0228)');
+  rightBottomLift.addColorStop(0, 'rgba(255, 226, 146, 0.09)');
+  rightBottomLift.addColorStop(0.6, 'rgba(255, 214, 112, 0.037)');
   rightBottomLift.addColorStop(1, 'rgba(255, 208, 98, 0)');
   ctx.fillStyle = rightBottomLift;
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);

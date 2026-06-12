@@ -69,13 +69,13 @@ function HeroHudFrame() {
           <stop offset="100%" stopColor="#0b1430" stopOpacity="0.0576" />
         </linearGradient>
         <linearGradient id="hero-gbg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f1fbff" stopOpacity="0.0634" />
-          <stop offset="52%" stopColor="#d2e3ff" stopOpacity="0.049" />
-          <stop offset="100%" stopColor="#9db4e7" stopOpacity="0.0346" />
+          <stop offset="0%" stopColor="#f1fbff" stopOpacity="0.0824" />
+          <stop offset="52%" stopColor="#d2e3ff" stopOpacity="0.0637" />
+          <stop offset="100%" stopColor="#9db4e7" stopOpacity="0.045" />
         </linearGradient>
         <linearGradient id="hero-gshine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbfeff" stopOpacity="0.0346" />
-          <stop offset="38%" stopColor="#e2f0ff" stopOpacity="0.0187" />
+          <stop offset="0%" stopColor="#fbfeff" stopOpacity="0.045" />
+          <stop offset="38%" stopColor="#e2f0ff" stopOpacity="0.0243" />
           <stop offset="100%" stopColor="#9fb8e8" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="hero-top-left-neon" x1="32" y1="20" x2="186" y2="20" gradientUnits="userSpaceOnUse">

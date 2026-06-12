@@ -247,7 +247,7 @@ const resources = {
       cardGenerator: {
         cannotContinue: 'Cannot Continue',
         backHome: 'Back Home',
-        identityPreview: 'Identity Preview',
+        identityPreview: 'Digital ID Card',
         downloading: 'Downloading...',
         download: 'Download',
         recordedBy: 'Proof of identity recorded by VAID',
@@ -500,7 +500,7 @@ const resources = {
       cardGenerator: {
         cannotContinue: '无法继续生成',
         backHome: '返回首页',
-        identityPreview: '身份预览',
+        identityPreview: '数字身份证',
         downloading: '下载中...',
         download: '下载',
         recordedBy: '身份记录已由 VAID 存证',
@@ -752,7 +752,7 @@ const resources = {
       cardGenerator: {
         cannotContinue: '生成を続行できません',
         backHome: 'ホームに戻る',
-        identityPreview: 'アイデンティティプレビュー',
+        identityPreview: 'デジタル身分証',
         downloading: 'ダウンロード中...',
         download: 'ダウンロード',
         recordedBy: 'VAID に記録されたアイデンティティ証明',
