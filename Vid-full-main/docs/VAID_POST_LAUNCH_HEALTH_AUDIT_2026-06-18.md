@@ -32,11 +32,13 @@ architecture rules, database migration history, RLS boundaries, HTTPS setup,
 and documented runtime architecture. The largest blockers are:
 
 1. At audit start, the production server exposed unnecessary `rpcbind` attack
-   surface and permitted root/password SSH authentication. `rpcbind` and
-   password authentication are now disabled; root key login remains until the
-   prepared non-root deployment workflow is committed and validated.
-2. The exact production source is still an uncommitted local working tree and
-   the active frontend release is a manually named release, not a Git commit.
+   surface and permitted root/password SSH authentication. This finding has
+   since been remediated: `rpcbind`, password SSH, and root SSH login are now
+   disabled, and deployment runs as `vaid-deploy`.
+2. At audit start, the exact production source was an uncommitted local working
+   tree and the active frontend release was manually named. This has since been
+   remediated: the production baseline was committed and deployed from Git
+   commit `3d2c697302aa460c76b72b9bc9d9ea8a54a9b2ae`.
 3. A full creator identity-document number is written to browser
    `sessionStorage`, contrary to the project's own security rule.
 4. There are no automated tests for frontend, backend, payment, registration,
@@ -78,7 +80,8 @@ and documented runtime architecture. The largest blockers are:
 - `npm run lint` completed with zero errors and eight warnings.
 - The locally built main production asset had the same SHA-256 as the asset
   currently served by production.
-- No tracked private-key, `.env`, or credential file was found.
+- No tracked private key, service-role key, `.env.local`, or credential file
+  was found. `.env.production` now contains only public frontend runtime config.
 - The only apparent private-key pattern in tracked content was documentation
   placeholder text in `ALIPAY_SETUP.md`.
 
@@ -98,7 +101,7 @@ and documented runtime architecture. The largest blockers are:
 
 ### P0 - Production host hardening
 
-Verified server state:
+Initial verified server state:
 
 - TCP and UDP port 111 (`rpcbind`) listened on all interfaces at the time of the
   audit. External reachability could not be reliably established because the
@@ -124,19 +127,18 @@ Remediation status on 2026-06-18:
 - `rpcbind.service` and `rpcbind.socket` were stopped, disabled, and masked;
   port 111 no longer appears in the server's listening sockets.
 - SSH password authentication was disabled.
-- Root login was reduced to key-only temporarily to preserve the existing
-  GitHub Actions deployment path.
 - A locked-password `vaid-deploy` account was created and verified with the
   existing deployment key.
 - The account has ACL write access only to the VAID release directories and
   exact sudo permissions for `nginx -t` and `systemctl reload nginx`.
-- The local deployment workflow now targets `vaid-deploy`, but it has not been
-  pushed or production-tested. Root key login must remain until that workflow
-  change is committed on the production branch and validated.
+- The production deployment workflow was switched to `vaid-deploy`, pushed, and
+  validated through GitHub Actions.
+- Effective SSH now has `PermitRootLogin no`.
+- Root's `authorized_keys` is empty, and root deployment-key login is rejected.
 
 ### P0 - Production is not reproducible from Git
 
-Verified state:
+Initial verified state:
 
 - Current branch: `codex/strong-proof-ui-entry`.
 - Deployment workflow only triggers on `codex/security-architecture-refactor`.
@@ -148,13 +150,23 @@ Verified state:
 - The local dirty-tree build matches the production main asset, so production
   currently depends on local uncommitted state.
 
+Remediation status on 2026-06-18:
+
+- Current production branch is `codex/strong-proof-ui-entry`.
+- Commit `61458453b490c220a2f29415465cd8d21049f596` captured the production
+  baseline and deployment workflow changes.
+- Commit `3d2c697302aa460c76b72b9bc9d9ea8a54a9b2ae` fixed CI build environment
+  loading through `.env.production`.
+- GitHub Actions run `27755212614` completed successfully on branch
+  `codex/strong-proof-ui-entry`.
+- Current release points to
+  `/srv/www/vaid.top/releases/3d2c697302aa460c76b72b9bc9d9ea8a54a9b2ae`.
+
 Required outcome:
 
-- Review and commit the exact production source as one traceable release
-  baseline.
 - Tag the deployed baseline.
-- Choose one protected production branch.
-- Make production deploy only from that branch through CI.
+- Freeze or merge the old deployment branch so there is one protected production
+  branch.
 - Add a post-deploy smoke test and automatic rollback before declaring a release
   successful.
 
@@ -283,7 +295,8 @@ testing.
 ### P2 - Additional maintainability gaps
 
 - `README.md` contains only `Vid full` and is not an onboarding document.
-- Current runtime and architecture documents are useful but untracked.
+- Current runtime and architecture documents are useful and now tracked, but the
+  repository-level README remains too thin for handoff.
 - No repository-level Node version file exists; CI uses Node 20 while this audit
   ran locally on Node 24.
 - Homepage has no `h1` or `main` semantic landmark.
@@ -301,20 +314,20 @@ testing.
 | Frontend maintainability | C | Build passes, but no tests and very large core files |
 | Backend architecture | B- | Explicit auth/RLS design, but no automated function verification |
 | Database governance | C | Good migration history; parity and restore not proven |
-| Security operations | D+ | Good web headers/RLS; unsafe host exposure and browser PII storage |
-| Deployment/rollback | D+ | Release symlink exists; active release is manual and not Git-reproducible |
+| Security operations | C- | Host SSH/root exposure remediated; browser PII storage remains |
+| Deployment/rollback | C | GitHub Actions deploys a Git SHA as `vaid-deploy`; rollback automation and release tags still missing |
 | Observability | D | Analytics exists; operational alerts and error tracing not demonstrated |
 | Recovery | D | Old manual exports; no verified automated backup and restore drill |
-| Documentation | C+ | Strong internal architecture notes, weak README and untracked current docs |
+| Documentation | B- | Strong internal architecture notes are now tracked; README remains weak |
 
 ## 5. Recommended Execution Order
 
 ### Within 24 hours
 
-1. Close public port 111 and harden SSH/root deployment access.
-2. Commit and tag the exact production baseline without mixing unrelated output
-   files.
-3. Remove the identity-document number from browser storage.
+1. Remove the identity-document number from browser storage.
+2. Tag the deployed production baseline and freeze or merge the old deployment
+   branch.
+3. Add a post-deploy smoke test and rollback gate to CI.
 
 ### Within 7 days
 

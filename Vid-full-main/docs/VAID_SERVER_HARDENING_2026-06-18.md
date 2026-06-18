@@ -28,26 +28,29 @@ renderer, certificate renewal, or the existing deployment path.
   - `PasswordAuthentication no`
   - `KbdInteractiveAuthentication no`
   - `ChallengeResponseAuthentication no`
-  - `PermitRootLogin prohibit-password`
+  - `PermitRootLogin no`
+- Removed the deployment key from root's `authorized_keys` after the non-root
+  deployment path was validated.
 
-Root key login remains temporarily because the currently deployed GitHub Actions
-workflow still connects as root. Disabling it before the workflow change is
-committed and tested would break the next automated deployment.
+### Deployment workflow
 
-### Deployment workflow prepared locally
-
-`.github/workflows/deploy.yml` now uploads and activates releases as
-`vaid-deploy`, and uses the two exact sudo commands above. The workflow change
-has not been pushed or executed.
+`.github/workflows/deploy.yml` uploads and activates releases as `vaid-deploy`,
+and uses the two exact sudo commands above. The workflow was pushed and
+validated through GitHub Actions on commit
+`3d2c697302aa460c76b72b9bc9d9ea8a54a9b2ae`.
 
 ## Validation
 
 - `sshd -t` passed before and after installation.
 - Password-only SSH was rejected.
 - `vaid-deploy` key login succeeded.
-- Existing root deployment-key login still succeeded.
+- GitHub Actions deployed successfully as `vaid-deploy`.
+- Root deployment-key login is now rejected.
+- Root's `authorized_keys` is empty.
 - `vaid-deploy` created and removed a test directory under `releases`.
 - `vaid-deploy` successfully ran `nginx -t` and reloaded Nginx.
+- Current release points to
+  `/srv/www/vaid.top/releases/3d2c697302aa460c76b72b9bc9d9ea8a54a9b2ae`.
 - Nginx, `vaid-card-renderer`, and `certbot-renew.timer` remained active.
 - `rpcbind.service` and `rpcbind.socket` remained inactive.
 - Server listening sockets no longer included TCP or UDP 111.
@@ -61,6 +64,14 @@ has not been pushed or executed.
 SSH configuration backup:
 
 `/etc/ssh/sshd_config.pre-vaid-hardening-20260618`
+
+Final root-disable backup:
+
+`/etc/ssh/sshd_config.pre-root-disable-20260618`
+
+Root authorized key backup:
+
+`/root/.ssh/authorized_keys.pre-root-disable-20260618`
 
 SSH rollback sequence:
 
@@ -77,8 +88,8 @@ confirmed:
 
 ## Remaining Work
 
-1. Commit the exact production source baseline and the prepared workflow change.
-2. Validate one deployment through GitHub Actions as `vaid-deploy`.
-3. Change SSH to `PermitRootLogin no`.
-4. Remove the deployment key from root's `authorized_keys`.
-5. Re-run the full website and deployment smoke test.
+No remaining work for this hardening item.
+
+Operational cleanup still recommended: freeze or merge the old
+`codex/security-architecture-refactor` deployment branch so future production
+publishing happens from one documented branch.
