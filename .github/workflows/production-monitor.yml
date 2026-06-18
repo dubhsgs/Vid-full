@@ -1,0 +1,150 @@
+name: Monitor VAID Production
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  endpoint-health:
+    name: Website API and renderer health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check public endpoints
+        working-directory: Vid-full-main
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -f ./.env.production ]; then
+            set -a
+            . ./.env.production
+            set +a
+          fi
+
+          VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://vimglsksvvvnxkjnaqeh.supabase.co}"
+          VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpbWdsc2tzdnZ2bnhram5hcWVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzY1OTIsImV4cCI6MjA5MTk1MjU5Mn0.1ETAVwvHX5CK5gMqrhQlWpdZFykAUyV3cGx-ft2kmw0}"
+
+          test -n "${VITE_SUPABASE_URL:-}"
+          test -n "${VITE_SUPABASE_ANON_KEY:-}"
+
+          check_http_200() {
+            local label="$1"
+            local url="$2"
+            local output="$RUNNER_TEMP/${label}.body"
+            local status
+
+            status="$(curl -sS -L --retry 3 --retry-delay 2 --retry-all-errors \
+              -o "$output" -w '%{http_code}' "$url")"
+            if [ "$status" != "200" ]; then
+              echo "::error::${label} returned HTTP ${status}"
+              cat "$output" || true
+              exit 1
+            fi
+          }
+
+          check_http_200 home https://vaid.top/
+          check_http_200 verify https://vaid.top/verify/VTK-AVA-KRG
+
+          renderer_body="$RUNNER_TEMP/renderer-health.body"
+          renderer_status="$(curl -sS --retry 3 --retry-delay 2 --retry-all-errors \
+            -o "$renderer_body" -w '%{http_code}' \
+            https://vaid.top/internal/card-renderer/health)"
+          if [ "$renderer_status" != "200" ]; then
+            echo "::error::renderer health returned HTTP ${renderer_status}"
+            cat "$renderer_body" || true
+            exit 1
+          fi
+          grep -q '"ok"[[:space:]]*:[[:space:]]*true' "$renderer_body"
+
+          api_body="$RUNNER_TEMP/supabase-public-v-ids.body"
+          api_status="$(curl -sS --retry 3 --retry-delay 2 --retry-all-errors \
+            -H "apikey: ${VITE_SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY}" \
+            -o "$api_body" -w '%{http_code}' \
+            "${VITE_SUPABASE_URL}/rest/v1/public_v_ids?select=friendly_id,card_render_status&limit=1")"
+          if [ "$api_status" != "200" ]; then
+            echo "::error::public_v_ids API returned HTTP ${api_status}"
+            cat "$api_body" || true
+            exit 1
+          fi
+          if grep -qi '"message"[[:space:]]*:' "$api_body"; then
+            echo "::error::public_v_ids API returned an error payload"
+            cat "$api_body" || true
+            exit 1
+          fi
+
+  server-health:
+    name: Server services and resources
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VAID_DEPLOY_SSH_KEY }}" > ~/.ssh/vaid_deploy_key
+          chmod 600 ~/.ssh/vaid_deploy_key
+          ssh-keyscan -H 47.93.232.20 >> ~/.ssh/known_hosts
+
+      - name: Check server state
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/vaid_deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
+            vaid-deploy@47.93.232.20 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          current_release="$(readlink -f /srv/www/vaid.top/current)"
+          case "$current_release" in
+            /srv/www/vaid.top/releases/*) ;;
+            *)
+              echo "Unexpected current release: $current_release" >&2
+              exit 1
+              ;;
+          esac
+          test -d "$current_release"
+
+          systemctl is-active --quiet nginx
+          systemctl is-active --quiet vaid-card-renderer
+          systemctl is-active --quiet certbot-renew.timer
+
+          if systemctl is-active --quiet rpcbind.service; then
+            echo "rpcbind.service must remain inactive" >&2
+            exit 1
+          fi
+          if systemctl is-active --quiet rpcbind.socket; then
+            echo "rpcbind.socket must remain inactive" >&2
+            exit 1
+          fi
+
+          disk_percent="$(df -P / | awk 'NR == 2 { gsub("%", "", $5); print $5 }')"
+          if [ "${disk_percent:-100}" -ge 80 ]; then
+            echo "Root disk usage is ${disk_percent}%, threshold is 80%" >&2
+            df -h /
+            exit 1
+          fi
+
+          mem_available_kb="$(awk '/MemAvailable/ { print $2 }' /proc/meminfo)"
+          if [ "${mem_available_kb:-0}" -lt 150000 ]; then
+            echo "Available memory is ${mem_available_kb}KB, threshold is 150000KB" >&2
+            free -m
+            exit 1
+          fi
+
+          warning_logs="$(journalctl -u nginx -u vaid-card-renderer --since=-15min -p warning --no-pager -q || true)"
+          if [ -n "$warning_logs" ]; then
+            echo "$warning_logs" >&2
+            exit 1
+          fi
+          REMOTE

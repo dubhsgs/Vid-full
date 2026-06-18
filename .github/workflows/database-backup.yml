@@ -1,0 +1,89 @@
+name: Backup VAID Database
+
+on:
+  schedule:
+    - cron: '30 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  encrypted-database-backup:
+    name: Encrypted database backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify backup secrets
+        shell: bash
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::Missing GitHub secret SUPABASE_DB_URL"
+            exit 1
+          fi
+          if [ -z "${BACKUP_ENCRYPTION_PASSPHRASE:-}" ]; then
+            echo "::error::Missing GitHub secret BACKUP_ENCRYPTION_PASSPHRASE"
+            exit 1
+          fi
+
+      - name: Create encrypted dump
+        id: backup
+        working-directory: Vid-full-main
+        shell: bash
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          backup_dir="$(mktemp -d)"
+          plain_archive="$RUNNER_TEMP/vaid-db-backup-${stamp}.tar.gz"
+          encrypted_archive="${plain_archive}.gpg"
+
+          npx --yes supabase db dump \
+            --db-url "$SUPABASE_DB_URL" \
+            --file "$backup_dir/vaid-schema-${stamp}.sql"
+
+          npx --yes supabase db dump \
+            --db-url "$SUPABASE_DB_URL" \
+            --data-only \
+            --use-copy \
+            --file "$backup_dir/vaid-data-${stamp}.sql"
+
+          test -s "$backup_dir/vaid-schema-${stamp}.sql"
+          test -s "$backup_dir/vaid-data-${stamp}.sql"
+
+          tar -C "$backup_dir" -czf "$plain_archive" .
+          gpg --batch --yes --pinentry-mode loopback \
+            --passphrase "$BACKUP_ENCRYPTION_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 \
+            -o "$encrypted_archive" "$plain_archive"
+
+          test -s "$encrypted_archive"
+          rm -rf "$backup_dir"
+          rm -f "$plain_archive"
+
+          echo "artifact_path=$encrypted_archive" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=vaid-db-backup-${stamp}.tar.gz.gpg" >> "$GITHUB_OUTPUT"
+
+      - name: Upload encrypted backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.backup.outputs.artifact_name }}
+          path: ${{ steps.backup.outputs.artifact_path }}
+          retention-days: 14
+          if-no-files-found: error

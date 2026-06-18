@@ -58,6 +58,7 @@ verification, storage, database migrations, or card rendering:
 - `AGENTS.md`
 - `Vid-full-main/docs/AI_DEVELOPMENT_CONTEXT.md`
 - `Vid-full-main/docs/VAID_AI_RELEASE_AND_HANDOFF_RUNBOOK_2026-06-18.md`
+- `Vid-full-main/docs/VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md`
 - `Vid-full-main/docs/VAID_POST_LAUNCH_HEALTH_AUDIT_2026-06-18.md`
 - `Vid-full-main/docs/VAID_SERVER_HARDENING_2026-06-18.md`
 
@@ -118,6 +119,17 @@ After pushing to `codex/strong-proof-ui-entry`, verify:
 5. Nginx, `vaid-card-renderer`, and `certbot-renew.timer` are active.
 6. `rpcbind.service` and `rpcbind.socket` remain inactive.
 7. No warning-level Nginx or renderer logs appeared after deployment.
+
+## Monitoring and Backup Contract
+
+- Production monitoring lives in `.github/workflows/production-monitor.yml`.
+- Database backup automation lives in `.github/workflows/database-backup.yml`.
+- Monitoring failure must fail the workflow loudly; do not hide failed checks.
+- Database backups must be encrypted before upload.
+- Do not restore database backups into production during drills.
+- Follow
+  `Vid-full-main/docs/VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md`
+  for backup secret requirements and restore-drill steps.
 
 ## Rollback Rule
 
