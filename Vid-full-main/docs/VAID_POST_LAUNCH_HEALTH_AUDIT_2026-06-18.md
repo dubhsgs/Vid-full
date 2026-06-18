@@ -39,8 +39,9 @@ and documented runtime architecture. The largest blockers are:
    tree and the active frontend release was manually named. This has since been
    remediated: the production baseline was committed and deployed from Git
    commit `3d2c697302aa460c76b72b9bc9d9ea8a54a9b2ae`.
-3. A full creator identity-document number is written to browser
-   `sessionStorage`, contrary to the project's own security rule.
+3. At audit start, a full creator identity-document number was written to
+   browser `sessionStorage`. This has since been remediated: the download flow
+   now uses current-page memory and clears legacy storage keys.
 4. There are no automated tests for frontend, backend, payment, registration,
    RLS, rendering, or recovery behavior.
 5. There is no demonstrated end-to-end monitoring, alerting, database backup
@@ -172,14 +173,28 @@ Required outcome:
 
 ### P0 - Full identity-document number in browser storage
 
-`src/App.tsx` writes the full document number to `sessionStorage`, and
-`src/components/CardGenerator.tsx` later reads it for the downloadable archive.
-No cleanup occurs after download.
+Initial verified state:
+
+- `src/App.tsx` wrote the full document number to `sessionStorage`.
+- `src/components/CardGenerator.tsx` later read it for the downloadable archive.
+- No cleanup occurred after download.
 
 This conflicts with `docs/AI_DEVELOPMENT_CONTEXT.md`, which states that identity
 document numbers must never be exposed through browser storage. Session storage
 is shorter-lived than local storage, but it remains readable by same-origin
 scripts and by any successful XSS during the tab session.
+
+Remediation status on 2026-06-18:
+
+- `src/App.tsx` no longer writes the document number to `sessionStorage` or
+  `localStorage`.
+- `src/components/CardGenerator.tsx` no longer reads the document number from
+  browser storage.
+- `src/utils/downloadArchiveIdentity.ts` keeps the document number only in
+  current-page JavaScript memory for the download handoff.
+- The legacy storage key `vid_download_creator_document_number` is removed on
+  home-page startup, new image selection, card-generator initialization, and
+  download completion.
 
 Required outcome:
 
@@ -314,7 +329,7 @@ testing.
 | Frontend maintainability | C | Build passes, but no tests and very large core files |
 | Backend architecture | B- | Explicit auth/RLS design, but no automated function verification |
 | Database governance | C | Good migration history; parity and restore not proven |
-| Security operations | C- | Host SSH/root exposure remediated; browser PII storage remains |
+| Security operations | C | Host SSH/root exposure and browser document-number storage remediated; monitoring and alerting still weak |
 | Deployment/rollback | C | GitHub Actions deploys a Git SHA as `vaid-deploy`; rollback automation and release tags still missing |
 | Observability | D | Analytics exists; operational alerts and error tracing not demonstrated |
 | Recovery | D | Old manual exports; no verified automated backup and restore drill |
@@ -324,10 +339,10 @@ testing.
 
 ### Within 24 hours
 
-1. Remove the identity-document number from browser storage.
-2. Tag the deployed production baseline and freeze or merge the old deployment
+1. Tag the deployed production baseline and freeze or merge the old deployment
    branch.
-3. Add a post-deploy smoke test and rollback gate to CI.
+2. Add a post-deploy smoke test and rollback gate to CI.
+3. Add uptime, host, renderer, Supabase, certificate, and payment alerts.
 
 ### Within 7 days
 

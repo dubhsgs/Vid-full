@@ -18,6 +18,10 @@ import {
   getSupportedDocumentTypes,
   SUPPORTED_IDENTITY_COUNTRY_CODES,
 } from './utils/identityValidation';
+import {
+  clearPendingDownloadArchiveIdentity,
+  setPendingDownloadArchiveIdentity,
+} from './utils/downloadArchiveIdentity';
 import { AnimatedGrid } from './components/AnimatedGrid';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { ForgingAnimation } from './components/ForgingAnimation';
@@ -44,7 +48,6 @@ const DOWNLOAD_CARD_IMAGE_SESSION_KEY = 'vid_download_card_image_base64';
 const DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY = 'vid_download_card_image_version';
 const DOWNLOAD_CARD_IMAGE_VERSION = 'inter-self-hosted-20260616';
 const DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY = 'vid_download_creator_legal_name';
-const DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY = 'vid_download_creator_document_number';
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
 const MAX_EVIDENCE_FILE_MB = MAX_EVIDENCE_FILE_BYTES / (1024 * 1024);
@@ -284,6 +287,10 @@ function App() {
     .sort((left, right) => left.label.localeCompare(right.label, i18n.resolvedLanguage ?? i18n.language));
 
   useEffect(() => {
+    clearPendingDownloadArchiveIdentity();
+  }, []);
+
+  useEffect(() => {
     if (!heroLanguage.startsWith('en')) return;
 
     try {
@@ -442,6 +449,7 @@ function App() {
     localStorage.removeItem('vid_registered_friendly_id');
     localStorage.removeItem('vid_registered_hash');
     localStorage.removeItem('vid_standard_card_image_url');
+    clearPendingDownloadArchiveIdentity();
     sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -780,7 +788,9 @@ function App() {
       localStorage.setItem('vid_registered_friendly_id', friendlyId);
       localStorage.setItem('vid_registered_hash', hash);
       sessionStorage.setItem(DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY, creatorName);
-      sessionStorage.setItem(DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY, documentNumber.trim());
+      setPendingDownloadArchiveIdentity({
+        creatorDocumentNumber: documentNumber,
+      });
       if (registerData.card_image_url) {
         localStorage.setItem('vid_standard_card_image_url', String(registerData.card_image_url));
       } else {

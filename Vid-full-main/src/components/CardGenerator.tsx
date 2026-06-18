@@ -5,13 +5,17 @@ import { supabase } from '../utils/supabase';
 import { calculateSHA256 } from '../utils/sha256';
 import { consumeGenerationReady } from '../utils/licenseManager';
 import { CERTIFICATE_CANVAS_WIDTH, formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
+import {
+  clearLegacyDownloadArchiveIdentityStorage,
+  clearPendingDownloadArchiveIdentity,
+  getPendingDownloadArchiveIdentity,
+} from '../utils/downloadArchiveIdentity';
 
 const ASSET_BASE_URL = import.meta.env.BASE_URL || '/';
 const DOWNLOAD_CARD_IMAGE_SESSION_KEY = 'vid_download_card_image_base64';
 const DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY = 'vid_download_card_image_version';
 const DOWNLOAD_CARD_IMAGE_VERSION = 'inter-self-hosted-20260616';
 const DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY = 'vid_download_creator_legal_name';
-const DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY = 'vid_download_creator_document_number';
 
 function resolveAssetUrl(path: string): string {
   return `${ASSET_BASE_URL}${path.replace(/^\/+/, '')}`;
@@ -852,6 +856,9 @@ export function CardGenerator() {
   const [sha256Hash, setSha256Hash] = useState<string>('');
   const [citizenId, setCitizenId] = useState<string>('');
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [creatorDocumentNumber, setCreatorDocumentNumber] = useState(
+    () => getPendingDownloadArchiveIdentity().creatorDocumentNumber
+  );
 
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
@@ -878,6 +885,7 @@ export function CardGenerator() {
 
   useEffect(() => {
     const initializeCard = async () => {
+      clearLegacyDownloadArchiveIdentityStorage();
       const isLocalPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === '1';
       const savedAvatar = isLocalPreview ? resolveAssetUrl('hero_figure.webp') : localStorage.getItem('vid_uploaded_avatar');
       const savedName = isLocalPreview ? 'Preview Character' : localStorage.getItem('vid_character_name');
@@ -1119,7 +1127,7 @@ export function CardGenerator() {
       const verificationGuide = getVerificationGuide(downloadLanguage, form, sha256Hash, verifyUrl);
       let archiveMetadata: ArchiveCertificateMetadata = {
         creatorLegalName: sessionStorage.getItem(DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY) || localStorage.getItem('vid_creator_name') || '',
-        creatorDocumentNumber: sessionStorage.getItem(DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY) || '',
+        creatorDocumentNumber,
       };
       let evidenceManifest: EvidenceManifest | null = null;
 
@@ -1198,6 +1206,8 @@ export function CardGenerator() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      clearPendingDownloadArchiveIdentity();
+      setCreatorDocumentNumber('');
 
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (error) {
