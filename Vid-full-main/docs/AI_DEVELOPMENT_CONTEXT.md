@@ -68,10 +68,15 @@ legal determination of ownership.
 ### Deployment
 
 - Static frontend deploy: `.github/workflows/deploy.yml`
-- Trigger branch: `codex/security-architecture-refactor`
+- Trigger branch: `codex/strong-proof-ui-entry`
 - Build directory: `Vid-full-main`
+- Required CI gate before deploy: `npm test`, `npm run typecheck`,
+  `npm run lint`, and `npm run build`
 - Server target: `/srv/www/vaid.top/current`
-- Web server configuration: `ops/nginx/vaid.top.conf`
+- Release directory pattern: `/srv/www/vaid.top/releases/<GITHUB_SHA>`
+- Deploy account: `vaid-deploy`
+- Detailed release handoff:
+  `docs/VAID_AI_RELEASE_AND_HANDOFF_RUNBOOK_2026-06-18.md`
 
 ## 5. Naming Rules
 
@@ -140,6 +145,7 @@ legal determination of ownership.
 Run:
 
 ```bash
+npm test
 npm run typecheck
 npm run lint
 npm run build
