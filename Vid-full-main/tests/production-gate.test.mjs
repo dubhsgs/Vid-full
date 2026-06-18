@@ -122,12 +122,14 @@ test('RLS keeps private tables owner-only while public verification uses the res
 
 test('document numbers are encrypted server-side and are not persisted in browser storage', () => {
   const app = read('src/App.tsx');
+  const registrationFlow = read('src/components/home/RegistrationFlow.tsx');
   const cardGenerator = read('src/components/CardGenerator.tsx');
   const identityRegister = read('supabase/functions/creator-identity-register/index.ts');
   const downloadArchiveIdentity = read('src/utils/downloadArchiveIdentity.ts');
   const identityUpsert = extractBetween(identityRegister, '.upsert({', '}, {');
 
   assert.doesNotMatch(app, /(?:sessionStorage|localStorage)\.setItem\([^)]*document/i);
+  assert.doesNotMatch(registrationFlow, /(?:sessionStorage|localStorage)\.setItem\([^)]*document/i);
   assert.doesNotMatch(cardGenerator, /(?:sessionStorage|localStorage)\.setItem\([^)]*document/i);
   assert.match(downloadArchiveIdentity, /clearLegacyDownloadArchiveIdentityStorage/);
   assert.match(downloadArchiveIdentity, /sessionStorage\.removeItem\(LEGACY_CREATOR_DOCUMENT_NUMBER_SESSION_KEY\)/);
@@ -183,4 +185,18 @@ test('standard card generation uses the controlled renderer and preview endpoint
   assert.match(cardPreview, /'Cache-Control': 'public, max-age=31536000, immutable'/);
   assert.match(cardPreview, /'X-Content-Type-Options': 'nosniff'/);
   assert.match(verifyPage, /record\.card_image_url && record\.card_render_status === 'ready'/);
+});
+
+test('page entrypoints keep registration and archive generation in dedicated modules', () => {
+  const app = read('src/App.tsx');
+  const registrationFlow = read('src/components/home/RegistrationFlow.tsx');
+  const cardGenerator = read('src/components/CardGenerator.tsx');
+  const archiveDownload = read('src/utils/archiveDownload.ts');
+
+  assert.match(app, /<RegistrationFlow/);
+  assert.doesNotMatch(app, /v-id-register/);
+  assert.match(registrationFlow, /supabase\.functions\.invoke\('v-id-register'/);
+  assert.match(cardGenerator, /from '\.\.\/utils\/archiveDownload'/);
+  assert.doesNotMatch(cardGenerator, /function buildArchiveCertificatePdf/);
+  assert.match(archiveDownload, /export async function buildArchiveCertificatePdf/);
 });

@@ -44,8 +44,13 @@ legal determination of ownership.
 
 - Vite, React, TypeScript, Tailwind CSS
 - Entry point: `src/main.tsx`
-- Homepage and upload flow: `src/App.tsx`
-- Certificate page: `src/components/CardGenerator.tsx`
+- Homepage shell: `src/App.tsx`
+- Registration and evidence flow: `src/components/home/RegistrationFlow.tsx`
+- Homepage hero and contact UI: `src/components/home/HomeHero.tsx` and
+  `src/components/home/ContactModal.tsx`
+- Certificate page orchestration: `src/components/CardGenerator.tsx`
+- Download certificate, evidence manifest, and guide generation:
+  `src/utils/archiveDownload.ts`
 - Public verification page: `src/pages/VerifyPage.tsx`
 - Shared certificate renderer: `src/utils/certificateCanvas.ts`
 - Supabase client: `src/utils/supabase.ts`
