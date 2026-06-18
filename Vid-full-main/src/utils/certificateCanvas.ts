@@ -34,6 +34,9 @@ const INFO_TEXT_FONT_SIZE = 22;
 const QR_TEXT_PRIMARY_SIZE = 9.4;
 const QR_TEXT_SECONDARY_SIZE = 9.4;
 const DESCRIPTION_TEXT_SIZE = 13.2;
+const CARD_TEXT_FONT_NAME = 'Inter';
+const CARD_TEXT_FONT_FAMILY = '"Inter", "Segoe UI", system-ui, sans-serif';
+const CARD_FONT_READY_TIMEOUT_MS = 4000;
 
 export interface CertificateCanvasFields {
   name: string;
@@ -68,6 +71,7 @@ export interface CertificateCanvasCopy {
 
 export interface CertificateCanvasRenderOptions {
   dpr?: number;
+  requireFonts?: boolean;
 }
 
 export function formatCertificateIssuedDate(date = new Date(), language = 'en') {
@@ -100,12 +104,31 @@ function getCanvasDpr(dpr?: number) {
 }
 
 async function waitForFontsReady() {
-  if (typeof document === 'undefined' || !document.fonts?.ready) return;
+  if (typeof document === 'undefined' || !document.fonts?.ready) return true;
 
   try {
-    await document.fonts.ready;
+    const requiredFaces = [
+      `500 ${DESCRIPTION_TEXT_SIZE}px "${CARD_TEXT_FONT_NAME}"`,
+      `600 ${INFO_TEXT_FONT_SIZE}px "${CARD_TEXT_FONT_NAME}"`,
+      `700 ${QR_TEXT_PRIMARY_SIZE}px "${CARD_TEXT_FONT_NAME}"`,
+      `700 ${QR_TEXT_SECONDARY_SIZE}px "${CARD_TEXT_FONT_NAME}"`,
+    ];
+    const timeout = new Promise<boolean>((resolve) => {
+      window.setTimeout(() => resolve(false), CARD_FONT_READY_TIMEOUT_MS);
+    });
+    const loaded = await Promise.race([
+      Promise.all(requiredFaces.map((face) => document.fonts.load(face))).then(() => true),
+      timeout,
+    ]);
+
+    await Promise.race([
+      document.fonts.ready,
+      new Promise((resolve) => window.setTimeout(resolve, CARD_FONT_READY_TIMEOUT_MS)),
+    ]);
+
+    return Boolean(loaded) && requiredFaces.every((face) => document.fonts.check(face));
   } catch {
-    // If the browser cannot report font readiness, draw with the available fonts.
+    return false;
   }
 }
 
@@ -174,8 +197,8 @@ function getDividerGeometry() {
 
   return {
     lx: PANEL_X + PANEL_W * DIVIDER_X_RATIO,
-    ly1: cy - dividerTopHalfLength,
-    ly2: cy + dividerHalfLength,
+    ly1: cy - dividerTopHalfLength * 1.1,
+    ly2: cy + dividerHalfLength * 1.1,
   };
 }
 
@@ -488,7 +511,7 @@ function drawAvatar(ctx: CanvasRenderingContext2D, avatarImg: HTMLImageElement |
   });
   ctx.shadowBlur = 0;
 
-  for (let i = 0; i < 13; i++) {
+  for (let i = 0; i < 13; i += 1) {
     const seed = i * 1.371 + 0.618;
     const t = (Math.sin(seed * 12.9898) + 1) * 0.5;
     const t2 = (Math.sin(seed * 7.233 + 2.41) + 1) * 0.5;
@@ -601,9 +624,10 @@ function drawTextFields(
   copy: CertificateCanvasCopy
 ) {
   const startX = PANEL_X + PANEL_W * TEXT_START_X_RATIO;
+  const qrSafeX = getQRCodeGeometry().plateX - 24;
   const labelStyle = 'rgba(205, 198, 183, 0.84)';
   const valueStyle = 'rgba(247, 241, 229, 0.98)';
-  const sharedFont = `600 ${INFO_TEXT_FONT_SIZE}px "Avenir Next", "Segoe UI", system-ui`;
+  const minFontSize = 18;
   const labelGap = 11;
   const lines = [
     { label: copy.nameLabel, value: fields.name, y: PANEL_Y + PANEL_H * TEXT_NAME_Y_RATIO, valueColor: valueStyle },
@@ -616,10 +640,19 @@ function drawTextFields(
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   lines.forEach((line) => {
-    ctx.font = sharedFont;
+    let fontSize = INFO_TEXT_FONT_SIZE;
+    while (fontSize > minFontSize) {
+      ctx.font = `600 ${fontSize}px ${CARD_TEXT_FONT_FAMILY}`;
+      const totalWidth = ctx.measureText(line.label).width + labelGap + ctx.measureText(line.value).width;
+      if (startX + totalWidth <= qrSafeX) break;
+      fontSize -= 0.5;
+    }
+
+    ctx.font = `600 ${fontSize}px ${CARD_TEXT_FONT_FAMILY}`;
     ctx.fillStyle = labelStyle;
     ctx.fillText(line.label, startX, line.y);
     const valueX = startX + ctx.measureText(line.label).width + labelGap;
+    const valueMaxWidth = Math.max(24, qrSafeX - valueX);
 
     if (line.isStatus) {
       ctx.save();
@@ -627,7 +660,7 @@ function drawTextFields(
       ctx.fillStyle = 'rgba(31, 224, 107, 0.63)';
       ctx.shadowBlur = 36;
       ctx.shadowColor = 'rgba(31, 224, 107, 0.95)';
-      ctx.fillText(line.value, valueX, line.y);
+      ctx.fillText(line.value, valueX, line.y, valueMaxWidth);
       ctx.restore();
       ctx.fillStyle = line.valueColor;
       ctx.shadowBlur = 15;
@@ -637,7 +670,7 @@ function drawTextFields(
       ctx.shadowBlur = 0;
     }
 
-    ctx.fillText(line.value, valueX, line.y);
+    ctx.fillText(line.value, valueX, line.y, valueMaxWidth);
     ctx.shadowBlur = 0;
   });
   ctx.restore();
@@ -689,10 +722,10 @@ function drawQRCode(
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `700 ${QR_TEXT_PRIMARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
+  ctx.font = `700 ${QR_TEXT_PRIMARY_SIZE}px ${CARD_TEXT_FONT_FAMILY}`;
   ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
   ctx.fillText(copy.proofLabel, textCenterX, proofLabelY, textSafeWidth);
-  ctx.font = `700 ${QR_TEXT_SECONDARY_SIZE}px "Avenir Next", "Helvetica Neue", sans-serif`;
+  ctx.font = `700 ${QR_TEXT_SECONDARY_SIZE}px ${CARD_TEXT_FONT_FAMILY}`;
   ctx.fillStyle = 'rgba(170, 170, 158, 0.82)';
   ctx.fillText(copy.proofValue, textCenterX, proofValueY, textSafeWidth);
   ctx.restore();
@@ -700,7 +733,7 @@ function drawQRCode(
 
 function drawDescription(ctx: CanvasRenderingContext2D, description: string) {
   ctx.save();
-  ctx.font = `500 ${DESCRIPTION_TEXT_SIZE}px "Segoe UI", system-ui`;
+  ctx.font = `500 ${DESCRIPTION_TEXT_SIZE}px ${CARD_TEXT_FONT_FAMILY}`;
   ctx.fillStyle = 'rgba(180, 190, 210, 0.45)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
@@ -716,7 +749,10 @@ export async function renderCertificateCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) return false;
 
-  await waitForFontsReady();
+  const fontsReady = await waitForFontsReady();
+  if (!fontsReady && options.requireFonts) {
+    throw new Error('CARD_FONT_UNAVAILABLE');
+  }
 
   const dpr = getCanvasDpr(options.dpr);
   canvas.width = CERTIFICATE_CANVAS_WIDTH * dpr;

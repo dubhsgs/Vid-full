@@ -3,7 +3,7 @@ name: Deploy VAID
 on:
   push:
     branches:
-      - codex/security-architecture-refactor
+      - codex/strong-proof-ui-entry
   workflow_dispatch:
 
 jobs:
@@ -46,11 +46,11 @@ jobs:
       - name: Upload build
         run: |
           tar -czf /tmp/vaid-dist.tgz -C dist .
-          scp -i ~/.ssh/vaid_deploy_key /tmp/vaid-dist.tgz root@47.93.232.20:/tmp/vaid-dist-${GITHUB_SHA}.tgz
+          scp -i ~/.ssh/vaid_deploy_key /tmp/vaid-dist.tgz vaid-deploy@47.93.232.20:/tmp/vaid-dist-${GITHUB_SHA}.tgz
 
       - name: Activate release
         run: |
-          ssh -i ~/.ssh/vaid_deploy_key root@47.93.232.20 "GITHUB_SHA=${GITHUB_SHA} bash -s" <<'REMOTE'
+          ssh -i ~/.ssh/vaid_deploy_key vaid-deploy@47.93.232.20 "GITHUB_SHA=${GITHUB_SHA} bash -s" <<'REMOTE'
           set -euo pipefail
 
           BASE=/srv/www/vaid.top
@@ -68,7 +68,7 @@ jobs:
           fi
 
           ln -sfn "$RELEASE" "$CURRENT"
-          nginx -t
-          systemctl reload nginx
+          sudo /usr/sbin/nginx -t
+          sudo /usr/bin/systemctl reload nginx
           rm -f "$PACKAGE"
           REMOTE

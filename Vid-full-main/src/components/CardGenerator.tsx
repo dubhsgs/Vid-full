@@ -7,6 +7,11 @@ import { consumeGenerationReady } from '../utils/licenseManager';
 import { CERTIFICATE_CANVAS_WIDTH, formatCertificateIssuedDate, renderCertificateCanvas } from '../utils/certificateCanvas';
 
 const ASSET_BASE_URL = import.meta.env.BASE_URL || '/';
+const DOWNLOAD_CARD_IMAGE_SESSION_KEY = 'vid_download_card_image_base64';
+const DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY = 'vid_download_card_image_version';
+const DOWNLOAD_CARD_IMAGE_VERSION = 'inter-self-hosted-20260616';
+const DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY = 'vid_download_creator_legal_name';
+const DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY = 'vid_download_creator_document_number';
 
 function resolveAssetUrl(path: string): string {
   return `${ASSET_BASE_URL}${path.replace(/^\/+/, '')}`;
@@ -25,6 +30,8 @@ interface FormData {
 
 interface ArchiveCertificateMetadata {
   createdAt?: string;
+  creatorLegalName?: string;
+  creatorDocumentNumber?: string;
 }
 
 interface EvidenceMaterialRecord {
@@ -41,15 +48,6 @@ interface EvidenceManifest {
   manifestHash: string;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function formatDateTime(value?: string): string {
   if (!value) return 'Not available';
   const date = new Date(value);
@@ -60,6 +58,33 @@ function formatDateTime(value?: string): string {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+function base64PngToBlob(value: string): Blob | null {
+  try {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new Blob([bytes], { type: 'image/png' });
+  } catch (error) {
+    console.warn('[CardGenerator] Stored lossless card image is invalid:', error);
+    return null;
+  }
+}
+
+function getStoredDownloadCardImageBase64(): string | null {
+  const imageBase64 = sessionStorage.getItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY);
+  if (!imageBase64) return null;
+
+  if (sessionStorage.getItem(DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY) !== DOWNLOAD_CARD_IMAGE_VERSION) {
+    sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY);
+    sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY);
+    return null;
+  }
+
+  return imageBase64;
 }
 
 type DownloadLanguage = 'en' | 'zh' | 'ja';
@@ -122,6 +147,8 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
       fields: {
         recordId: '档案编号',
         characterName: '角色名称',
+        creatorLegalName: '创作者真实姓名',
+        creatorDocumentNumber: '证件号码',
         createdTime: '创建时间',
         sha256Hash: '图片哈希值',
         publicVerificationUrl: '公开验证链接',
@@ -155,6 +182,8 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
       fields: {
         recordId: 'Record ID',
         characterName: 'Character Name',
+        creatorLegalName: 'Creator Legal Name',
+        creatorDocumentNumber: 'Document Number',
         createdTime: 'Created Time',
         sha256Hash: 'SHA-256 Hash',
         publicVerificationUrl: 'Public Verification URL',
@@ -187,6 +216,8 @@ function getArchiveCertificateCopy(language: DownloadLanguage) {
     fields: {
       recordId: 'Record ID',
       characterName: 'Character Name',
+      creatorLegalName: 'Creator Legal Name',
+      creatorDocumentNumber: 'Document Number',
       createdTime: 'Created Time',
       sha256Hash: 'SHA-256 Hash',
       publicVerificationUrl: 'Public Verification URL',
@@ -254,325 +285,24 @@ async function buildEvidenceManifest(
   };
 }
 
-function buildArchiveCertificateHtml(
-  form: FormData,
-  sha256Hash: string,
-  verifyUrl: string,
-  metadata: ArchiveCertificateMetadata,
-  language: DownloadLanguage,
-  evidenceManifest: EvidenceManifest | null
-): string {
-  const copy = getArchiveCertificateCopy(language);
-  const fields = [
-    { label: copy.fields.recordId, value: form.serialId },
-    { label: copy.fields.characterName, value: form.name },
-    { label: copy.fields.createdTime, value: metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate },
-    { label: copy.fields.publicVerificationUrl, value: verifyUrl },
-    { label: copy.fields.sha256Hash, value: sha256Hash || 'Not available', isFingerprint: true },
-    ...(evidenceManifest ? [
-      { label: copy.fields.privateEvidenceMaterials, value: String(evidenceManifest.materials.length) },
-      { label: copy.fields.evidenceManifestHash, value: evidenceManifest.manifestHash, isFingerprint: true },
-    ] : []),
-  ];
-
-  return `<!doctype html>
-<html lang="${copy.htmlLang}">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(copy.title)} - ${escapeHtml(form.serialId)}</title>
-  <style>
-    * { box-sizing: border-box; }
-    html {
-      background: #ffffff;
-      color-scheme: light only;
-    }
-    body {
-      margin: 0;
-      background: #ffffff;
-      color: #172033;
-      color-scheme: light only;
-      font-family: "Avenir Next", "Segoe UI", "Noto Sans SC", "Hiragino Sans", Arial, sans-serif;
-      line-height: 1.55;
-    }
-    .page, .page * {
-      color-scheme: light only;
-      forced-color-adjust: none;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .page {
-      width: 794px;
-      min-height: 1123px;
-      margin: 0 auto;
-      background: #ffffff;
-      background-color: #ffffff;
-      color: #172033;
-      padding: 92px 84px;
-      border: 1px solid #c8d3df;
-      position: relative;
-    }
-    .border {
-      display: none;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 24px;
-      border-bottom: 2px solid #d8e1ea;
-      padding-bottom: 22px;
-    }
-    .brand {
-      font-size: 34px;
-      letter-spacing: 0.08em;
-      font-weight: 700;
-      color: #0f2742;
-    }
-    .header-record {
-      align-self: center;
-      color: #5c6d80;
-      font-size: 12px;
-      font-weight: 600;
-      text-align: right;
-    }
-    h1 {
-      margin: 38px 0 10px;
-      font-size: 28px;
-      color: #0f2742;
-      text-align: center;
-      letter-spacing: 0;
-    }
-    .subtitle {
-      margin: 0 auto 34px;
-      max-width: 580px;
-      color: #5a6878;
-      text-align: center;
-      font-size: 14px;
-    }
-    .section-title {
-      margin: 30px 0 12px;
-      color: #183655;
-      font-size: 15px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      border: 1px solid #d9e2eb;
-      background: #ffffff;
-    }
-    th, td {
-      border-bottom: 1px solid #e4ebf2;
-      padding: 13px 15px;
-      vertical-align: top;
-      font-size: 13px;
-    }
-    th {
-      width: 34%;
-      color: #58687a;
-      text-align: left;
-      font-weight: 700;
-      background: #f4f7fa;
-    }
-    td {
-      color: #172033;
-      word-break: break-word;
-      font-family: "Segoe UI", Arial, sans-serif;
-    }
-    .fingerprint {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 11px;
-      line-height: 1.7;
-    }
-    .statement {
-      height: 124px;
-      border: 1px solid #d9e2eb;
-      background: #f7fafc;
-      background-color: #f7fafc;
-      padding: 18px 20px;
-      color: #38485a;
-      font-size: 13px;
-      font-family: "Avenir Next", "Segoe UI", "Noto Sans SC", "Hiragino Sans", Arial, sans-serif;
-      font-weight: 400;
-      line-height: 1.65;
-      display: flex;
-      align-items: center;
-    }
-    .statement p {
-      margin: 0;
-    }
-    .statement p + p {
-      margin-top: 12px;
-    }
-    .manifest-page h1 {
-      margin-top: 34px;
-    }
-    .manifest-summary {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin: 24px 0;
-      padding: 16px 18px;
-      border: 1px solid #d9e2eb;
-      background: #f7fafc;
-      color: #38485a;
-      font-size: 12px;
-    }
-    .manifest-list {
-      display: grid;
-      gap: 12px;
-    }
-    .manifest-item {
-      border: 1px solid #d9e2eb;
-      background: #ffffff;
-      padding: 14px 16px;
-      font-size: 11px;
-      color: #38485a;
-    }
-    .manifest-item-title {
-      color: #172033;
-      font-weight: 700;
-      font-size: 12px;
-      margin-bottom: 8px;
-      word-break: break-word;
-    }
-    .manifest-row {
-      display: grid;
-      grid-template-columns: 104px 1fr;
-      gap: 10px;
-      margin-top: 5px;
-    }
-    .manifest-label {
-      color: #6c7b8d;
-      font-weight: 700;
-    }
-    .manifest-value {
-      color: #172033;
-      word-break: break-word;
-    }
-    .footer {
-      position: absolute;
-      left: 84px;
-      right: 84px;
-      bottom: 76px;
-      border-top: 0;
-      padding-top: 14px;
-      color: #6c7b8d;
-      font-size: 11px;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-    }
-  </style>
-</head>
-<body>
-  <main class="page">
-    <div class="border"></div>
-    <header class="header">
-      <div class="brand">VAID</div>
-      <div class="header-record">${escapeHtml(copy.fields.recordId)}：${escapeHtml(form.serialId)}</div>
-    </header>
-
-    <h1>${escapeHtml(copy.title)}</h1>
-    <p class="subtitle">
-      ${escapeHtml(copy.subtitle)}
-    </p>
-
-    <div class="section-title">${escapeHtml(copy.sectionTitle)}</div>
-    <table>
-      <tbody>
-        ${fields.map(({ label, value, isFingerprint }) => `
-        <tr>
-          <th>${escapeHtml(label)}</th>
-          <td class="${isFingerprint ? 'fingerprint' : ''}">${escapeHtml(value)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-
-    <div class="section-title">${escapeHtml(copy.statementTitle)}</div>
-    <div class="statement">
-      <p>${escapeHtml(copy.statement)}</p>
-    </div>
-
-    <div class="section-title">${escapeHtml(copy.preservationTitle)}</div>
-    <div class="statement">
-      <p>${escapeHtml(copy.preservation)}</p>
-    </div>
-
-    <footer class="footer">
-      <span>${escapeHtml(copy.generatedBy)}</span>
-      <span>${escapeHtml(form.serialId)}</span>
-    </footer>
-  </main>
-  ${evidenceManifest ? `
-  <main class="page manifest-page">
-    <div class="border"></div>
-    <header class="header">
-      <div class="brand">VAID</div>
-      <div class="header-record">${escapeHtml(copy.fields.recordId)}：${escapeHtml(form.serialId)}</div>
-    </header>
-
-    <h1>${escapeHtml(copy.manifestTitle)}</h1>
-    <p class="subtitle">${escapeHtml(copy.manifestSubtitle)}</p>
-
-    <div class="manifest-summary">
-      <div><strong>${escapeHtml(copy.fields.privateEvidenceMaterials)}:</strong> ${evidenceManifest.materials.length}</div>
-      <div><strong>${escapeHtml(copy.fields.evidenceManifestHash)}:</strong> <span class="fingerprint">${escapeHtml(evidenceManifest.manifestHash)}</span></div>
-    </div>
-
-    <div class="manifest-list">
-      ${evidenceManifest.materials.map((material, index) => `
-      <section class="manifest-item">
-        <div class="manifest-item-title">${index + 1}. ${escapeHtml(material.file_name)}</div>
-        <div class="manifest-row">
-          <div class="manifest-label">${escapeHtml(copy.manifestColumns.type)}</div>
-          <div class="manifest-value">${escapeHtml(material.material_type)}</div>
-        </div>
-        <div class="manifest-row">
-          <div class="manifest-label">${escapeHtml(copy.manifestColumns.size)}</div>
-          <div class="manifest-value">${escapeHtml(formatFileSize(Number(material.file_size_bytes)))}</div>
-        </div>
-        <div class="manifest-row">
-          <div class="manifest-label">${escapeHtml(copy.manifestColumns.sha256Hash)}</div>
-          <div class="manifest-value fingerprint">${escapeHtml(material.sha256_hash)}</div>
-        </div>
-        <div class="manifest-row">
-          <div class="manifest-label">${escapeHtml(copy.manifestColumns.registeredAt)}</div>
-          <div class="manifest-value">${escapeHtml(formatDateTime(material.created_at))}</div>
-        </div>
-      </section>`).join('')}
-    </div>
-
-    <footer class="footer">
-      <span>${escapeHtml(copy.generatedBy)}</span>
-      <span>${escapeHtml(form.serialId)}</span>
-    </footer>
-  </main>` : ''}
-</body>
-</html>`;
-}
-
 function getVerificationGuide(
   language: DownloadLanguage,
   form: FormData,
   sha256Hash: string,
   verifyUrl: string
 ): string {
-  if (language === 'zh') {
-    return `VAID 证明验证说明
+  const unavailable = sha256Hash || 'Not available';
+  const zh = `VAID 证明验证说明
 ====================
 
 本下载包用于保存一份 VAID 数字身份记录的本地证明材料。
 
 文件内容：
-1. VAID_数字身份卡片.png
+1. 数字身份卡片 PNG
    用于展示和分享的数字身份卡片。
-2. VAID_数字身份存档证书.pdf
+2. 数字身份存档证书 PDF
    用于记录说明和辅助证明的正式 PDF 证书。
-3. VAID_证明验证说明.txt
+3. 本 TXT 验证说明
    本说明文件。
 4. .ots 文件（如存在）
    时间戳证明文件。该文件仅在系统可提供时附带。
@@ -581,7 +311,7 @@ function getVerificationGuide(
 Character Name: ${form.name}
 Record ID: ${form.serialId}
 Created Time: ${form.issuedDate}
-SHA-256 Hash: ${sha256Hash || 'Not available'}
+SHA-256 Hash: ${unavailable}
 Public Verification URL: ${verifyUrl}
 
 如何验证：
@@ -597,20 +327,18 @@ VAID 证书和验证页是记录说明与辅助证明材料，不等同于版权
 
 © VAID Protocol
 `;
-  }
 
-  if (language === 'ja') {
-    return `VAID 証明確認ガイド
+  const ja = `VAID 証明確認ガイド
 ====================
 
 このダウンロードパッケージは、VAID デジタルアイデンティティ記録のローカル証明資料を保存するためのものです。
 
 ファイル内容：
-1. VAID_デジタルアイデンティティカード.png
+1. デジタルアイデンティティカード PNG
    表示および共有用のデジタルアイデンティティカードです。
-2. VAID_デジタルアイデンティティアーカイブ証明書.pdf
+2. デジタルアイデンティティアーカイブ証明書 PDF
    記録説明および補助証拠のための正式な PDF 証明書です。
-3. VAID_証明確認ガイド.txt
+3. この TXT 確認ガイド
    この説明ファイルです。
 4. .ots ファイル（存在する場合）
    タイムスタンプ証明ファイルです。システムが提供可能な場合のみ同梱されます。
@@ -619,7 +347,7 @@ VAID 证书和验证页是记录说明与辅助证明材料，不等同于版权
 Character Name: ${form.name}
 Record ID: ${form.serialId}
 Created Time: ${form.issuedDate}
-SHA-256 Hash: ${sha256Hash || 'Not available'}
+SHA-256 Hash: ${unavailable}
 Public Verification URL: ${verifyUrl}
 
 確認方法：
@@ -635,19 +363,18 @@ VAID 証明書および検証ページは、記録説明と補助証拠のため
 
 © VAID Protocol
 `;
-  }
 
-  return `VAID PROOF VERIFICATION GUIDE
+  const en = `VAID PROOF VERIFICATION GUIDE
 =============================
 
 This download package preserves local proof materials for one VAID digital identity record.
 
 Package contents:
-1. VAID_Digital_Identity_Card.png
+1. Digital identity card PNG
    A digital identity card for display and sharing.
-2. VAID_Digital_Identity_Archive_Certificate.pdf
+2. Digital identity archive certificate PDF
    A formal PDF certificate for record explanation and auxiliary evidence.
-3. VAID_Proof_Verification_Guide.txt
+3. This TXT verification guide
    This guide.
 4. .ots file, if present
    A timestamp proof file included only when available.
@@ -656,7 +383,7 @@ Core information:
 Character Name: ${form.name}
 Record ID: ${form.serialId}
 Created Time: ${form.issuedDate}
-SHA-256 Hash: ${sha256Hash || 'Not available'}
+SHA-256 Hash: ${unavailable}
 Public Verification URL: ${verifyUrl}
 
 How to verify:
@@ -672,6 +399,10 @@ The VAID certificate and verification page are record explanation and auxiliary 
 
 © VAID Protocol
 `;
+
+  if (language === 'zh') return `${zh}\n\n${en}\n\n${ja}`;
+  if (language === 'ja') return `${ja}\n\n${en}\n\n${zh}`;
+  return `${en}\n\n${zh}\n\n${ja}`;
 }
 
 function buildJpegPdf(pages: Array<{ jpegBytes: ArrayBuffer; width: number; height: number }>): Blob {
@@ -738,87 +469,365 @@ function buildJpegPdf(pages: Array<{ jpegBytes: ArrayBuffer; width: number; heig
   return new Blob([bytes], { type: 'application/pdf' });
 }
 
-async function buildArchiveCertificatePdf(
+interface ArchiveCertificatePdfField {
+  label: string;
+  value: string;
+  isFingerprint?: boolean;
+}
+
+function setPdfFont(ctx: CanvasRenderingContext2D, weight: number, size: number, mono = false) {
+  ctx.font = mono
+    ? `${weight} ${size}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`
+    : `${weight} ${size}px "Avenir Next", "Segoe UI", "Noto Sans SC", "Hiragino Sans", Arial, sans-serif`;
+}
+
+function drawWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines = 99
+) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!normalized) return y;
+
+  const lines = getWrappedLines(ctx, normalized, maxWidth, maxLines);
+  const previousAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+
+  lines.forEach((currentLine, index) => {
+    ctx.fillText(currentLine, x, y + index * lineHeight);
+  });
+
+  ctx.textAlign = previousAlign;
+  return y + lines.length * lineHeight;
+}
+
+function getWrappedLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines = 99
+) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  const lines: string[] = [];
+  let line = '';
+  const tokens = /[\u3040-\u30ff\u3400-\u9fff]/.test(normalized)
+    ? Array.from(normalized)
+    : normalized.split(' ');
+
+  for (const token of tokens) {
+    const separator = /[\u3040-\u30ff\u3400-\u9fff]/.test(normalized) ? '' : (line ? ' ' : '');
+    const nextLine = `${line}${separator}${token}`;
+    if (ctx.measureText(nextLine).width <= maxWidth || !line) {
+      line = nextLine;
+    } else {
+      lines.push(line);
+      line = token;
+      if (lines.length >= maxLines) break;
+    }
+  }
+
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines;
+}
+
+function drawCenteredWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  centerX: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines = 99
+) {
+  const lines = getWrappedLines(ctx, text, maxWidth, maxLines);
+  const previousAlign = ctx.textAlign;
+  ctx.textAlign = 'center';
+  lines.forEach((currentLine, index) => {
+    ctx.fillText(currentLine, centerX, y + index * lineHeight);
+  });
+  ctx.textAlign = previousAlign;
+  return y + lines.length * lineHeight;
+}
+
+function getArchiveCertificateFields(
   form: FormData,
   sha256Hash: string,
   verifyUrl: string,
   metadata: ArchiveCertificateMetadata,
   language: DownloadLanguage,
   evidenceManifest: EvidenceManifest | null
+): ArchiveCertificatePdfField[] {
+  const copy = getArchiveCertificateCopy(language);
+  return [
+    { label: copy.fields.recordId, value: form.serialId },
+    { label: copy.fields.characterName, value: form.name },
+    ...(metadata.creatorLegalName ? [
+      { label: copy.fields.creatorLegalName, value: metadata.creatorLegalName },
+    ] : []),
+    ...(metadata.creatorDocumentNumber ? [
+      { label: copy.fields.creatorDocumentNumber, value: metadata.creatorDocumentNumber },
+    ] : []),
+    { label: copy.fields.createdTime, value: metadata.createdAt ? formatDateTime(metadata.createdAt) : form.issuedDate },
+    { label: copy.fields.publicVerificationUrl, value: verifyUrl },
+    { label: copy.fields.sha256Hash, value: sha256Hash || 'Not available', isFingerprint: true },
+    ...(evidenceManifest ? [
+      { label: copy.fields.privateEvidenceMaterials, value: String(evidenceManifest.materials.length) },
+      { label: copy.fields.evidenceManifestHash, value: evidenceManifest.manifestHash, isFingerprint: true },
+    ] : []),
+  ];
+}
+
+async function canvasToJpegPage(canvas: HTMLCanvasElement) {
+  const jpegBlob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error('Archive certificate image export failed'));
+      }
+    }, 'image/jpeg', 0.95);
+  });
+
+  return {
+    jpegBytes: await jpegBlob.arrayBuffer(),
+    width: canvas.width,
+    height: canvas.height,
+  };
+}
+
+function createPdfCanvas() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1588;
+  canvas.height = 2246;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Archive certificate canvas unavailable');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  return { canvas, ctx };
+}
+
+async function renderArchiveCertificatePage(
+  form: FormData,
+  sha256Hash: string,
+  verifyUrl: string,
+  metadata: ArchiveCertificateMetadata,
+  language: DownloadLanguage,
+  evidenceManifest: EvidenceManifest | null
+) {
+  const copy = getArchiveCertificateCopy(language);
+  const fields = getArchiveCertificateFields(form, sha256Hash, verifyUrl, metadata, language, evidenceManifest);
+  const { canvas, ctx } = createPdfCanvas();
+  const left = 168;
+  const right = canvas.width - 168;
+  const contentWidth = right - left;
+
+  setPdfFont(ctx, 700, 68);
+  ctx.fillStyle = '#0f2742';
+  ctx.fillText('VAID', left, 230);
+
+  setPdfFont(ctx, 600, 24);
+  ctx.fillStyle = '#5c6d80';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${copy.fields.recordId}: ${form.serialId}`, right, 230);
+  ctx.textAlign = 'left';
+
+  ctx.strokeStyle = '#d8e1ea';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(left, 294);
+  ctx.lineTo(right, 294);
+  ctx.stroke();
+
+  setPdfFont(ctx, 700, 56);
+  ctx.fillStyle = '#0f2742';
+  ctx.textAlign = 'center';
+  ctx.fillText(copy.title, canvas.width / 2, 405);
+
+  setPdfFont(ctx, 400, 28);
+  ctx.fillStyle = '#5a6878';
+  drawCenteredWrappedText(ctx, copy.subtitle, canvas.width / 2, 465, contentWidth - 180, 38, 3);
+  ctx.textAlign = 'left';
+
+  setPdfFont(ctx, 700, 30);
+  ctx.fillStyle = '#183655';
+  ctx.fillText(copy.sectionTitle.toUpperCase(), left, 615);
+
+  let y = 650;
+  const labelWidth = 360;
+  const rowPaddingX = 30;
+  const rowPaddingY = 20;
+  const rowMinHeight = 74;
+  fields.forEach((field) => {
+    setPdfFont(ctx, 700, 24);
+    const labelLines = getWrappedLines(ctx, field.label, labelWidth - rowPaddingX * 2, 2).length || 1;
+    setPdfFont(ctx, field.isFingerprint ? 500 : 400, field.isFingerprint ? 20 : 25, field.isFingerprint);
+    const valueLineHeight = field.isFingerprint ? 30 : 32;
+    const valueMaxWidth = contentWidth - labelWidth - rowPaddingX * 2;
+    const valueLines = getWrappedLines(ctx, field.value, valueMaxWidth, 3).length || 1;
+    const rowHeight = Math.max(
+      rowMinHeight,
+      Math.min(126, labelLines * 30 + rowPaddingY * 2),
+      Math.min(126, valueLines * valueLineHeight + rowPaddingY * 2)
+    );
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(left, y, contentWidth, rowHeight);
+    ctx.fillStyle = '#f4f7fa';
+    ctx.fillRect(left, y, labelWidth, rowHeight);
+    ctx.strokeStyle = '#d9e2eb';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(left, y, contentWidth, rowHeight);
+
+    setPdfFont(ctx, 700, 24);
+    ctx.fillStyle = '#58687a';
+    drawWrappedText(ctx, field.label, left + rowPaddingX, y + 43, labelWidth - rowPaddingX * 2, 30, 2);
+
+    setPdfFont(ctx, field.isFingerprint ? 500 : 400, field.isFingerprint ? 20 : 25, field.isFingerprint);
+    ctx.fillStyle = '#172033';
+    drawWrappedText(
+      ctx,
+      field.value,
+      left + labelWidth + rowPaddingX,
+      y + 43,
+      valueMaxWidth,
+      valueLineHeight,
+      3
+    );
+    y += rowHeight;
+  });
+
+  const drawTextBox = (title: string, body: string, top: number, boxHeight: number) => {
+    setPdfFont(ctx, 700, 30);
+    ctx.fillStyle = '#183655';
+    ctx.fillText(title.toUpperCase(), left, top);
+    ctx.fillStyle = '#f7fafc';
+    ctx.fillRect(left, top + 26, contentWidth, boxHeight);
+    ctx.strokeStyle = '#d9e2eb';
+    ctx.strokeRect(left, top + 26, contentWidth, boxHeight);
+    setPdfFont(ctx, 400, 24);
+    ctx.fillStyle = '#38485a';
+    drawWrappedText(ctx, body, left + 40, top + 82, contentWidth - 80, 34, 5);
+  };
+
+  const statementTop = Math.max(y + 70, 1240);
+  const statementHeight = 216;
+  const preservationTop = statementTop + statementHeight + 128;
+  const preservationHeight = 216;
+
+  drawTextBox(copy.statementTitle, copy.statement, statementTop, statementHeight);
+  drawTextBox(copy.preservationTitle, copy.preservation, preservationTop, preservationHeight);
+
+  setPdfFont(ctx, 400, 22);
+  ctx.fillStyle = '#6c7b8d';
+  ctx.fillText(copy.generatedBy, left, 2052);
+  ctx.textAlign = 'right';
+  ctx.fillText(form.serialId, right, 2052);
+  ctx.textAlign = 'left';
+
+  return canvasToJpegPage(canvas);
+}
+
+async function renderEvidenceManifestPage(
+  form: FormData,
+  language: DownloadLanguage,
+  evidenceManifest: EvidenceManifest
+) {
+  const copy = getArchiveCertificateCopy(language);
+  const { canvas, ctx } = createPdfCanvas();
+  const left = 168;
+  const right = canvas.width - 168;
+  const contentWidth = right - left;
+
+  setPdfFont(ctx, 700, 68);
+  ctx.fillStyle = '#0f2742';
+  ctx.fillText('VAID', left, 230);
+  setPdfFont(ctx, 600, 24);
+  ctx.fillStyle = '#5c6d80';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${copy.fields.recordId}: ${form.serialId}`, right, 230);
+  ctx.textAlign = 'left';
+  ctx.strokeStyle = '#d8e1ea';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(left, 294);
+  ctx.lineTo(right, 294);
+  ctx.stroke();
+
+  setPdfFont(ctx, 700, 52);
+  ctx.fillStyle = '#0f2742';
+  ctx.textAlign = 'center';
+  ctx.fillText(copy.manifestTitle, canvas.width / 2, 405);
+  ctx.textAlign = 'left';
+
+  setPdfFont(ctx, 400, 25);
+  ctx.fillStyle = '#5a6878';
+  drawWrappedText(ctx, copy.manifestSubtitle, left + 50, 470, contentWidth - 100, 36, 4);
+
+  let y = 640;
+  setPdfFont(ctx, 700, 25);
+  ctx.fillStyle = '#38485a';
+  ctx.fillText(`${copy.fields.privateEvidenceMaterials}: ${evidenceManifest.materials.length}`, left + 30, y);
+  y += 52;
+  setPdfFont(ctx, 500, 22, true);
+  drawWrappedText(ctx, `${copy.fields.evidenceManifestHash}: ${evidenceManifest.manifestHash}`, left + 30, y, contentWidth - 60, 32, 3);
+  y += 125;
+
+  evidenceManifest.materials.slice(0, 8).forEach((material, index) => {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(left, y, contentWidth, 205);
+    ctx.strokeStyle = '#d9e2eb';
+    ctx.strokeRect(left, y, contentWidth, 205);
+    setPdfFont(ctx, 700, 24);
+    ctx.fillStyle = '#172033';
+    drawWrappedText(ctx, `${index + 1}. ${material.file_name}`, left + 30, y + 40, contentWidth - 60, 30, 2);
+    setPdfFont(ctx, 500, 21);
+    ctx.fillStyle = '#38485a';
+    ctx.fillText(`${copy.manifestColumns.type}: ${material.material_type}`, left + 30, y + 112);
+    ctx.fillText(`${copy.manifestColumns.size}: ${formatFileSize(Number(material.file_size_bytes))}`, left + 30, y + 145);
+    setPdfFont(ctx, 500, 19, true);
+    drawWrappedText(ctx, `${copy.manifestColumns.sha256Hash}: ${material.sha256_hash}`, left + 30, y + 178, contentWidth - 60, 28, 2);
+    y += 225;
+  });
+
+  setPdfFont(ctx, 400, 22);
+  ctx.fillStyle = '#6c7b8d';
+  ctx.fillText(copy.generatedBy, left, 2052);
+  ctx.textAlign = 'right';
+  ctx.fillText(form.serialId, right, 2052);
+  ctx.textAlign = 'left';
+
+  return canvasToJpegPage(canvas);
+}
+
+async function buildArchiveCertificatePdf(
+  form: FormData,
+  sha256Hash: string,
+  verifyUrl: string,
+  metadata: ArchiveCertificateMetadata,
+  evidenceManifest: EvidenceManifest | null
 ): Promise<Blob> {
-  const html = buildArchiveCertificateHtml(form, sha256Hash, verifyUrl, metadata, language, evidenceManifest);
-  const frame = document.createElement('iframe');
-  frame.style.position = 'fixed';
-  frame.style.left = '-10000px';
-  frame.style.top = '0';
-  frame.style.width = '794px';
-  frame.style.height = '1123px';
-  frame.style.border = '0';
-  frame.style.backgroundColor = '#ffffff';
-  frame.style.setProperty('color-scheme', 'light only');
-  document.body.appendChild(frame);
+  const pdfPages = [];
 
-  try {
-    const frameDocument = frame.contentDocument;
-    if (!frameDocument) throw new Error('Archive certificate frame unavailable');
+  for (const certificateLanguage of ['en', 'zh'] satisfies DownloadLanguage[]) {
+    pdfPages.push(await renderArchiveCertificatePage(
+      form,
+      sha256Hash,
+      verifyUrl,
+      metadata,
+      certificateLanguage,
+      evidenceManifest
+    ));
 
-    frameDocument.open();
-    frameDocument.write(html);
-    frameDocument.close();
-
-    await new Promise<void>((resolve) => {
-      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
-    });
-    await frameDocument.fonts?.ready.catch(() => undefined);
-
-    const { default: html2canvas } = await import('html2canvas');
-    const pageElements = Array.from(frameDocument.querySelectorAll('.page')) as HTMLElement[];
-    if (pageElements.length === 0) throw new Error('Archive certificate page missing');
-
-    const pdfPages = [];
-    for (const page of pageElements) {
-      const canvas = await html2canvas(page, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        onclone: (clonedDocument) => {
-          clonedDocument.documentElement.style.backgroundColor = '#ffffff';
-          clonedDocument.documentElement.style.setProperty('color-scheme', 'light only');
-          if (clonedDocument.body) {
-            clonedDocument.body.style.backgroundColor = '#ffffff';
-            clonedDocument.body.style.color = '#172033';
-            clonedDocument.body.style.setProperty('color-scheme', 'light only');
-          }
-          clonedDocument.querySelectorAll<HTMLElement>('.page').forEach((clonedPage) => {
-            clonedPage.style.backgroundColor = '#ffffff';
-            clonedPage.style.color = '#172033';
-            clonedPage.style.setProperty('color-scheme', 'light only');
-          });
-          clonedDocument.querySelectorAll<HTMLElement>('.footer').forEach((footer) => {
-            footer.style.borderTop = '0';
-          });
-        },
-      });
-      const jpegBlob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Archive certificate image export failed'));
-          }
-        }, 'image/jpeg', 0.95);
-      });
-      pdfPages.push({
-        jpegBytes: await jpegBlob.arrayBuffer(),
-        width: canvas.width,
-        height: canvas.height,
-      });
+    if (evidenceManifest) {
+      pdfPages.push(await renderEvidenceManifestPage(form, certificateLanguage, evidenceManifest));
     }
-    return buildJpegPdf(pdfPages);
-  } finally {
-    frame.remove();
   }
+
+  return buildJpegPdf(pdfPages);
 }
 
 export function CardGenerator() {
@@ -850,6 +859,7 @@ export function CardGenerator() {
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadCardImageBase64] = useState<string | null>(() => getStoredDownloadCardImageBase64());
 
   const generateSerialId = useCallback(() => {
     const now = Date.now();
@@ -1071,31 +1081,35 @@ export function CardGenerator() {
     setIsDownloading(true);
 
     try {
-      const canvas = document.createElement('canvas');
-      const rendered = await renderCertificateCanvas(canvas, {
-        fields: form,
-        assets: {
-          backgroundImage: bgImg,
-          logoImage: logoImg,
-          textureImage: textureImg,
-          avatarImage: avatarImg,
-          qrImage: qrImg,
-        },
-        copy: cardCopy.canvas,
-      }, { dpr: 2 });
-      if (!rendered) {
-        throw new Error('Canvas context unavailable');
-      }
+      let imageBlob = downloadCardImageBase64 ? base64PngToBlob(downloadCardImageBase64) : null;
 
-      const imageBlob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Card image export failed'));
-          }
-        }, 'image/png');
-      });
+      if (!imageBlob) {
+        const canvas = document.createElement('canvas');
+        const rendered = await renderCertificateCanvas(canvas, {
+          fields: form,
+          assets: {
+            backgroundImage: bgImg,
+            logoImage: logoImg,
+            textureImage: textureImg,
+            avatarImage: avatarImg,
+            qrImage: qrImg,
+          },
+          copy: cardCopy.canvas,
+        }, { dpr: 2 });
+        if (!rendered) {
+          throw new Error('Canvas context unavailable');
+        }
+
+        imageBlob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Card image export failed'));
+            }
+          }, 'image/png');
+        });
+      }
 
       const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
@@ -1103,7 +1117,10 @@ export function CardGenerator() {
       const downloadLanguage = getDownloadLanguage(i18n.resolvedLanguage ?? i18n.language);
       const bundleNames = getLocalizedBundleNames(downloadLanguage);
       const verificationGuide = getVerificationGuide(downloadLanguage, form, sha256Hash, verifyUrl);
-      let archiveMetadata: ArchiveCertificateMetadata = {};
+      let archiveMetadata: ArchiveCertificateMetadata = {
+        creatorLegalName: sessionStorage.getItem(DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY) || localStorage.getItem('vid_creator_name') || '',
+        creatorDocumentNumber: sessionStorage.getItem(DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY) || '',
+      };
       let evidenceManifest: EvidenceManifest | null = null;
 
       if (citizenId) {
@@ -1145,7 +1162,6 @@ export function CardGenerator() {
         sha256Hash,
         verifyUrl,
         archiveMetadata,
-        downloadLanguage,
         evidenceManifest
       );
 
@@ -1252,17 +1268,32 @@ export function CardGenerator() {
           </button>
         </div>
       </div>
-      <canvas
-        ref={canvasRef}
-        className="relative z-10 block rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-        style={{
-          width: '100%',
-          height: 'auto',
-          maxWidth: `${CERTIFICATE_CANVAS_WIDTH}px`,
-          maxHeight: 'calc(100svh - 9rem)',
-          display: 'block',
-        }}
-      />
+      {downloadCardImageBase64 ? (
+        <img
+          src={`data:image/png;base64,${downloadCardImageBase64}`}
+          alt={t('cardGenerator.identityPreview')}
+          className="relative z-10 block rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+          style={{
+            width: '100%',
+            height: 'auto',
+            maxWidth: `${CERTIFICATE_CANVAS_WIDTH}px`,
+            maxHeight: 'calc(100svh - 9rem)',
+            display: 'block',
+          }}
+        />
+      ) : (
+        <canvas
+          ref={canvasRef}
+          className="relative z-10 block rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+          style={{
+            width: '100%',
+            height: 'auto',
+            maxWidth: `${CERTIFICATE_CANVAS_WIDTH}px`,
+            maxHeight: 'calc(100svh - 9rem)',
+            display: 'block',
+          }}
+        />
+      )}
       <p className="relative z-10 mt-6 text-slate-500 text-xs text-center max-w-md leading-relaxed">
         * {t('cardGenerator.recordedBy')}
       </p>

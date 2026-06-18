@@ -49,10 +49,11 @@ const resources = {
         thank: 'Thank you for your patience.'
       },
       hero: {
-        title: 'Your Digital Identity',
-        titleHighlight: 'Permanently Documented',
-        titleLines: ['Your Digital Identity', 'Permanently', 'Documented'],
-        subtitle: 'VAID provides proof of existence for digital assets and virtual characters,\ncreating an immutable record from the moment they are created.',
+        title: 'Protect Your',
+        titleHighlight: 'Original AI Works',
+        titleLines: ['Protect Your', 'Original AI Works', 'Before They Go Public'],
+        mobileTitleLines: ['Protect Your', 'Original AI Works', 'Before They Go Public'],
+        subtitle: 'VAID helps AI creators protect original works, characters, and digital creations\nwith clear proof before they are made public, sold, or delivered.',
         cta: 'Get Started'
       },
       auth: {
@@ -150,7 +151,6 @@ const resources = {
         back: 'Back',
         next: 'Next',
         evidenceTitle: 'Upload creation proof materials',
-        evidenceSubtitle: 'Optional materials can strengthen your private evidence package. They will not appear on the public verification page.',
         evidenceTips: 'Recommended: upload screenshots, screen recordings, or PDFs that show the platform name, prompt, creation time, and generated result. Keep your original proof files yourself.',
         evidenceSelect: 'Select proof materials',
         evidenceLimit: 'Video, image, or PDF. Up to {{count}} files, {{size}} each.',
@@ -300,12 +300,12 @@ const resources = {
         thank: '感谢您的耐心等待。'
       },
       hero: {
-        title: '您的数字身份',
-        titleHighlight: '永久存证',
-        titleLines: ['将您的数字资产永久存证', '将数字灵魂锚定于', '物理世界'],
-        mobileTitleLines: ['将您的数字资产永久存证', '将数字灵魂锚定于', '物理世界'],
-        subtitle: 'VAID 为数字资产、虚拟角色与原创设定提供存在证明与时间锚点。\n从作品诞生的那一刻起，为创作留下一份可追溯、可验证、不可篡改的数字记录。',
-        mobileSubtitleLines: ['VAID 为数字资产、虚拟角色与原创设定提供存在证明与时间锚点。', '从作品诞生的那一刻起，为创作留下一份可追溯、可验证、', '不可篡改的数字记录。'],
+        title: '将您的AI作品加密保存',
+        titleHighlight: '在公开之前留下证明',
+        titleLines: ['将您的AI作品加密保存', '在公开之前留下证明', '让创作有迹可循'],
+        mobileTitleLines: ['将您的AI作品加密保存', '在公开之前留下证明', '让创作有迹可循'],
+        subtitle: 'VAID为AI图片、角色、设定与原创数字作品生成可验证的创作证明。在公开、出售或交付\n之前，为创作留下一份可追溯、可验证、可分享、不可篡改的数字记录。',
+        mobileSubtitleLines: ['VAID为AI图片、角色、设定与原创数字作品', '生成可验证的创作证明。', '在公开、出售或交付之前，为创作留下一份', '可追溯、可验证、可分享、不可篡改的数字记录。'],
         cta: '立即开始'
       },
       auth: {
@@ -403,7 +403,6 @@ const resources = {
         back: '返回',
         next: '下一步',
         evidenceTitle: '上传平台创作证明材料',
-        evidenceSubtitle: '这一步是可选的，用于增强您的私有证据包。证明材料不会出现在公开验证页。',
         evidenceTips: '建议上传能看到平台名称、提示词、创作时间和生成结果的截图、录屏或 PDF。原始证明文件请您自己长期保存。',
         evidenceSelect: '选择证明材料',
         evidenceLimit: '支持视频、图片或 PDF。最多 {{count}} 个文件，每个不超过 {{size}}。',
@@ -553,10 +552,12 @@ const resources = {
         thank: 'ご理解とご協力をお願いいたします。'
       },
       hero: {
-        title: 'あなたのデジタルアイデンティティを',
-        titleHighlight: '永久的に記録',
-        titleLines: ['あなたのデジタル', 'アイデンティティを', '永久的に記録'],
-        subtitle: 'VAIDは、デジタル資産とキャラクターの暗号的存在証明を提供し、\nデジタル創作物の誕生時から不変の記録を作成します。',
+        title: 'AIで生まれた作品を守る',
+        titleHighlight: '公開前に証明を残す',
+        titleLines: ['AIで生まれた作品を守る', '公開前に証明を残す', '創作の記録を明確に'],
+        mobileTitleLines: ['AIで生まれた作品を守る', '公開前に証明を残す', '創作の記録を明確に'],
+        subtitle: 'VAID は、AI クリエイターがオリジナル作品・キャラクター・デジタルコンテンツを\n公開、販売、納品する前に、確かな証拠を残して権利を守れるようサポートします。',
+        mobileSubtitleLines: ['VAID は、AI クリエイターがオリジナル作品・', 'キャラクター・デジタルコンテンツを', '公開、販売、納品する前に、確かな証拠を残して', '権利を守れるようサポートします。'],
         cta: '今すぐ始める',
         carouselText: 'デジタル存在の最終証明：デジタル資産を物理世界に固定する。'
       },
@@ -655,7 +656,6 @@ const resources = {
         back: '戻る',
         next: '次へ',
         evidenceTitle: '制作証明資料をアップロード',
-        evidenceSubtitle: '任意の資料として、非公開の証拠パッケージを強化できます。公開検証ページには表示されません。',
         evidenceTips: '推奨：プラットフォーム名、プロンプト、作成時刻、生成結果が分かるスクリーンショット、画面録画、PDF をアップロードしてください。元の証明ファイルはご自身で保管してください。',
         evidenceSelect: '証明資料を選択',
         evidenceLimit: '動画、画像、PDF に対応。最大 {{count}} ファイル、各 {{size}} まで。',

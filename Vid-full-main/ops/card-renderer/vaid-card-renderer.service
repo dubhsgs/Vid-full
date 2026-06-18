@@ -1,0 +1,19 @@
+[Unit]
+Description=VAID canonical card renderer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/www/vaid-card-renderer
+EnvironmentFile=/etc/vaid-card-renderer.env
+ExecStart=/usr/bin/node /srv/www/vaid-card-renderer/server.mjs
+Restart=on-failure
+RestartSec=3
+User=nginx
+Group=nginx
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

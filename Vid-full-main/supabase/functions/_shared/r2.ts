@@ -13,8 +13,10 @@ interface PresignPutOptions {
 }
 
 interface SignedRequestOptions {
-  method: 'HEAD' | 'DELETE';
+  method: 'GET' | 'HEAD' | 'DELETE' | 'PUT';
   key: string;
+  body?: BodyInit;
+  contentType?: string;
 }
 
 function requireEnv(name: string): string {
@@ -32,12 +34,34 @@ export function getR2Config(): R2Config {
   };
 }
 
+export function getR2CardsConfig(): R2Config {
+  return {
+    accountId: requireEnv('R2_ACCOUNT_ID'),
+    accessKeyId: requireEnv('R2_ACCESS_KEY_ID'),
+    secretAccessKey: requireEnv('R2_SECRET_ACCESS_KEY'),
+    bucket: requireEnv('R2_CARDS_BUCKET'),
+  };
+}
+
 function bytesToHex(bytes: ArrayBuffer): string {
   return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 async function sha256Hex(value: string): Promise<string> {
   return bytesToHex(await crypto.subtle.digest('SHA-256', textEncoder.encode(value)));
+}
+
+async function sha256BytesHex(value: Uint8Array): Promise<string> {
+  return bytesToHex(await crypto.subtle.digest('SHA-256', value));
+}
+
+async function bodyToBytes(body?: BodyInit): Promise<Uint8Array> {
+  if (!body) return new Uint8Array();
+  if (typeof body === 'string') return textEncoder.encode(body);
+  if (body instanceof Uint8Array) return body;
+  if (body instanceof ArrayBuffer) return new Uint8Array(body);
+  if (body instanceof Blob) return new Uint8Array(await body.arrayBuffer());
+  throw new Error('Unsupported R2 request body type');
 }
 
 async function hmacSha256(key: ArrayBuffer | Uint8Array, value: string): Promise<ArrayBuffer> {
@@ -129,14 +153,27 @@ export async function signedR2Request(
   config: R2Config,
   options: SignedRequestOptions
 ): Promise<Request> {
+  const bodyBytes = await bodyToBytes(options.body);
+  const hasBody = bodyBytes.byteLength > 0;
+  const payloadHash = await sha256BytesHex(bodyBytes);
   const { amzDate, dateStamp } = getAmzDate();
   const host = endpointHost(config);
   const credentialScope = `${dateStamp}/auto/s3/aws4_request`;
   const canonicalUri = `/${encodePathPart(config.bucket)}/${encodeObjectPath(options.key)}`;
-  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const contentType = (options.contentType || '').trim();
+  const signedHeaderParts = [
+    ...(hasBody ? ['content-length'] : []),
+    ...(contentType ? ['content-type'] : []),
+    'host',
+    'x-amz-content-sha256',
+    'x-amz-date',
+  ];
+  const signedHeaders = signedHeaderParts.join(';');
   const canonicalHeaders = [
+    ...(hasBody ? [`content-length:${bodyBytes.byteLength}`] : []),
+    ...(contentType ? [`content-type:${contentType}`] : []),
     `host:${host}`,
-    'x-amz-content-sha256:UNSIGNED-PAYLOAD',
+    `x-amz-content-sha256:${payloadHash}`,
     `x-amz-date:${amzDate}`,
     '',
   ].join('\n');
@@ -146,7 +183,7 @@ export async function signedR2Request(
     '',
     canonicalHeaders,
     signedHeaders,
-    'UNSIGNED-PAYLOAD',
+    payloadHash,
   ].join('\n');
   const stringToSign = [
     'AWS4-HMAC-SHA256',
@@ -166,8 +203,11 @@ export async function signedR2Request(
     method: options.method,
     headers: {
       Authorization: authorization,
-      'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+      ...(hasBody ? { 'Content-Length': String(bodyBytes.byteLength) } : {}),
+      ...(contentType ? { 'Content-Type': contentType } : {}),
+      'x-amz-content-sha256': payloadHash,
       'x-amz-date': amzDate,
     },
+    body: hasBody ? bodyBytes : undefined,
   });
 }

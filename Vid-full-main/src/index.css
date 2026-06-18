@@ -1,4 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter/Inter-400.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter/Inter-500.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/inter/Inter-600.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/inter/Inter-700.ttf') format('truetype');
+}
 
 @tailwind base;
 @tailwind components;
@@ -106,6 +138,10 @@
   white-space: nowrap;
 }
 
+.vaid-hero-title--desktop.vaid-hero-title--latin span {
+  white-space: nowrap;
+}
+
 .vaid-hero-title--mobile {
   display: none;
 }
@@ -117,9 +153,10 @@
 }
 
 .vaid-hero-subtitle {
+  width: min(40vw, 36rem);
   max-width: none;
   margin: 1.28rem 0 1.62rem;
-  font-size: clamp(1.01rem, 1.08vw, 1.19rem);
+  font-size: clamp(0.92rem, 0.96vw, 1.05rem);
   line-height: 1.42;
   color: #aab1be;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -165,17 +202,10 @@
 
   .vaid-hero-subtitle--cjk {
     max-width: min(95%, 34rem);
-    font-size: 0.96rem;
+    font-size: 1rem;
     line-height: 1.54;
   }
 
-  .vaid-hero-subtitle--ja {
-    font-size: 1.12rem;
-  }
-
-  .vaid-hero-subtitle--zh {
-    font-size: 1.12rem;
-  }
 }
 
 .vaid-hero-subtitle-line {
@@ -442,6 +472,7 @@
   }
 
   .vaid-hero-subtitle {
+    width: auto;
     max-width: min(22.6rem, calc(100vw - 1.8rem));
     margin: 0.48rem 0 0.62rem;
     font-size: clamp(0.66rem, 2.65vw, 0.75rem);
@@ -459,10 +490,6 @@
 
   .vaid-hero-subtitle-line {
     display: inline;
-  }
-
-  .vaid-hero-subtitle--cjk .vaid-hero-subtitle-line {
-    display: block;
   }
 
   .vaid-hero-cta {

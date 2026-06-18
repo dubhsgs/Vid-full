@@ -11,6 +11,8 @@ interface VIDRecord {
   character_name: string;
   creator_name: string;
   image_url: string;
+  card_image_url?: string | null;
+  card_render_status?: string | null;
   created_at: string;
   ots_status: string;
 }
@@ -25,6 +27,7 @@ const verifyCopy = {
     title: 'VAID Verification Record',
     subtitle: 'Digital identity archive confirmed',
     preview: 'Certificate Preview',
+    cardPending: 'Card preview is being prepared. Please check again later.',
     metadata: 'Identity Metadata',
     characterName: 'Character Name',
     creator: 'Creator Name',
@@ -50,6 +53,7 @@ const verifyCopy = {
     title: 'VAID 验证记录',
     subtitle: '数字身份档案已确认',
     preview: '证书预览',
+    cardPending: '卡片预览正在生成中，请稍后再查看。',
     metadata: '身份元数据',
     characterName: '角色名称',
     creator: '创作者名称',
@@ -75,6 +79,7 @@ const verifyCopy = {
     title: 'VAID 検証レコード',
     subtitle: 'デジタルアイデンティティの記録を確認済み',
     preview: '証明書プレビュー',
+    cardPending: 'カードプレビューを生成中です。しばらくしてから再度ご確認ください。',
     metadata: 'アイデンティティ情報',
     characterName: 'キャラクター名',
     creator: 'クリエイター名',
@@ -136,6 +141,7 @@ export function VerifyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certificateReady, setCertificateReady] = useState(false);
+  const [standardCardImageFailed, setStandardCardImageFailed] = useState(false);
   const [otsStatus, setOtsStatus] = useState<string>('pending');
   const langKey = i18n.language?.startsWith('zh') ? 'zh' : i18n.language?.startsWith('ja') ? 'ja' : 'en';
   const copy = verifyCopy[langKey];
@@ -155,7 +161,7 @@ export function VerifyPage() {
 
         const { data, error } = await supabase
           .from('public_v_ids')
-          .select('friendly_id, character_name, creator_name, image_url, created_at, ots_status')
+          .select('friendly_id, character_name, creator_name, image_url, card_image_url, card_render_status, created_at, ots_status')
           .eq('friendly_id', normalizedId)
           .maybeSingle();
 
@@ -167,6 +173,8 @@ export function VerifyPage() {
         } else {
           const rec = { ...data, id: data.friendly_id };
           setRecord(rec);
+          setCertificateReady(false);
+          setStandardCardImageFailed(false);
           setOtsStatus(data.ots_status || 'pending');
         }
       } catch (err) {
@@ -250,6 +258,10 @@ export function VerifyPage() {
 
   const renderCertificate = useCallback(async () => {
     if (!record || !canvasRef.current) {
+      return;
+    }
+
+    if (record.card_image_url && record.card_render_status === 'ready' && !standardCardImageFailed) {
       return;
     }
 
@@ -366,7 +378,7 @@ export function VerifyPage() {
       console.error('[VerifyPage] Failed to render certificate:', err);
       setCertificateReady(true);
     }
-  }, [langKey, record, loadImage]);
+  }, [langKey, record, loadImage, standardCardImageFailed]);
 
   useEffect(() => {
     if (record) {
@@ -430,6 +442,10 @@ export function VerifyPage() {
       </div>
     );
   }
+
+  const shouldUseStandardCardImage = !!record.card_image_url
+    && record.card_render_status === 'ready'
+    && !standardCardImageFailed;
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden bg-[#030713]">
@@ -502,17 +518,29 @@ export function VerifyPage() {
             <div className="relative grid items-stretch gap-4 md:grid-cols-[minmax(0,1fr)_minmax(250px,0.42fr)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.48fr)]">
               <section className="flex rounded-2xl border-2 border-slate-200/55 bg-black/18 p-2 shadow-[0_0_20px_rgba(14,165,233,0.06)]">
                 <div className="relative flex min-h-[190px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-[#030814]/64 p-1">
-                  {!certificateReady && (
+                  {shouldUseStandardCardImage && !certificateReady && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center">
                       <Loader2 className="h-8 w-8 animate-spin text-cyan-300" />
                     </div>
                   )}
                   <div className="relative aspect-video w-full max-w-[1220px]">
-                    <canvas
-                      ref={canvasRef}
-                      className="block h-full w-full rounded-lg object-contain shadow-[0_18px_55px_rgba(0,0,0,0.45)]"
-                      style={{ display: certificateReady ? 'block' : 'none' }}
-                    />
+                    {shouldUseStandardCardImage ? (
+                      <img
+                        src={record.card_image_url || ''}
+                        alt={copy.preview}
+                        className="block h-full w-full rounded-lg object-contain shadow-[0_18px_55px_rgba(0,0,0,0.45)]"
+                        style={{ display: certificateReady ? 'block' : 'none' }}
+                        onLoad={() => setCertificateReady(true)}
+                        onError={() => {
+                          setStandardCardImageFailed(true);
+                          setCertificateReady(false);
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full min-h-[190px] w-full items-center justify-center rounded-lg border border-cyan-300/18 bg-slate-950/55 px-6 text-center text-sm font-semibold leading-relaxed text-cyan-100/78 shadow-[0_18px_55px_rgba(0,0,0,0.45)] sm:text-base">
+                        {copy.cardPending}
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>

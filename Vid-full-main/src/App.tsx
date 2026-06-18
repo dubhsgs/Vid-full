@@ -40,6 +40,11 @@ const HERO_LIGHT_BG_SRC = '/hero_light_bg.webp';
 const HERO_FIGURE_SRC = '/hero_figure.webp';
 const HERO_FIGURE_MOBILE_SRC = '/hero_figure_mobile.webp';
 const HERO_BACKGROUND_VIDEO_SRC = '/hero-background-video.mp4';
+const DOWNLOAD_CARD_IMAGE_SESSION_KEY = 'vid_download_card_image_base64';
+const DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY = 'vid_download_card_image_version';
+const DOWNLOAD_CARD_IMAGE_VERSION = 'inter-self-hosted-20260616';
+const DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY = 'vid_download_creator_legal_name';
+const DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY = 'vid_download_creator_document_number';
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_FILE_MB = MAX_IMAGE_FILE_BYTES / (1024 * 1024);
 const MAX_EVIDENCE_FILE_MB = MAX_EVIDENCE_FILE_BYTES / (1024 * 1024);
@@ -436,6 +441,8 @@ function App() {
     localStorage.removeItem('vid_original_file_path');
     localStorage.removeItem('vid_registered_friendly_id');
     localStorage.removeItem('vid_registered_hash');
+    localStorage.removeItem('vid_standard_card_image_url');
+    sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
@@ -772,6 +779,26 @@ function App() {
       localStorage.setItem('vid_original_file_hash', hash);
       localStorage.setItem('vid_registered_friendly_id', friendlyId);
       localStorage.setItem('vid_registered_hash', hash);
+      sessionStorage.setItem(DOWNLOAD_CREATOR_LEGAL_NAME_SESSION_KEY, creatorName);
+      sessionStorage.setItem(DOWNLOAD_CREATOR_DOCUMENT_NUMBER_SESSION_KEY, documentNumber.trim());
+      if (registerData.card_image_url) {
+        localStorage.setItem('vid_standard_card_image_url', String(registerData.card_image_url));
+      } else {
+        localStorage.removeItem('vid_standard_card_image_url');
+      }
+      if (registerData.card_download_image_base64) {
+        try {
+          sessionStorage.setItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY, String(registerData.card_download_image_base64));
+          sessionStorage.setItem(DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY, DOWNLOAD_CARD_IMAGE_VERSION);
+        } catch (storageError) {
+          console.warn('[App] Failed to store one-time lossless card image:', storageError);
+          sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY);
+          sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY);
+        }
+      } else {
+        sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_SESSION_KEY);
+        sessionStorage.removeItem(DOWNLOAD_CARD_IMAGE_VERSION_SESSION_KEY);
+      }
       setRemainingCredits(Number(registerData.free_credits || 0) + Number(registerData.paid_credits || 0));
       setActivationCodeInfo(refreshedState.savedCodeInfo);
       setActivationCodeError('');
@@ -897,9 +924,6 @@ function App() {
             <h2 id="chinese-language-prompt-title" className="text-xl font-bold text-white">
               是否要切换成中文？
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              大部分早期用户使用中文界面，切换后浏览会更顺畅。
-            </p>
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
@@ -1270,7 +1294,6 @@ function App() {
                     <div>
                       <label className="vaid-upload-zone flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700 p-12 text-center transition-all hover:border-blue-400">
                         <span className="block text-lg font-semibold text-white">{t('form.evidenceTitle')}</span>
-                        <span className="mt-3 block text-sm leading-6 text-slate-400">{t('form.evidenceSubtitle')}</span>
                         <span className="mt-4 block text-sm text-slate-500">
                           {t('form.evidenceLimit', { count: MAX_EVIDENCE_FILES, size: `${MAX_EVIDENCE_FILE_MB}MB` })}
                         </span>
