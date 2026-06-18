@@ -1,5 +1,10 @@
 # VAID Post-Launch Health Audit
 
+Status: historical audit snapshot. Several findings were remediated after this
+audit, including the CI gate and frontend module split. Monitoring and backup
+workflow files were added but are not scheduled because they are absent from
+GitHub's default branch. Use `VAID_MASTER_HANDOFF.md` for current status.
+
 Date: 2026-06-18
 
 Scope:
@@ -83,8 +88,9 @@ and documented runtime architecture. The largest blockers are:
   currently served by production.
 - No tracked private key, service-role key, `.env.local`, or credential file
   was found. `.env.production` now contains only public frontend runtime config.
-- The only apparent private-key pattern in tracked content was documentation
-  placeholder text in `ALIPAY_SETUP.md`.
+- At audit time, the only apparent private-key pattern in tracked content was
+  placeholder text in a legacy Alipay setup document that has since been
+  removed from the working tree.
 
 ### Backend and database access boundaries
 

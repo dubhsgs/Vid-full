@@ -2,6 +2,13 @@
 
 Date: 2026-06-18
 
+Status verified 2026-06-18: workflow definitions are implemented on
+`codex/strong-proof-ui-entry`, but GitHub's default branch is `main` and `main`
+contains no workflow files. GitHub reports no monitor or backup workflow run
+history. Scheduled monitoring and database backup are therefore **not active**.
+Do not claim this operations layer is complete until the activation and restore
+steps below are verified.
+
 ## Purpose
 
 This runbook documents the first production monitoring and recovery layer for
@@ -16,10 +23,12 @@ Workflow:
 
 `/.github/workflows/production-monitor.yml`
 
-Schedule:
+Intended schedule after activation:
 
 - Every 15 minutes.
-- Manual `workflow_dispatch` is also available.
+- Manual `workflow_dispatch` is intended after the workflow is installed on the
+  default branch; it is not currently discoverable through GitHub's workflow
+  API.
 - GitHub scheduled workflows run from the repository default branch, so this
   workflow must also exist on that branch for automatic scheduling to work.
 
@@ -51,10 +60,12 @@ Workflow:
 
 `/.github/workflows/database-backup.yml`
 
-Schedule:
+Intended schedule after activation:
 
 - Daily at 19:30 UTC, which is 03:30 Beijing time.
-- Manual `workflow_dispatch` is also available.
+- Manual `workflow_dispatch` is intended after the workflow is installed on the
+  default branch; it is not currently discoverable through GitHub's workflow
+  API.
 - GitHub scheduled workflows run from the repository default branch, so this
   workflow must also exist on that branch for automatic scheduling to work.
 

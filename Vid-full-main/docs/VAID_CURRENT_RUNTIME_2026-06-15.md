@@ -2,8 +2,10 @@
 
 Updated: 2026-06-15 22:34 CST
 
-Status: current-code runtime record. This document describes how the site works
-now. It is not a proposal and it does not approve future architecture changes.
+Status: historical runtime snapshot. It predates the 2026-06-18 frontend
+maintainability refactor and operations documentation. Use
+`VAID_MASTER_HANDOFF.md` for current instructions. Retain this file only for
+detailed historical evidence.
 
 ## 1. Scope
 

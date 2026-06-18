@@ -18,6 +18,17 @@ touching production.
 Do not assume the app lives at the repository root. Build and app checks run
 from `Vid-full-main`.
 
+## Canonical Source Of Truth
+
+After this file, read
+`Vid-full-main/docs/VAID_MASTER_HANDOFF.md`. It is the canonical current
+product, architecture, security, operations, and takeover document.
+
+Use `Vid-full-main/docs/README.md` to distinguish current runbooks from dated
+historical evidence. Never treat old audits, development records, or Git
+history as current instructions when they conflict with the master handoff or
+current code.
+
 ## Operating Rules
 
 1. State assumptions before implementation.
@@ -56,10 +67,10 @@ Read these files before changing deployment, auth, payments, registration,
 verification, storage, database migrations, or card rendering:
 
 - `AGENTS.md`
+- `Vid-full-main/docs/VAID_MASTER_HANDOFF.md`
 - `Vid-full-main/docs/AI_DEVELOPMENT_CONTEXT.md`
 - `Vid-full-main/docs/VAID_AI_RELEASE_AND_HANDOFF_RUNBOOK_2026-06-18.md`
 - `Vid-full-main/docs/VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md`
-- `Vid-full-main/docs/VAID_POST_LAUNCH_HEALTH_AUDIT_2026-06-18.md`
 - `Vid-full-main/docs/VAID_SERVER_HARDENING_2026-06-18.md`
 
 ## Production Release Contract

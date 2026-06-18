@@ -2,14 +2,14 @@
 
 Updated: 2026-06-15
 
-Status: audit snapshot plus current implementation decisions. No proposal in
-this file is approved unless explicitly marked as an established rule, deployed
-fact, or approved implementation decision.
+Status: historical decision snapshot. Use `VAID_MASTER_HANDOFF.md` for current
+instructions and current production facts. Established decisions in this file
+remain useful rationale, but measured state and risk status may be outdated.
 
 ## 1. Purpose
 
-This is the current source of truth for VAID's frontend, backend, storage, card
-rendering, and object-retention behavior. It separates:
+This file records the 2026-06-15 source-of-truth snapshot for VAID's frontend,
+backend, storage, card rendering, and object-retention behavior. It separates:
 
 1. established product rules;
 2. deployed production facts;

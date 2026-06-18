@@ -1,7 +1,7 @@
 # VAID Development Record - Frontend Maintainability Refactor
 
 Date: 2026-06-18
-Commit: See Git history for the commit that introduced this file.
+Commit: `34a152bd32a408e46f8d2f20fa578e892a68b959`
 
 ## Goal
 
@@ -57,7 +57,9 @@ Local browser smoke checks confirmed:
 
 ## Deployment Status
 
-Pending.
+Deployed successfully through GitHub Actions run `27769856430`. Production
+`current` was verified at the commit above; homepage and renderer health both
+returned HTTP 200.
 
 ## Rollback Notes
 

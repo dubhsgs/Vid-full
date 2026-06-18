@@ -1,5 +1,9 @@
 # VAID AI Development Context
 
+Status: current architecture and security contract. For the complete current
+handoff, production state, operations, and known gaps, read
+`VAID_MASTER_HANDOFF.md` first.
+
 ## 1. Project Goal
 
 VAID helps creators create a verifiable archive record for original digital
@@ -122,10 +126,11 @@ legal determination of ownership.
   behavior explicit.
 - Creator identity-document numbers must be encrypted at rest and must never be
   exposed through public verification data, browser storage, or logs.
-- Creator country must use an ISO country code. Only document types with an
-  implemented country-specific format validator may be accepted by the
-  frontend and `creator-identity-register`; unsupported combinations fail
-  closed.
+- Creator country must use an ISO country code. The frontend limits country and
+  document-type choices to its supported list. Document-number content is
+  currently warning-only/coarse validation: the backend requires a non-empty
+  value of at most 120 characters and does not enforce country-specific number
+  validity. Do not silently turn advisory validation into a hard gate.
 - Logs must not print secrets, raw payment callback payloads, personal data, or
   original-file contents.
 - User-facing copy must not claim copyright registration, ownership
