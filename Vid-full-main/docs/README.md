@@ -1,6 +1,6 @@
 # VAID Documentation Index
 
-Last reviewed: 2026-06-18
+Last reviewed: 2026-06-19
 
 ## Start Here
 
@@ -15,7 +15,7 @@ Last reviewed: 2026-06-18
 | `VAID_MASTER_HANDOFF.md` | Current product, architecture, security, operations, risks, and takeover checklist |
 | `AI_DEVELOPMENT_CONTEXT.md` | Architecture and security change contract |
 | `VAID_AI_RELEASE_AND_HANDOFF_RUNBOOK_2026-06-18.md` | Release, verification, rollback |
-| `VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md` | Monitoring, backup, restore, and current activation gap |
+| `VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md` | Monitoring, local encrypted backup, restore drill, and current limitations |
 | `VAID_SERVER_HARDENING_2026-06-18.md` | Applied server hardening evidence and rollback |
 | `activation_code_admin_runbook_2026-05-22.md` | Activation-code administration; verify code/schema before use |
 | `supabase_auth_otp_email_template_2026-05-21.md` | Current OTP email template reference |
@@ -30,6 +30,8 @@ Last reviewed: 2026-06-18
 - `development_record_*.md`: immutable implementation evidence.
 - `VAID_DEVELOPMENT_RECORD_MAINTAINABILITY_REFACTOR_2026-06-18.md`: frontend
   refactor evidence.
+- `VAID_DEVELOPMENT_RECORD_MONITORING_AND_LOCAL_BACKUP_2026-06-19.md`:
+  monitoring activation and local encrypted backup evidence.
 - `deployment_archive_2026-05-23_canvas_rendering.md`: old deployment evidence.
 
 If a historical document conflicts with the master handoff or current code,

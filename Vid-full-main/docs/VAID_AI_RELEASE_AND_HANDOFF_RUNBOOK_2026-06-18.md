@@ -13,6 +13,7 @@ path, verification checks, and rollback procedure.
 - Repository: `git@github.com:dubhsgs/Vid-full.git`
 - Repository root: `/Users/yan/Documents/VAID`
 - App root: `/Users/yan/Documents/VAID/Vid-full-main`
+- GitHub default branch: `codex/strong-proof-ui-entry`
 - Production branch: `codex/strong-proof-ui-entry`
 - Workflow: `.github/workflows/deploy.yml`
 - Workflow name: `Deploy VAID`
@@ -25,6 +26,17 @@ path, verification checks, and rollback procedure.
 The workflow builds from `Vid-full-main` and deploys the generated `dist`
 directory to `/srv/www/vaid.top/releases/<GITHUB_SHA>`, then atomically points
 `/srv/www/vaid.top/current` at that release.
+
+Monitoring and backup boundary as of 2026-06-19:
+
+- `Monitor VAID Production` is active in GitHub Actions and runs from the
+  default branch.
+- `.github/workflows/database-backup.yml` is intentionally disabled as a
+  GitHub artifact backup path.
+- Active Postgres backup automation is the local macOS LaunchAgent
+  `com.vaid.db-backup`, sourced from `ops/db-backup/`.
+- Do not re-enable GitHub artifact database backups without a new explicit
+  storage/security decision.
 
 ## CI Gate
 

@@ -10,6 +10,7 @@ touching production.
 - App root: `/Users/yan/Documents/VAID/Vid-full-main`
 - Production site: `https://vaid.top`
 - Deployment workflow: `.github/workflows/deploy.yml`
+- GitHub default branch: `codex/strong-proof-ui-entry`
 - Production branch: `codex/strong-proof-ui-entry`
 - Production server target: `/srv/www/vaid.top/current`
 - Release directory pattern: `/srv/www/vaid.top/releases/<GITHUB_SHA>`
@@ -134,13 +135,21 @@ After pushing to `codex/strong-proof-ui-entry`, verify:
 ## Monitoring and Backup Contract
 
 - Production monitoring lives in `.github/workflows/production-monitor.yml`.
-- Database backup automation lives in `.github/workflows/database-backup.yml`.
+- GitHub artifact database backup is disabled in
+  `.github/workflows/database-backup.yml`.
+- Active database backup automation is the macOS LaunchAgent
+  `com.vaid.db-backup`, installed from
+  `Vid-full-main/ops/db-backup/com.vaid.db-backup.plist`.
+- The backup script is
+  `Vid-full-main/ops/db-backup/local-encrypted-db-backup.sh`.
 - Monitoring failure must fail the workflow loudly; do not hide failed checks.
-- Database backups must be encrypted before upload.
+- Database backups must be encrypted before being retained.
+- Active local encrypted backups are stored under
+  `/Users/yan/Library/Application Support/VAID/backups`.
 - Do not restore database backups into production during drills.
 - Follow
   `Vid-full-main/docs/VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md`
-  for backup secret requirements and restore-drill steps.
+  for backup Keychain requirements and restore-drill steps.
 
 ## Rollback Rule
 

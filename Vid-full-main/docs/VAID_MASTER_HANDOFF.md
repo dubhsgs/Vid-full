@@ -1,6 +1,6 @@
 # VAID Master Operations and AI Handoff
 
-Last verified: 2026-06-18 (Asia/Shanghai)
+Last verified: 2026-06-19 (Asia/Shanghai)
 Authority: canonical current handoff for this repository
 
 ## 1. How To Use This Document
@@ -41,24 +41,36 @@ Verified production state on 2026-06-18:
 - The CI gate runs tests, TypeScript, ESLint, and the production build.
 - The frontend maintainability refactor is deployed.
 
+Additional operations state verified on 2026-06-19:
+
+- GitHub default branch is `codex/strong-proof-ui-entry`.
+- GitHub Actions registers `Deploy VAID` and `Monitor VAID Production`.
+- `Monitor VAID Production` manual run `27773268623` completed successfully.
+- GitHub artifact database backup is disabled; do not use GitHub Actions
+  artifacts for production database dumps.
+- Active database backup automation is local macOS LaunchAgent
+  `com.vaid.db-backup`, installed from
+  `Vid-full-main/ops/db-backup/com.vaid.db-backup.plist`.
+- LaunchAgent kickstart completed with exit code `0` and generated encrypted
+  backup
+  `/Users/yan/Library/Application Support/VAID/backups/vaid-db-backup-20260618T165441Z.tar.gz.gpg`.
+- That encrypted backup was decrypted and restored into a disposable local
+  Postgres database; key public table/view and RLS checks passed.
+
 Do not describe the project as permanently maintainable or in a perfect state.
 The current high-priority gaps are:
 
-1. Scheduled production monitoring is not active because GitHub's default
-   branch is `main`, while the workflow files exist only on
-   `codex/strong-proof-ui-entry`.
-2. Scheduled encrypted database backup is not active for the same reason.
-3. Backup secrets are not proven configured and no isolated database restore
-   drill has been completed.
-4. `npm audit --omit=dev` currently reports three high-severity dependency
+1. `npm audit --omit=dev` currently reports three high-severity dependency
    findings: `react-router`, `react-router-dom`, and transitive `ws`.
-5. Production database migration parity has not been conclusively reconciled
+2. Production database migration parity has not been conclusively reconciled
    against the local migration ledger.
-6. The current tests are valuable static/contract gates, but they are not a
+3. The current tests are valuable static/contract gates, but they are not a
    complete live RLS, payment, browser, renderer golden-image, or restore test
    suite.
-7. The renderer has limited host memory and no durable render queue, concurrency
+4. The renderer has limited host memory and no durable render queue, concurrency
    limit, or automatic failed-card retry path.
+5. Database backup currently depends on the owner's Mac LaunchAgent, login
+   Keychain, and local disk. Add independent offsite/server-side retention next.
 
 ## 3. Product Definition
 
@@ -106,7 +118,7 @@ Not currently implemented:
 | Repository root | `/Users/yan/Documents/VAID` |
 | App root | `/Users/yan/Documents/VAID/Vid-full-main` |
 | GitHub repository | `git@github.com:dubhsgs/Vid-full.git` |
-| GitHub default branch | `main` |
+| GitHub default branch | `codex/strong-proof-ui-entry` |
 | Production branch | `codex/strong-proof-ui-entry` |
 | Production site | `https://vaid.top` |
 | Server | Aliyun `47.93.232.20` |
@@ -119,9 +131,10 @@ Not currently implemented:
 Important branch warning:
 
 - Normal production deploys trigger from `codex/strong-proof-ui-entry`.
-- GitHub scheduled workflows only run from the default branch.
-- Do not assume a scheduled workflow is active merely because its YAML exists
-  on the production branch.
+- GitHub scheduled workflows run from the default branch, which is currently
+  also `codex/strong-proof-ui-entry`.
+- GitHub database backup artifacts are intentionally disabled; do not re-enable
+  that workflow as the production database backup path.
 
 Local-only or generated paths that must never be committed:
 
@@ -373,9 +386,12 @@ put service-role, payment, R2, renderer, or encryption secrets there.
 
 GitHub Actions secrets:
 
-- `VAID_DEPLOY_SSH_KEY`;
-- `SUPABASE_DB_URL` for database backup;
-- `BACKUP_ENCRYPTION_PASSPHRASE` for encrypted backup artifacts.
+- `VAID_DEPLOY_SSH_KEY`.
+
+Local macOS Keychain secrets for database backup:
+
+- `VAID_SUPABASE_DB_URL`;
+- `VAID_BACKUP_ENCRYPTION_PASSPHRASE`.
 
 Supabase Edge Function secrets/config:
 
@@ -466,7 +482,8 @@ Known test gaps:
 - renderer golden-image and QR readability tests;
 - multi-browser/mobile automation;
 - cleanup lifecycle tests;
-- backup restoration tests.
+- staging/offsite restore tests beyond the current disposable local restore
+  drill.
 
 ## 14. Standard Release and Rollback
 
@@ -506,6 +523,8 @@ Repository files:
 
 - `.github/workflows/production-monitor.yml`;
 - `.github/workflows/database-backup.yml`;
+- `ops/db-backup/local-encrypted-db-backup.sh`;
+- `ops/db-backup/com.vaid.db-backup.plist`;
 - `docs/VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md`.
 
 Intended monitoring checks:
@@ -523,24 +542,28 @@ Intended monitoring checks:
 
 Current activation status:
 
-- GitHub default branch is `main`.
-- `main` contains no workflow files.
-- GitHub API returns `Not Found` for monitor and backup workflow run history.
-- Therefore scheduled monitoring and backup are not active.
-- Do not claim an RPO or alert SLA until this is corrected and observed.
+- GitHub default branch is `codex/strong-proof-ui-entry`.
+- GitHub Actions registers `Monitor VAID Production` as active.
+- `Monitor VAID Production` manual run `27773268623` succeeded.
+- GitHub artifact database backup workflow is disabled.
+- Active database backup automation is local macOS LaunchAgent
+  `com.vaid.db-backup`.
+- The active encrypted backup directory is
+  `/Users/yan/Library/Application Support/VAID/backups`.
+- Latest verified launchd backup artifact:
+  `vaid-db-backup-20260618T165441Z.tar.gz.gpg`.
+- Latest disposable local restore drill verified:
+  `public.v_ids` count 8, `public.public_v_ids` count 8,
+  `public.alipay_orders` exists, `public.user_credits` exists,
+  `public.v_id_creator_identity_claims` exists with RLS enabled,
+  anonymous identity-claims read blocked, anonymous `public_v_ids` read ok.
 
 Required operational completion:
 
-1. Establish one canonical default/production branch or install the scheduled
-   workflow definitions on the default branch.
-2. Confirm GitHub notification ownership for failures.
-3. Configure and verify `SUPABASE_DB_URL` and
-   `BACKUP_ENCRYPTION_PASSPHRASE`.
-4. Observe at least one successful encrypted backup artifact.
-5. Restore that artifact into a separate staging/local database.
-6. Verify critical tables, public view, row counts, and RLS boundaries.
-7. Record measured RPO/RTO and the drill evidence.
-8. Add offsite retention for Postgres and separate backup coverage for
+1. Confirm GitHub notification ownership for monitor workflow failures.
+2. Add offsite/server-side retention for Postgres so backups do not depend only
+   on the owner's Mac being awake and logged in.
+3. Add separate backup coverage for
    Supabase Storage, R2 objects, secrets inventory, and server configuration.
 
 Never restore a drill backup into production.
@@ -587,11 +610,13 @@ After every release:
 - check services and warning logs;
 - record any database/environment changes and rollback notes.
 
-Weekly until monitoring is active:
+Weekly:
 
 - manually check site/API/renderer;
 - review Nginx and renderer warnings;
 - check disk and memory;
+- check `launchctl print gui/$(id -u)/com.vaid.db-backup` and the latest
+  encrypted backup timestamp;
 - review failed card render states and OTS jobs;
 - review failed payments/contact delivery where operational access allows.
 
@@ -609,10 +634,10 @@ Monthly:
 
 P0 operational completion:
 
-1. Activate scheduled monitoring on the GitHub default branch.
-2. Activate encrypted database backup and complete a non-production restore
-   drill.
-3. Reconcile the production migration ledger.
+1. Reconcile the production migration ledger.
+2. Add independent offsite/server-side database backup retention.
+3. Add backup coverage for R2, Supabase Storage, server configuration, and
+   secrets inventory.
 
 P1 security/reliability:
 
@@ -628,8 +653,8 @@ P2 product/operations:
 1. Build a user record/re-download dashboard only after validating demand and
    defining retention/privacy scope.
 2. Add stronger incident notifications and provider-specific observability.
-3. Establish external backup retention for Postgres, R2, Storage, configuration,
-   and secrets inventory.
+3. Tighten RPO/RTO after offsite backup retention and a staging restore drill
+   are complete.
 
 ## 19. New AI Takeover Checklist
 

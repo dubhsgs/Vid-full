@@ -2,12 +2,20 @@
 
 Date: 2026-06-18
 
-Status verified 2026-06-18: workflow definitions are implemented on
-`codex/strong-proof-ui-entry`, but GitHub's default branch is `main` and `main`
-contains no workflow files. GitHub reports no monitor or backup workflow run
-history. Scheduled monitoring and database backup are therefore **not active**.
-Do not claim this operations layer is complete until the activation and restore
-steps below are verified.
+Status verified 2026-06-19:
+
+- GitHub default branch is `codex/strong-proof-ui-entry`.
+- `Monitor VAID Production` is registered and active in GitHub Actions.
+- Manual monitor run `27773268623` completed successfully.
+- GitHub artifact database backup is disabled. Do not export production
+  database dumps to GitHub Actions artifact storage.
+- Active Postgres backup automation is local macOS LaunchAgent
+  `com.vaid.db-backup`.
+- LaunchAgent kickstart completed with exit code `0` and generated encrypted
+  artifact
+  `/Users/yan/Library/Application Support/VAID/backups/vaid-db-backup-20260618T165441Z.tar.gz.gpg`.
+- The launchd-generated artifact was decrypted and restored into a disposable
+  local Postgres database; critical public table/view and RLS checks passed.
 
 ## Purpose
 
@@ -26,11 +34,9 @@ Workflow:
 Intended schedule after activation:
 
 - Every 15 minutes.
-- Manual `workflow_dispatch` is intended after the workflow is installed on the
-  default branch; it is not currently discoverable through GitHub's workflow
-  API.
-- GitHub scheduled workflows run from the repository default branch, so this
-  workflow must also exist on that branch for automatic scheduling to work.
+- Manual `workflow_dispatch` is available.
+- GitHub scheduled workflows run from the repository default branch; the
+  default branch is now `codex/strong-proof-ui-entry`.
 
 Checks:
 
@@ -56,38 +62,64 @@ Alert behavior:
 
 ### 2. Database backup
 
-Workflow:
+Disabled GitHub workflow:
 
 `/.github/workflows/database-backup.yml`
 
-Intended schedule after activation:
+This workflow is intentionally disabled as a backup path. It no longer has a
+schedule, and manual dispatch exits with an error explaining that GitHub
+artifact database backup is disabled. Do not re-enable it for production
+database dumps.
 
-- Daily at 19:30 UTC, which is 03:30 Beijing time.
-- Manual `workflow_dispatch` is intended after the workflow is installed on the
-  default branch; it is not currently discoverable through GitHub's workflow
-  API.
-- GitHub scheduled workflows run from the repository default branch, so this
-  workflow must also exist on that branch for automatic scheduling to work.
+Active local automation:
 
-Required GitHub Secrets:
+- LaunchAgent label: `com.vaid.db-backup`.
+- Installed plist: `/Users/yan/Library/LaunchAgents/com.vaid.db-backup.plist`.
+- Source plist:
+  `/Users/yan/Documents/VAID/Vid-full-main/ops/db-backup/com.vaid.db-backup.plist`.
+- Installed script:
+  `/Users/yan/Library/Application Support/VAID/db-backup/local-encrypted-db-backup.sh`.
+- Source script:
+  `/Users/yan/Documents/VAID/Vid-full-main/ops/db-backup/local-encrypted-db-backup.sh`.
+- Backup directory:
+  `/Users/yan/Library/Application Support/VAID/backups`.
+- Logs:
+  `/Users/yan/Library/Logs/VAID/db-backup.log` and
+  `/Users/yan/Library/Logs/VAID/db-backup.err`.
 
-- `SUPABASE_DB_URL`: the percent-encoded Supabase Postgres connection string.
-- `BACKUP_ENCRYPTION_PASSPHRASE`: a strong backup encryption passphrase stored
-  outside the repository and password manager backed up separately.
+Schedule:
+
+- Daily at 03:30 local machine time, currently Asia/Shanghai time.
+
+Required macOS Keychain items:
+
+- Service `VAID_SUPABASE_DB_URL`, account `VAID`: the percent-encoded Supabase
+  Postgres connection string.
+- Service `VAID_BACKUP_ENCRYPTION_PASSPHRASE`, account `VAID`: the GPG
+  symmetric encryption passphrase.
 
 Backup behavior:
 
-1. Creates a schema dump with `supabase db dump`.
-2. Creates a data-only dump with `supabase db dump --data-only --use-copy`.
+1. Creates a schema dump with `pg_dump --schema-only --no-owner`.
+2. Creates a data-only dump with `pg_dump --data-only --no-owner`.
 3. Verifies both dump files are non-empty.
 4. Packages them into a tar archive.
 5. Encrypts the archive using GPG AES-256 symmetric encryption.
 6. Deletes the plaintext archive and dump directory.
-7. Uploads only the encrypted `.gpg` artifact to GitHub Actions.
-8. Keeps the encrypted artifact for 14 days.
+7. Stores only the encrypted `.gpg` artifact in the local backup directory.
+8. Deletes local encrypted artifacts older than 14 days.
 
-If either secret is missing, the workflow fails loudly. That is intentional:
-backup cannot be considered configured until the secrets exist.
+If either Keychain item is missing or the database password is invalid, the
+LaunchAgent exits non-zero and writes to the local error log.
+
+Useful status commands:
+
+```bash
+launchctl print gui/$(id -u)/com.vaid.db-backup
+tail -n 20 /Users/yan/Library/Logs/VAID/db-backup.log
+tail -n 20 /Users/yan/Library/Logs/VAID/db-backup.err
+ls -lh /Users/yan/Library/Application\ Support/VAID/backups/
+```
 
 ## Current Recovery Targets
 
@@ -128,15 +160,18 @@ Minimum safe drill target:
 
 Restore drill procedure:
 
-1. Download the encrypted backup artifact from a successful
-   `Backup VAID Database` run.
+1. Pick an encrypted backup artifact from
+   `/Users/yan/Library/Application Support/VAID/backups`.
 2. Decrypt it outside the repository:
 
 ```bash
+security find-generic-password -a VAID \
+  -s VAID_BACKUP_ENCRYPTION_PASSPHRASE -w > /private/tmp/vaid-backup-passphrase
 gpg --batch --yes --pinentry-mode loopback \
-  --passphrase "$BACKUP_ENCRYPTION_PASSPHRASE" \
+  --passphrase-file /private/tmp/vaid-backup-passphrase \
   -o /private/tmp/vaid-db-backup.tar.gz \
   --decrypt /path/to/vaid-db-backup.tar.gz.gpg
+rm -f /private/tmp/vaid-backup-passphrase
 ```
 
 3. Extract into a temporary directory:
@@ -167,27 +202,48 @@ tar -xzf /private/tmp/vaid-db-backup.tar.gz -C /private/tmp/vaid-db-restore-dril
 - verification SQL
 - failures and fixes
 
+Latest verified drill evidence, 2026-06-19 Asia/Shanghai:
+
+- artifact:
+  `/Users/yan/Library/Application Support/VAID/backups/vaid-db-backup-20260618T165441Z.tar.gz.gpg`
+- restore target: disposable local Postgres database
+  `vaid_restore_20260618T165441Z`
+- restore was not performed against production
+- verification:
+  - `public.v_ids` count: 8
+  - `public.public_v_ids` count: 8
+  - `public.alipay_orders` exists: true
+  - `public.user_credits` exists: true
+  - `public.v_id_creator_identity_claims` exists: true
+  - `public.v_id_creator_identity_claims` RLS enabled: true
+  - sample public verification record: `VTK-AVA-KRG`
+  - anonymous read of identity claims: blocked
+  - anonymous read of `public.public_v_ids`: ok, count 8
+- local restore produced expected Supabase-platform errors for unavailable
+  managed extensions/objects in plain local Postgres; the VAID critical public
+  tables, view, row counts, and RLS checks passed.
+
 ## RPO and RTO
 
 Initial targets:
 
-- RPO: 24 hours for Postgres data while the daily backup workflow is healthy.
+- RPO: 24 hours for Postgres data while the daily local LaunchAgent backup is
+  healthy and the owner's Mac is awake/logged in at the scheduled time.
 - RTO: 4 hours for static frontend rollback; 1 business day for full database
-  restore until a staging restore drill has been completed.
+  restore until an offsite or staging restore drill has been completed.
 
-These targets are conservative and should be tightened only after a successful
-non-production database restore drill.
+These targets are conservative and should be tightened only after offsite
+backup retention and a staging restore drill are completed.
 
 ## Known Limitations
 
 - GitHub Actions failure notification depends on GitHub notification settings.
   For SMS/Slack/phone alerts, add a dedicated incident tool later.
-- The backup workflow cannot run successfully until the required GitHub Secrets
-  are configured.
-- GitHub artifact retention is not a complete long-term backup policy. For
-  long-term retention, mirror the encrypted archive to dedicated offsite
-  storage.
-- Supabase Storage/R2 object backup is not yet automated by this workflow.
+- Database backup currently depends on the owner's Mac, login Keychain, and
+  local disk. Add independent server-side or offsite retention next.
+- GitHub artifact backup is intentionally disabled and should not be treated as
+  a fallback.
+- Supabase Storage/R2 object backup is not yet automated by this local backup.
   Current database backup covers Postgres schema/data only.
 
 ## Operational Owner Notes
@@ -196,5 +252,7 @@ non-production database restore drill.
 - Do not store plaintext database dumps in the repository.
 - Do not restore into production for a drill.
 - Treat backup encryption passphrases as production secrets.
+- Do not re-enable GitHub artifact database backup without a new security
+  review and explicit storage decision.
 - Update `AGENTS.md` and the AI release handoff runbook if the monitoring or
   backup workflow changes.
