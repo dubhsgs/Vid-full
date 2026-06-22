@@ -1,6 +1,6 @@
 # VAID Master Operations and AI Handoff
 
-Last verified: 2026-06-19 (Asia/Shanghai)
+Last verified: 2026-06-22 (Asia/Shanghai)
 Authority: canonical current handoff for this repository
 
 ## 1. How To Use This Document
@@ -46,6 +46,9 @@ Additional operations state verified on 2026-06-19:
 - GitHub default branch is `codex/strong-proof-ui-entry`.
 - GitHub Actions registers `Deploy VAID` and `Monitor VAID Production`.
 - `Monitor VAID Production` manual run `27773268623` completed successfully.
+- As of 2026-06-22, scheduled `Monitor VAID Production` runs only public
+  endpoint checks. SSH server checks are manual-only to avoid Aliyun
+  unusual-login alerts from GitHub-hosted runner IPs.
 - GitHub artifact database backup is disabled; do not use GitHub Actions
   artifacts for production database dumps.
 - Active database backup automation is local macOS LaunchAgent
@@ -527,18 +530,24 @@ Repository files:
 - `ops/db-backup/com.vaid.db-backup.plist`;
 - `docs/VAID_MONITORING_AND_RECOVERY_RUNBOOK_2026-06-18.md`.
 
-Intended monitoring checks:
+Scheduled monitoring checks:
 
 - homepage;
 - one public verification record;
 - renderer health;
-- Supabase `public_v_ids` REST access;
+- Supabase `public_v_ids` REST access.
+
+Manual monitor `workflow_dispatch` server checks:
+
 - current release path;
 - Nginx, renderer, and Certbot;
 - `rpcbind` remains inactive;
 - disk below 80%;
 - available memory above 150 MB;
 - no warning-level Nginx/renderer logs in the previous 15 minutes.
+
+Scheduled monitor runs intentionally do not SSH into Aliyun, because
+GitHub-hosted runner logins trigger Aliyun unusual-login alerts.
 
 Current activation status:
 

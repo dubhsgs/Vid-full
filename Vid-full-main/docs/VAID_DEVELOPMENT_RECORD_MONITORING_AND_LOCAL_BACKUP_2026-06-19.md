@@ -38,8 +38,9 @@ exporting production database dumps to GitHub artifact storage.
 
 ## Security Impact
 
-- Production monitor runs in GitHub Actions and uses the existing deploy SSH
-  key for server checks.
+- Production monitor runs in GitHub Actions. Scheduled runs check public
+  endpoints only; server SSH checks are manual-only to avoid Aliyun
+  unusual-login alerts from GitHub-hosted runners.
 - GitHub artifact database backups are disabled to avoid exporting production
   dumps to GitHub-hosted artifact storage.
 - Database backups are generated locally, encrypted with GPG AES-256 before

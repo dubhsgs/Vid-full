@@ -1,6 +1,6 @@
 # VAID Documentation Index
 
-Last reviewed: 2026-06-19
+Last reviewed: 2026-06-22
 
 ## Start Here
 
@@ -32,6 +32,8 @@ Last reviewed: 2026-06-19
   refactor evidence.
 - `VAID_DEVELOPMENT_RECORD_MONITORING_AND_LOCAL_BACKUP_2026-06-19.md`:
   monitoring activation and local encrypted backup evidence.
+- `VAID_DEVELOPMENT_RECORD_MONITORING_SSH_ALERT_REDUCTION_2026-06-22.md`:
+  scheduled monitor SSH-login alert reduction evidence.
 - `deployment_archive_2026-05-23_canvas_rendering.md`: old deployment evidence.
 
 If a historical document conflicts with the master handoff or current code,

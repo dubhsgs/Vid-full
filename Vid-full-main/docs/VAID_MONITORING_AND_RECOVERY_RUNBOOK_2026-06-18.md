@@ -37,14 +37,20 @@ Intended schedule after activation:
 - Manual `workflow_dispatch` is available.
 - GitHub scheduled workflows run from the repository default branch; the
   default branch is now `codex/strong-proof-ui-entry`.
+- Scheduled runs check public endpoints only. They do not SSH into the Aliyun
+  server, because GitHub-hosted runner logins trigger Aliyun unusual-login
+  alerts.
 
-Checks:
+Scheduled checks:
 
 - `https://vaid.top/` returns HTTP 200.
 - `https://vaid.top/verify/VTK-AVA-KRG` returns HTTP 200.
 - `https://vaid.top/internal/card-renderer/health` returns HTTP 200 and
   contains `"ok": true`.
 - Supabase REST `public_v_ids` query returns HTTP 200 with the public anon key.
+
+Manual `workflow_dispatch` server checks:
+
 - Server `current` symlink points under `/srv/www/vaid.top/releases/`.
 - `nginx` is active.
 - `vaid-card-renderer` is active.
