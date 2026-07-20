@@ -1,6 +1,6 @@
 # VAID Master Operations and AI Handoff
 
-Last verified: 2026-06-22 (Asia/Shanghai)
+Last verified: 2026-07-20 (Asia/Shanghai)
 Authority: canonical current handoff for this repository
 
 ## 1. How To Use This Document
@@ -60,19 +60,39 @@ Additional operations state verified on 2026-06-19:
 - That encrypted backup was decrypted and restored into a disposable local
   Postgres database; key public table/view and RLS checks passed.
 
+Security release state verified on 2026-07-20:
+
+- Verified security code release:
+  `83e1acd4dfa1024c6e2c070e09ab34714927051d`.
+- GitHub Actions deployment runs `29740325542` and `29740876657`
+  completed successfully for the security release and its public-key
+  compatibility follow-up.
+- `npm audit --omit=dev` reports zero vulnerabilities.
+- Twelve browser-called Edge Functions use the shared CORS allowlist for
+  `https://vaid.top`, `https://www.vaid.top`, and the approved local Vite
+  origins. Non-allowlisted origins receive `https://vaid.top`, so browsers
+  reject the cross-origin response.
+- `ots-verify` rejects invalid public credentials and accepts the active
+  Supabase public keys plus authenticated internal requests.
+- Public record `VTK-AVA-KRG` rendered successfully and showed its archive as
+  confirmed. Direct `ots-verify` validation returned HTTP 200 with
+  `ots_status=confirmed`; an invalid token was rejected with HTTP 401.
+- Homepage and renderer health returned HTTP 200. `nginx`,
+  `vaid-card-renderer`, and `certbot-renew.timer` were active;
+  `rpcbind.service` and `rpcbind.socket` were inactive; no warning-level
+  Nginx or renderer logs appeared in the post-release window.
+
 Do not describe the project as permanently maintainable or in a perfect state.
 The current high-priority gaps are:
 
-1. `npm audit --omit=dev` currently reports three high-severity dependency
-   findings: `react-router`, `react-router-dom`, and transitive `ws`.
-2. Production database migration parity has not been conclusively reconciled
+1. Production database migration parity has not been conclusively reconciled
    against the local migration ledger.
-3. The current tests are valuable static/contract gates, but they are not a
+2. The current tests are valuable static/contract gates, but they are not a
    complete live RLS, payment, browser, renderer golden-image, or restore test
    suite.
-4. The renderer has limited host memory and no durable render queue, concurrency
+3. The renderer has limited host memory and no durable render queue, concurrency
    limit, or automatic failed-card retry path.
-5. Database backup currently depends on the owner's Mac LaunchAgent, login
+4. Database backup currently depends on the owner's Mac LaunchAgent, login
    Keychain, and local disk. Add independent offsite/server-side retention next.
 
 ## 3. Product Definition
@@ -118,8 +138,8 @@ Not currently implemented:
 
 | Item | Current value |
 | --- | --- |
-| Repository root | `/Users/yan/Documents/VAID` |
-| App root | `/Users/yan/Documents/VAID/Vid-full-main` |
+| Repository root | `/Volumes/DUB1/Coding/VAID` |
+| App root | `/Volumes/DUB1/Coding/VAID/Vid-full-main` |
 | GitHub repository | `git@github.com:dubhsgs/Vid-full.git` |
 | GitHub default branch | `codex/strong-proof-ui-entry` |
 | Production branch | `codex/strong-proof-ui-entry` |
@@ -369,6 +389,11 @@ registration; the atomic `v-id-register` path is the required flow.
 Shared code is under `supabase/functions/_shared`. Rollback source snapshots
 under `_rollback_backups` are historical, not deployable current functions.
 
+Browser-called functions must build a fresh response header object with
+`_shared/cors.ts` for each request. Do not mutate a module-level CORS object,
+because concurrent requests can otherwise overwrite each other's allowed
+origin.
+
 ## 11. Configuration and Secret Inventory
 
 Never place secret values in Markdown, Git, frontend code, logs, or screenshots.
@@ -399,7 +424,11 @@ Local macOS Keychain secrets for database backup:
 Supabase Edge Function secrets/config:
 
 - Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`;
+  `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SERVICE_ROLE_KEY`;
+- public-key compatibility: `VAID_BROWSER_PUBLIC_KEY` contains the active
+  legacy anon key still embedded in the production frontend. When the frontend
+  public key is rotated, update this secret and verify `ots-verify` before
+  removing the old value;
 - identity: `IDENTITY_ENCRYPTION_KEY`;
 - renderer: `CARD_RENDERER_URL`, `CARD_RENDERER_SECRET`;
 - Alipay: `ALIPAY_APP_ID`, `ALIPAY_PRIVATE_KEY`, `ALIPAY_PUBLIC_KEY`,
@@ -471,7 +500,8 @@ Current expected baseline:
 - 7 production-gate tests pass;
 - TypeScript passes;
 - ESLint exits zero with eight known Fast Refresh warnings in `src/main.tsx`;
-- Vite production build passes.
+- Vite production build passes;
+- `npm audit --omit=dev` reports zero vulnerabilities.
 
 The current gate protects registration atomicity, payment settlement, RLS
 contracts, identity browser-storage privacy, public verification fields,
@@ -650,12 +680,10 @@ P0 operational completion:
 
 P1 security/reliability:
 
-1. Upgrade or otherwise resolve the current high-severity dependency findings,
-   then run the full gate and browser smoke tests.
-2. Add live integration tests for RLS, registration, and payment.
-3. Add renderer concurrency control, bounded retries, and failed-card recovery.
-4. Add cleanup for unused public avatar uploads.
-5. Improve partial-failure recovery for identity and evidence stages.
+1. Add live integration tests for RLS, registration, and payment.
+2. Add renderer concurrency control, bounded retries, and failed-card recovery.
+3. Add cleanup for unused public avatar uploads.
+4. Improve partial-failure recovery for identity and evidence stages.
 
 P2 product/operations:
 
