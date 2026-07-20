@@ -1,14 +1,9 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
+import { createCorsHeaders } from '../_shared/cors.ts';
 const ALLOWED_DOCUMENT_TYPES = new Set([
   'national_id',
   'passport',
 ]);
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
 
 interface CreatorIdentityRegisterRequest {
   friendly_id: string;
@@ -17,8 +12,8 @@ interface CreatorIdentityRegisterRequest {
   document_number: string;
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
+function createJsonResponse(corsHeaders: Record<string, string>) {
+  return (body: unknown, status = 200): Response => new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -66,6 +61,8 @@ async function encryptDocumentNumber(value: string): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'POST, OPTIONS');
+  const jsonResponse = createJsonResponse(corsHeaders);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

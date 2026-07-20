@@ -1,10 +1,5 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import { createCorsHeaders } from '../_shared/cors.ts';
 
 interface CreateOrderRequest {
   pack_size: number;
@@ -143,6 +138,7 @@ function isMobileUserAgent(userAgent: string): boolean {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

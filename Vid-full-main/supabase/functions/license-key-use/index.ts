@@ -1,17 +1,13 @@
 import { normalizeActivationCode } from '../_shared/activationCode.ts';
+import { createCorsHeaders } from '../_shared/cors.ts';
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
 
 interface LicenseKeyUseRequest {
   code: string;
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,

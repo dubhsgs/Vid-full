@@ -1,4 +1,5 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
+import { createCorsHeaders } from '../_shared/cors.ts';
 import { getR2Config, signedR2Request } from '../_shared/r2.ts';
 
 const MAX_EVIDENCE_FILE_BYTES = 300 * 1024 * 1024;
@@ -13,12 +14,6 @@ const ALLOWED_EVIDENCE_MIME_TYPES = new Set([
   'video/webm',
   'application/pdf',
 ]);
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
 
 interface EvidenceUploadCompleteRequest {
   session_id: string;
@@ -35,8 +30,8 @@ interface EvidenceRecord {
   created_at: string;
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
+function createJsonResponse(corsHeaders: Record<string, string>) {
+  return (body: unknown, status = 200): Response => new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -72,6 +67,8 @@ async function deleteR2Object(objectKey: string): Promise<void> {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'POST, OPTIONS');
+  const jsonResponse = createJsonResponse(corsHeaders);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

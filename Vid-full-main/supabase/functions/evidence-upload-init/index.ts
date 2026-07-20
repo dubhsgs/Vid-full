@@ -1,4 +1,5 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
+import { createCorsHeaders } from '../_shared/cors.ts';
 import { getR2Config, presignR2PutObject } from '../_shared/r2.ts';
 
 const MAX_EVIDENCE_FILE_BYTES = 300 * 1024 * 1024;
@@ -16,12 +17,6 @@ const ALLOWED_EVIDENCE_MIME_TYPES = new Set([
   'application/pdf',
 ]);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
-
 interface EvidenceUploadInitRequest {
   friendly_id: string;
   file_name: string;
@@ -29,8 +24,8 @@ interface EvidenceUploadInitRequest {
   file_size_bytes: number;
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
+function createJsonResponse(corsHeaders: Record<string, string>) {
+  return (body: unknown, status = 200): Response => new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -50,6 +45,8 @@ function isValidFileSize(value: number): boolean {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'POST, OPTIONS');
+  const jsonResponse = createJsonResponse(corsHeaders);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

@@ -1,12 +1,7 @@
 import { getAuthenticatedUser, createServiceClient, isEmailConfirmed } from '../_shared/auth.ts';
+import { createCorsHeaders } from '../_shared/cors.ts';
 import { isSha256Hash } from '../_shared/ots.ts';
 import { getR2CardsConfig, signedR2Request } from '../_shared/r2.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
 
 interface RegisterRequest {
   character_name: string;
@@ -27,8 +22,8 @@ const ORIGINAL_STORAGE_BUCKET = 'v-id-originals';
 const MAX_ORIGINAL_FILE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_ORIGINAL_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
+function createJsonResponse(corsHeaders: Record<string, string>) {
+  return (body: unknown, status = 200): Response => new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -197,6 +192,8 @@ async function renderStandardCard(
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'GET, POST, OPTIONS');
+  const jsonResponse = createJsonResponse(corsHeaders);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

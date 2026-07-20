@@ -1,10 +1,5 @@
 import { createServiceClient, getAuthenticatedUser, isEmailConfirmed } from '../_shared/auth.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import { createCorsHeaders } from '../_shared/cors.ts';
 
 interface QueryOrderRequest {
   out_trade_no: string;
@@ -67,8 +62,8 @@ async function generateSignature(params: Record<string, string>, privateKeyPem: 
   return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
 
-function jsonResponse(payload: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(payload), {
+function createJsonResponse(corsHeaders: Record<string, string>) {
+  return (payload: Record<string, unknown>, status = 200): Response => new Response(JSON.stringify(payload), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -103,6 +98,8 @@ function publicOrder(order: OrderStatusInfo) {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'GET, POST, OPTIONS');
+  const jsonResponse = createJsonResponse(corsHeaders);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

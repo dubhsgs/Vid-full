@@ -1,10 +1,5 @@
 import { createServiceClient } from '../_shared/auth.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import { createCorsHeaders } from '../_shared/cors.ts';
 
 interface ContactRequest {
   name?: string;
@@ -17,8 +12,8 @@ interface ContactRequest {
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const RATE_LIMIT_MAX_PER_WINDOW = 3;
 
-function jsonResponse(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
+function createJsonResponse(corsHeaders: Record<string, string>) {
+  return (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -79,6 +74,8 @@ async function forwardEmail(input: Required<Pick<ContactRequest, 'name' | 'email
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(req, 'POST, OPTIONS');
+  const jsonResponse = createJsonResponse(corsHeaders);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

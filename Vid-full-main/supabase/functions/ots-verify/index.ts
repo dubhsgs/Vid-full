@@ -1,17 +1,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { createCorsHeaders } from '../_shared/cors.ts';
 import { isInternalRequest } from '../_shared/auth.ts';
 import { upgradeDetachedOTS } from '../_shared/ots.ts';
 
 const OTS_STORAGE_BUCKET = 'v-id-ots';
 const LEGACY_OTS_STORAGE_BUCKET = 'v-id-images';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, X-VAID-Internal-Secret, X-OTS-Worker-Secret',
-};
-
 Deno.serve(async (req: Request) => {
+  const corsHeaders = createCorsHeaders(
+    req,
+    'GET, POST, OPTIONS',
+    'Content-Type, Authorization, X-Client-Info, Apikey, X-VAID-Internal-Secret, X-OTS-Worker-Secret'
+  );
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
@@ -19,7 +19,9 @@ Deno.serve(async (req: Request) => {
   try {
     const bearerToken = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
     const apiKey = (req.headers.get('apikey') || '').trim();
-    if (!isInternalRequest(req) && !bearerToken && !apiKey) {
+    const anonKey = (Deno.env.get('SUPABASE_ANON_KEY') || '').trim();
+    const hasValidPublicKey = Boolean(anonKey) && (bearerToken === anonKey || apiKey === anonKey);
+    if (!isInternalRequest(req) && !hasValidPublicKey) {
       return new Response(
         JSON.stringify({ error: 'Forbidden' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
