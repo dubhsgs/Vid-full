@@ -6,6 +6,32 @@ import { upgradeDetachedOTS } from '../_shared/ots.ts';
 const OTS_STORAGE_BUCKET = 'v-id-ots';
 const LEGACY_OTS_STORAGE_BUCKET = 'v-id-images';
 
+function getAcceptedPublicKeys(): Set<string> {
+  const keys = new Set<string>();
+  const legacyKeys = [
+    Deno.env.get('SUPABASE_ANON_KEY'),
+    Deno.env.get('VAID_BROWSER_PUBLIC_KEY'),
+  ];
+
+  for (const key of legacyKeys) {
+    if (key?.trim()) keys.add(key.trim());
+  }
+
+  const encodedPublishableKeys = Deno.env.get('SUPABASE_PUBLISHABLE_KEYS');
+  if (encodedPublishableKeys) {
+    try {
+      const publishableKeys = JSON.parse(encodedPublishableKeys) as Record<string, unknown>;
+      for (const key of Object.values(publishableKeys)) {
+        if (typeof key === 'string' && key.trim()) keys.add(key.trim());
+      }
+    } catch {
+      console.error('[ots-verify] SUPABASE_PUBLISHABLE_KEYS is invalid JSON');
+    }
+  }
+
+  return keys;
+}
+
 Deno.serve(async (req: Request) => {
   const corsHeaders = createCorsHeaders(
     req,
@@ -19,8 +45,8 @@ Deno.serve(async (req: Request) => {
   try {
     const bearerToken = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
     const apiKey = (req.headers.get('apikey') || '').trim();
-    const anonKey = (Deno.env.get('SUPABASE_ANON_KEY') || '').trim();
-    const hasValidPublicKey = Boolean(anonKey) && (bearerToken === anonKey || apiKey === anonKey);
+    const acceptedPublicKeys = getAcceptedPublicKeys();
+    const hasValidPublicKey = acceptedPublicKeys.has(bearerToken) || acceptedPublicKeys.has(apiKey);
     if (!isInternalRequest(req) && !hasValidPublicKey) {
       return new Response(
         JSON.stringify({ error: 'Forbidden' }),
