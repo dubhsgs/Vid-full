@@ -96,14 +96,14 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.VAID_DEPLOY_SSH_KEY }}" > ~/.ssh/vaid_deploy_key
           chmod 600 ~/.ssh/vaid_deploy_key
-          ssh-keyscan -H 47.93.232.20 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 39.96.117.236 >> ~/.ssh/known_hosts
 
       - name: Check server state
         shell: bash
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/vaid_deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
-            vaid-deploy@47.93.232.20 'bash -s' <<'REMOTE'
+            vaid-deploy@39.96.117.236 'bash -s' <<'REMOTE'
           set -euo pipefail
 
           current_release="$(readlink -f /srv/www/vaid.top/current)"
