@@ -55,7 +55,7 @@ jobs:
       - name: Upload build
         run: |
           tar -czf /tmp/vaid-dist.tgz -C dist .
-          scp -i ~/.ssh/vaid_deploy_key /tmp/vaid-dist.tgz vaid-deploy@39.96.117.236:/tmp/vaid-dist-${GITHUB_SHA}.tgz
+          scp -O -i ~/.ssh/vaid_deploy_key /tmp/vaid-dist.tgz vaid-deploy@39.96.117.236:/tmp/vaid-dist-${GITHUB_SHA}.tgz
 
       - name: Activate release
         run: |
